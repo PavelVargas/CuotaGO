@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Crear cuenta · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="auth-card auth-card-wide">
+  <div class="auth-brand auth-brand-centered">
+    <img class="auth-app-icon" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Icono de {{ app_name }}">
+    <div><h1>{{ app_name }}</h1><p>Crea tu espacio y empieza a controlar quién paga y cuándo.</p></div>
+  </div>
+
+  <div class="auth-heading">
+    <h2>Crear cuenta</h2>
+    <p>Solo toma un minuto.</p>
+  </div>
+
+  <form method="post" class="form-stack auth-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-grid two">
+      <label class="field field-span-2"><span>Nombre del negocio</span><input type="text" name="business_name" value="{{ business_name or '' }}" autocomplete="organization" required placeholder="Ej. Préstamos Rivera"></label>
+      <label class="field"><span>Tu nombre</span><input type="text" name="name" value="{{ name or '' }}" autocomplete="name" required placeholder="Nombre completo"></label>
+      <label class="field"><span>Correo</span><input type="email" name="email" value="{{ email or '' }}" autocomplete="email" autocapitalize="none" spellcheck="false" inputmode="email" required placeholder="tu@correo.com"></label>
+      <label class="field"><span>Contraseña</span><input type="password" name="password" autocomplete="new-password" required minlength="8" placeholder="Mínimo 8 caracteres"></label>
+      <label class="field"><span>Confirmar contraseña</span><input type="password" name="confirm_password" autocomplete="new-password" required minlength="8" placeholder="Repite la contraseña"></label>
+    </div>
+    <button class="btn btn-primary btn-lg btn-block" type="submit">Crear mi cuenta</button>
+  </form>
+
+  <p class="auth-switch">¿Ya tienes cuenta? <a href="{{ url_for('auth.login') }}">Entrar</a></p>
+</section>
+{% endblock %}

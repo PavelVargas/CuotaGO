@@ -1,0 +1,14 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.env
+*.db
+.pytest_cache/
+.DS_Store
+
+# Railway / secrets
+.env.*.private
+railway.env
+*.pem
+*.key

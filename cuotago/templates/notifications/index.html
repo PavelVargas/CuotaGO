@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Notificaciones · {{ app_name }}{% endblock %}
+
+{% macro alert_rows(rows) %}
+  {% for item in rows %}
+  <a class="payment-notification-row is-{{ item.type }}" href="{{ item.url }}">
+    <span class="payment-notification-icon">{{ icon('bell', 23) }}</span>
+    <span class="payment-notification-copy">
+      <span class="payment-notification-top"><strong>{{ item.title }}</strong><time>{{ item.detail }}</time></span>
+      <b>{{ item.client }}</b>
+      <small>{{ item.asset }}{% if item.contractCode %} · {{ item.contractCode }}{% endif %}</small>
+    </span>
+    <span class="payment-notification-amount">{{ item.amount }}<small>{{ item.dueLabel }}</small></span>
+    <span class="payment-notification-arrow">›</span>
+  </a>
+  {% else %}
+    <div class="notification-empty-inline">No hay nada pendiente aquí.</div>
+  {% endfor %}
+{% endmacro %}
+
+{% block content %}
+<section class="content-page narrow-page notifications-page" data-notifications-page>
+  <div class="page-head simple-page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <div><h1>Notificaciones</h1><p>Pagos que necesitan tu atención. Toca una alerta y vas directo al cobro.</p></div>
+    </div>
+  </div>
+
+  <section class="surface notification-overview">
+    <div class="notification-overview-copy">
+      <span class="notification-overview-icon">{{ icon('bell', 25) }}</span>
+      <div><strong>Alertas dentro de CuotaGo</strong><p data-local-alert-copy>Funcionan también en tu Wi‑Fi local. Toca “Probar” una vez para confirmar el sonido en este teléfono.</p></div>
+    </div>
+    <div class="notification-overview-actions"><span class="push-status" data-local-alert-status>Se activa al tocar</span><button class="btn btn-secondary btn-sm" type="button" data-local-alert-test>Probar alerta y sonido</button></div>
+  </section>
+
+  <div class="notification-mini-kpis">
+    <div class="danger"><span>Vencidos</span><strong>{{ overdue|length }}</strong></div>
+    <div class="warning"><span>Hoy</span><strong>{{ due_today|length }}</strong></div>
+    <div><span>Próximos</span><strong>{{ upcoming|length }}</strong></div>
+  </div>
+
+  {% if items %}
+    {% if overdue %}
+    <section class="surface notification-group">
+      <div class="notification-group-head"><div><span class="eyebrow danger-text">VENCIDOS</span><h2>Necesitan atención</h2></div><span>{{ overdue|length }}</span></div>
+      <div class="payment-notification-list">{{ alert_rows(overdue) }}</div>
+    </section>
+    {% endif %}
+
+    {% if due_today %}
+    <section class="surface notification-group">
+      <div class="notification-group-head"><div><span class="eyebrow warning-text">HOY</span><h2>Cobros del día</h2></div><span>{{ due_today|length }}</span></div>
+      <div class="payment-notification-list">{{ alert_rows(due_today) }}</div>
+    </section>
+    {% endif %}
+
+    {% if upcoming %}
+    <section class="surface notification-group">
+      <div class="notification-group-head"><div><span class="eyebrow">PRÓXIMOS 7 DÍAS</span><h2>Lo que viene</h2></div><span>{{ upcoming|length }}</span></div>
+      <div class="payment-notification-list">{{ alert_rows(upcoming) }}</div>
+    </section>
+    {% endif %}
+  {% else %}
+    <section class="surface notifications-empty">
+      <span>{{ icon('bell', 34) }}</span>
+      <strong>Todo está al día</strong>
+      <p>Cuando un cliente tenga un pago próximo, para hoy o vencido, aparecerá aquí automáticamente.</p>
+      <a class="btn btn-primary" href="{{ url_for('main.contract_new') }}">Crear acuerdo</a>
+    </section>
+  {% endif %}
+</section>
+{% endblock %}

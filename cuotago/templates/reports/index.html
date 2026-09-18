@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Reportes · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page">
+  <div class="page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back', 22) }}</a><div><span class="eyebrow">REPORTES</span><h1>Resumen del negocio</h1><p>Números básicos para saber cuánto has cobrado y cuánto falta.</p></div></div></div>
+
+  <div class="report-hero-grid">
+    <article class="report-card primary"><span>Por cobrar</span><strong>{{ money(receivable) }}</strong><small>{{ active_count }} acuerdos activos</small></article>
+    <article class="report-card"><span>Cobrado este mes</span><strong>{{ money(month_collected) }}</strong><small>Pagos registrados</small></article>
+    <article class="report-card danger"><span>Vencido</span><strong>{{ money(overdue_total) }}</strong><small>{{ overdue_count }} cuotas</small></article>
+  </div>
+
+  <div class="report-grid">
+    <section class="surface report-panel"><div class="section-heading"><div><span class="eyebrow">ACTIVIDAD</span><h2>Estado general</h2></div></div><div class="stat-list"><div><span>Acuerdos activos</span><strong>{{ active_count }}</strong></div><div><span>Acuerdos completados</span><strong>{{ completed_count }}</strong></div><div><span>Clientes</span><strong>{{ clients_count }}</strong></div><div><span>Bienes registrados</span><strong>{{ assets_count }}</strong></div></div></section>
+    <section class="surface report-panel"><div class="section-heading"><div><span class="eyebrow">LECTURA RÁPIDA</span><h2>Qué mirar cada día</h2></div></div><div class="tip-list"><p><strong>1. Vencidos:</strong> son los cobros que ya pasaron de fecha.</p><p><strong>2. Por cobrar:</strong> es el saldo que todavía deben tus clientes.</p><p><strong>3. Cobrado este mes:</strong> solo cuenta pagos registrados después del inicial.</p></div></section>
+  </div>
+</section>
+{% endblock %}

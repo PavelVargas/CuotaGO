@@ -1,0 +1,317 @@
+import atexit
+import base64
+import json
+import logging
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from flask import Blueprint, current_app, jsonify, request
+from flask_login import current_user, login_required
+from sqlalchemy.exc import IntegrityError
+
+from .extensions import db
+from .models import Contract, Installment, PushNotificationLog, PushSubscription
+
+push_bp = Blueprint("push", __name__)
+log = logging.getLogger(__name__)
+_scheduler = None
+
+
+def _private_key_path(app):
+    path = Path(app.instance_path) / "vapid_private.pem"
+    encoded = (app.config.get("VAPID_PRIVATE_KEY_B64") or "").strip()
+    if encoded:
+        try:
+            raw = base64.urlsafe_b64decode(encoded.encode("ascii"))
+            if not path.exists() or path.read_bytes() != raw:
+                path.write_bytes(raw)
+            return str(path)
+        except Exception as exc:
+            app.logger.error("No se pudo preparar la clave VAPID privada: %s", exc)
+    return None
+
+
+def _push_ready(app):
+    return bool(
+        app.config.get("PUSH_NOTIFICATIONS_ENABLED")
+        and app.config.get("VAPID_PUBLIC_KEY")
+        and _private_key_path(app)
+    )
+
+
+def _money(amount, currency):
+    value = Decimal(str(amount or 0))
+    prefix = {"DOP": "RD$", "USD": "US$", "EUR": "€"}.get(currency or "DOP", f"{currency} ")
+    return f"{prefix}{value:,.2f}"
+
+
+def _subscription_info(subscription):
+    return {
+        "endpoint": subscription.endpoint,
+        "keys": {"p256dh": subscription.p256dh, "auth": subscription.auth},
+    }
+
+
+def send_payload_to_subscription(app, subscription, payload):
+    try:
+        from pywebpush import WebPushException, webpush
+    except ImportError:
+        app.logger.error("pywebpush no esta instalado. Ejecuta pip install -r requirements.txt")
+        return False
+
+    private_key = _private_key_path(app)
+    if not private_key:
+        app.logger.error("Falta la clave VAPID privada.")
+        return False
+
+    try:
+        webpush(
+            subscription_info=_subscription_info(subscription),
+            data=json.dumps(payload, ensure_ascii=False),
+            vapid_private_key=private_key,
+            vapid_claims={"sub": app.config.get("VAPID_SUBJECT", "mailto:admin@cuotago.app")},
+            timeout=10,
+        )
+        subscription.last_seen_at = datetime.utcnow()
+        db.session.commit()
+        return True
+    except WebPushException as exc:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+        if status in {404, 410}:
+            subscription.is_active = False
+            db.session.commit()
+        else:
+            db.session.rollback()
+        app.logger.warning("Fallo enviando Web Push (%s): %s", status or "sin status", exc)
+    except Exception as exc:
+        db.session.rollback()
+        app.logger.exception("Error inesperado enviando Web Push: %s", exc)
+    return False
+
+
+def send_payload_to_org(app, organization_id, payload):
+    subscriptions = PushSubscription.query.filter_by(
+        organization_id=organization_id,
+        is_active=True,
+    ).all()
+    sent = 0
+    for subscription in subscriptions:
+        if send_payload_to_subscription(app, subscription, payload):
+            sent += 1
+    return sent
+
+
+def overdue_payload(installment):
+    contract = installment.contract
+    currency = "DOP"
+    try:
+        from .models import Organization
+        organization = db.session.get(Organization, contract.organization_id)
+        if organization and organization.currency:
+            currency = organization.currency
+    except Exception:
+        pass
+
+    return {
+        "type": "overdue",
+        "title": "Pago atrasado",
+        "body": f"{contract.client.full_name} no ha pagado {_money(installment.remaining, currency)}. Vencio el {installment.due_date.strftime('%d/%m')}",
+        "url": f"/contracts/{contract.id}#pay",
+        "tag": f"cuotago-overdue-{installment.id}",
+        "installmentId": installment.id,
+        "contractId": contract.id,
+        "clientName": contract.client.full_name,
+        "amount": str(installment.remaining),
+    }
+
+
+def scan_overdue_and_notify(app):
+    if not _push_ready(app):
+        return 0
+
+    tz = ZoneInfo(app.config.get("APP_TIMEZONE", "America/Santo_Domingo"))
+    now_local = datetime.now(tz)
+    if now_local.hour < int(app.config.get("PUSH_ALERT_START_HOUR", 8)):
+        return 0
+
+    today_local = now_local.date()
+    with app.app_context():
+        candidates = (
+            Installment.query.join(Contract)
+            .filter(Contract.status == "active", Installment.due_date < today_local)
+            .order_by(Installment.due_date.asc())
+            .all()
+        )
+        sent_events = 0
+        for installment in candidates:
+            if installment.remaining <= Decimal("0.009"):
+                continue
+            exists = PushNotificationLog.query.filter_by(
+                installment_id=installment.id,
+                event_type="overdue",
+            ).first()
+            if exists:
+                continue
+            active_count = PushSubscription.query.filter_by(
+                organization_id=installment.contract.organization_id,
+                is_active=True,
+            ).count()
+            if not active_count:
+                continue
+
+            sent = send_payload_to_org(app, installment.contract.organization_id, overdue_payload(installment))
+            if sent:
+                db.session.add(PushNotificationLog(
+                    organization_id=installment.contract.organization_id,
+                    installment_id=installment.id,
+                    event_type="overdue",
+                ))
+                try:
+                    db.session.commit()
+                    sent_events += 1
+                except IntegrityError:
+                    db.session.rollback()
+        return sent_events
+
+
+def start_push_scheduler(app):
+    global _scheduler
+    if _scheduler is not None or app.config.get("TESTING"):
+        return
+    if not app.config.get("PUSH_SCHEDULER_ENABLED", True):
+        return
+    if not _push_ready(app):
+        app.logger.warning("Push scheduler desactivado: faltan claves VAPID o PUSH_NOTIFICATIONS_ENABLED=0")
+        return
+
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+    except ImportError:
+        app.logger.warning("APScheduler no esta instalado; no se ejecutaran alertas automaticas.")
+        return
+
+    timezone_name = app.config.get("APP_TIMEZONE", "America/Santo_Domingo")
+    interval = int(app.config.get("PUSH_CHECK_INTERVAL_MINUTES", 5))
+    scheduler = BackgroundScheduler(timezone=timezone_name, daemon=True)
+    scheduler.add_job(
+        lambda: scan_overdue_and_notify(app),
+        trigger="interval",
+        minutes=interval,
+        id="cuotago-overdue-push",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+        next_run_time=datetime.now(ZoneInfo(timezone_name)) + timedelta(seconds=12),
+    )
+    scheduler.start()
+    _scheduler = scheduler
+    atexit.register(lambda: scheduler.shutdown(wait=False) if scheduler.running else None)
+    app.logger.info("Push scheduler activo cada %s minuto(s).", interval)
+
+
+@push_bp.get("/api/push/config")
+@login_required
+def push_config():
+    return jsonify({
+        "enabled": _push_ready(current_app),
+        "publicKey": current_app.config.get("VAPID_PUBLIC_KEY", ""),
+        "subscriptionCount": PushSubscription.query.filter_by(
+            user_id=current_user.id,
+            is_active=True,
+        ).count(),
+    })
+
+
+@push_bp.post("/api/push/subscribe")
+@login_required
+def push_subscribe():
+    if not _push_ready(current_app):
+        return jsonify({"ok": False, "message": "Las notificaciones push no estan configuradas en el servidor."}), 503
+
+    data = request.get_json(silent=True) or {}
+    endpoint = (data.get("endpoint") or "").strip()
+    keys = data.get("keys") or {}
+    p256dh = (keys.get("p256dh") or "").strip()
+    auth = (keys.get("auth") or "").strip()
+    if not endpoint.startswith("https://") or not p256dh or not auth:
+        return jsonify({"ok": False, "message": "Suscripcion push invalida."}), 400
+
+    subscription = PushSubscription.query.filter_by(endpoint=endpoint).first()
+    if subscription is None:
+        subscription = PushSubscription(endpoint=endpoint)
+        db.session.add(subscription)
+
+    subscription.organization_id = current_user.organization_id
+    subscription.user_id = current_user.id
+    subscription.p256dh = p256dh
+    subscription.auth = auth
+    subscription.user_agent = (request.headers.get("User-Agent") or "")[:300]
+    subscription.is_active = True
+    subscription.last_seen_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({"ok": True, "message": "Alertas activadas en este telefono."})
+
+
+@push_bp.post("/api/push/unsubscribe")
+@login_required
+def push_unsubscribe():
+    data = request.get_json(silent=True) or {}
+    endpoint = (data.get("endpoint") or "").strip()
+    if endpoint:
+        PushSubscription.query.filter_by(
+            endpoint=endpoint,
+            user_id=current_user.id,
+        ).update({"is_active": False})
+        db.session.commit()
+    return jsonify({"ok": True})
+
+
+@push_bp.get("/api/push/pending-alerts")
+@login_required
+def push_pending_alerts():
+    """Fallback visible mientras la app esta abierta si el navegador no logra crear Web Push."""
+    tz = ZoneInfo(current_app.config.get("APP_TIMEZONE", "America/Santo_Domingo"))
+    today_local = datetime.now(tz).date()
+    candidates = (
+        Installment.query.join(Contract)
+        .filter(
+            Contract.organization_id == current_user.organization_id,
+            Contract.status == "active",
+            Installment.due_date < today_local,
+        )
+        .order_by(Installment.due_date.asc())
+        .limit(20)
+        .all()
+    )
+    items = [overdue_payload(item) for item in candidates if item.remaining > Decimal("0.009")]
+    return jsonify({"ok": True, "count": len(items), "items": items})
+
+
+@push_bp.post("/api/push/test")
+@login_required
+def push_test():
+    if not _push_ready(current_app):
+        return jsonify({"ok": False, "message": "Push no esta configurado."}), 503
+
+    payload = {
+        "type": "test",
+        "title": "CuotaGo esta listo",
+        "body": "Las alertas de cobro estan activas. Cuando un cliente se atrase, te avisaremos aqui.",
+        "url": "/notifications",
+        "tag": f"cuotago-test-{current_user.id}",
+    }
+    data = request.get_json(silent=True) or {}
+    endpoint = (data.get("endpoint") or "").strip()
+    query = PushSubscription.query.filter_by(user_id=current_user.id, is_active=True)
+    if endpoint:
+        query = query.filter_by(endpoint=endpoint)
+    subscriptions = query.all()
+    if not subscriptions:
+        return jsonify({"ok": False, "sent": 0, "message": "Este telefono no tiene una suscripcion Push activa."}), 400
+
+    sent = sum(1 for sub in subscriptions if send_payload_to_subscription(current_app, sub, payload))
+    if sent:
+        return jsonify({"ok": True, "sent": sent, "message": "Notificacion de prueba enviada a este telefono."})
+    return jsonify({"ok": False, "sent": 0, "message": "El servicio Push no pudo entregar la prueba a este telefono."}), 502

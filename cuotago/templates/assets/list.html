@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Bienes · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page">
+  <div class="page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <div><span class="eyebrow">BIENES</span><h1>Carros, celulares y más</h1><p>Todo lo que entregas o financias.</p></div>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('main.asset_new') }}">+ Nuevo bien</a>
+  </div>
+
+  <div class="toolbar toolbar-wrap">
+    <form class="filter-row" method="get">
+      <label class="search-box">{{ icon('search', 19) }}<input name="q" value="{{ q }}" placeholder="Buscar bien, placa, IMEI o serial"></label>
+      <select name="status" onchange="this.form.submit()">
+        <option value="">Todos los estados</option>
+        <option value="available" {{ 'selected' if status=='available' }}>Disponibles</option>
+        <option value="on_loan" {{ 'selected' if status=='on_loan' }}>Entregados</option>
+        <option value="maintenance" {{ 'selected' if status=='maintenance' }}>Mantenimiento</option>
+        <option value="sold" {{ 'selected' if status=='sold' }}>Vendidos</option>
+      </select>
+    </form>
+    <span class="result-count">{{ assets|length }} bien{{ 'es' if assets|length != 1 }}</span>
+  </div>
+
+  <div class="asset-grid">
+    {% for asset in assets %}
+      <article class="asset-card">
+        <div class="asset-card-top">
+          <span class="asset-kind-icon {{ 'accent-blue' if asset.kind=='car' else 'accent-purple' if asset.kind=='phone' else 'accent-teal' }}">{{ icon('car' if asset.kind in ['car','motorcycle'] else 'phone' if asset.kind=='phone' else 'box', 30) }}</span>
+          <span class="status-pill status-{{ asset.status }}">{{ asset_status_label(asset.status) }}</span>
+        </div>
+        <h3>{{ asset.name }}</h3>
+        <p>{{ [asset.brand, asset.model]|select|join(' · ') or asset_kind_label(asset.kind) }}</p>
+        <dl class="mini-dl">
+          <div><dt>Identificador</dt><dd>{{ asset.identifier or asset.serial_number or '—' }}</dd></div>
+          <div><dt>Valor ref.</dt><dd>{{ money(asset.estimated_value) }}</dd></div>
+        </dl>
+        <a class="card-link" href="{{ url_for('main.asset_edit', asset_id=asset.id) }}">Editar detalles →</a>
+      </article>
+    {% else %}
+      <div class="surface empty-state full-grid"><span class="empty-icon">{{ icon('box', 34) }}</span><h3>No hay bienes registrados</h3><p>Registra un carro, celular o cualquier artículo que entregues.</p><a class="btn btn-primary" href="{{ url_for('main.asset_new') }}">Registrar bien</a></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

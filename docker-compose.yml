@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - cuotago_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_NAME: ${APP_NAME:-CuotaGo}
+      APP_VERSION: ${APP_VERSION:-1.8.1}
+      APP_ENV: production
+      APP_CURRENCY: ${APP_CURRENCY:-DOP}
+      APP_TIMEZONE: ${APP_TIMEZONE:-America/Santo_Domingo}
+      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      AUTO_CREATE_DB: "1"
+      FLASK_DEBUG: "0"
+      COOKIE_SECURE: "0"
+      PUSH_NOTIFICATIONS_ENABLED: ${PUSH_NOTIFICATIONS_ENABLED:-1}
+      PUSH_SCHEDULER_ENABLED: ${PUSH_SCHEDULER_ENABLED:-1}
+      PUSH_CHECK_INTERVAL_MINUTES: ${PUSH_CHECK_INTERVAL_MINUTES:-5}
+      PUSH_ALERT_START_HOUR: ${PUSH_ALERT_START_HOUR:-8}
+      VAPID_SUBJECT: ${VAPID_SUBJECT}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY_B64: ${VAPID_PRIVATE_KEY_B64}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3).read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  cuotago_postgres_data:

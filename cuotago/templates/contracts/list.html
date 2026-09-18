@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Acuerdos · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page">
+  <div class="page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back', 22) }}</a>
+      <div><span class="eyebrow">ACUERDOS</span><h1>Préstamos y ventas a crédito</h1><p>Saldo, progreso y próxima fecha en un solo lugar.</p></div>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('main.contract_new') }}">+ Nuevo acuerdo</a>
+  </div>
+
+  <div class="toolbar">
+    <form class="filter-row" method="get">
+      <select name="status" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        <option value="active" {{ 'selected' if status=='active' }}>Activos</option>
+        <option value="completed" {{ 'selected' if status=='completed' }}>Completados</option>
+      </select>
+    </form>
+    <span class="result-count">{{ contracts|length }} acuerdo{{ 's' if contracts|length != 1 }}</span>
+  </div>
+
+  <div class="contract-grid">
+  {% for contract in contracts %}
+    <a class="contract-card" href="{{ url_for('main.contract_detail', contract_id=contract.id) }}">
+      <div class="contract-card-top">
+        <div><span class="contract-code">{{ contract.code }}</span><h3>{{ contract.client.full_name }}</h3><p>{{ contract.asset.name }}</p></div>
+        <span class="status-pill status-{{ contract.status }}">{{ contract_status_label(contract.status) }}</span>
+      </div>
+      <div class="progress-track"><span style="width: {{ contract.progress_percent }}%"></span></div>
+      <div class="contract-numbers"><div><small>Pagado</small><strong>{{ money(contract.paid_total) }}</strong></div><div><small>Pendiente</small><strong>{{ money(contract.balance) }}</strong></div></div>
+      <div class="contract-footer"><span>{{ deal_type_label(contract.deal_type) }}</span><strong>{% if contract.next_installment %}Próximo: {{ contract.next_installment.due_date.strftime('%d/%m/%Y') }}{% else %}Sin pagos pendientes{% endif %}</strong></div>
+    </a>
+  {% else %}
+    <div class="surface empty-state full-grid"><span class="empty-icon">{{ icon('contract', 34) }}</span><h3>Aún no hay acuerdos</h3><p>Crea el primero y {{ app_name }} generará automáticamente las fechas de pago.</p><a class="btn btn-primary" href="{{ url_for('main.contract_new') }}">Crear acuerdo</a></div>
+  {% endfor %}
+  </div>
+</section>
+{% endblock %}

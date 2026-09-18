@@ -281,5 +281,3 @@ flask --app app notify-overdue
 - Las fechas de cobro usan la zona horaria configurada de la app.
 
 > En iPhone, una PWA en HTTP local puede mostrar alertas **dentro de CuotaGo** y reproducir sonido despues de una interaccion del usuario. Las notificaciones del sistema con la app cerrada siguen requiriendo HTTPS/Web Push y el sonido final lo controla iOS.
-#   C u o t a G O  
- 

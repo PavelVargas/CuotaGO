@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}{{ contract.client.full_name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page narrow-page contract-simple-detail">
+  <div class="page-head simple-page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.contracts') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <div><h1>{{ contract.client.full_name }}</h1><p>{{ contract.asset.name }} · {{ contract.code }}</p></div>
+    </div>
+    <span class="status-pill status-{{ contract.status }}">{{ contract_status_label(contract.status) }}</span>
+  </div>
+
+  <section class="surface balance-card simple-balance-card">
+    <div class="balance-top"><div><span>Saldo pendiente</span><strong>{{ money(contract.balance) }}</strong></div><div class="progress-number">{{ '%.0f'|format(contract.progress_percent) }}%</div></div>
+    <div class="progress-track big"><span style="width: {{ contract.progress_percent }}%"></span></div>
+    <div class="balance-metrics compact-balance-metrics">
+      <div><small>Total</small><strong>{{ money(contract.total_amount) }}</strong></div>
+      <div><small>Pagado</small><strong>{{ money(contract.paid_total) }}</strong></div>
+      <div><small>Cuota</small><strong>{{ money(contract.installment_amount) }}</strong></div>
+    </div>
+  </section>
+
+  {% if contract.status == 'active' %}
+  <section class="surface pay-card primary-pay-card" id="pay">
+    <div class="quick-section-head no-step"><div><strong>Registrar cobro</strong><small>El monto ya viene con la próxima cuota.</small></div></div>
+    <form method="post" action="{{ url_for('main.contract_pay', contract_id=contract.id) }}" class="form-stack quick-payment-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="field"><span>Monto</span><input class="payment-amount-input" type="number" name="amount" step="0.01" min="0.01" max="{{ contract.balance }}" required value="{{ contract.next_installment.remaining if contract.next_installment else contract.balance }}" inputmode="decimal"></label>
+      <div class="payment-method-pills">
+        <label><input type="radio" name="method" value="cash" checked><span>Efectivo</span></label>
+        <label><input type="radio" name="method" value="transfer"><span>Transferencia</span></label>
+        <label><input type="radio" name="method" value="card"><span>Tarjeta</span></label>
+      </div>
+      <details class="advanced-options small-advanced">
+        <summary>Agregar nota</summary>
+        <div class="advanced-options-body"><label class="field"><input name="note" placeholder="Nota opcional"></label></div>
+      </details>
+      <button class="btn btn-primary btn-lg btn-block" type="submit">Guardar pago</button>
+    </form>
+    {% if contract.client.phone and contract.next_installment and wa_link(contract.client, contract, contract.next_installment) %}<a class="btn btn-whatsapp btn-block" target="_blank" rel="noopener" href="{{ wa_link(contract.client, contract, contract.next_installment) }}">Recordar por WhatsApp</a>{% endif %}
+  </section>
+  {% endif %}
+
+  <section class="surface schedule-card simple-schedule-card">
+    <div class="section-heading"><div><span class="eyebrow">CUOTAS</span><h2>Calendario</h2></div><span>{{ frequency_label(contract.frequency) }}</span></div>
+    <div class="installment-list">
+      {% for installment in contract.installments %}
+      <div class="installment-row {% if installment.is_paid %}is-paid{% elif installment.due_date < today %}is-overdue{% elif installment.due_date == today %}is-today{% endif %}">
+        <div class="installment-seq">{{ installment.sequence }}</div>
+        <div class="installment-date"><strong>{{ installment.due_date.strftime('%d/%m/%Y') }}</strong><small>{% if installment.is_paid %}Pagada{% elif installment.due_date < today %}Vencida{% elif installment.due_date == today %}Vence hoy{% else %}Pendiente{% endif %}</small></div>
+        <div class="installment-value"><strong>{{ money(installment.remaining if not installment.is_paid else installment.amount) }}</strong>{% if installment.paid_amount and installment.paid_amount > 0 and not installment.is_paid %}<small>abonado {{ money(installment.paid_amount) }}</small>{% endif %}</div>
+        {% if contract.status == 'active' and not installment.is_paid %}
+        <form method="post" action="{{ url_for('main.contract_pay', contract_id=contract.id) }}" class="quick-pay-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="amount" value="{{ installment.remaining }}">
+          <input type="hidden" name="method" value="cash">
+          <button class="btn btn-ghost btn-sm" type="submit">Cobrar</button>
+        </form>
+        {% else %}<span class="paid-check">✓</span>{% endif %}
+      </div>
+      {% else %}<div class="empty-inline">No hay cuotas pendientes.</div>{% endfor %}
+    </div>
+  </section>
+
+  <details class="surface advanced-options detail-more">
+    <summary>Detalles del acuerdo</summary>
+    <div class="advanced-options-body">
+      <dl class="detail-dl">
+        <div><dt>Tipo</dt><dd>{{ deal_type_label(contract.deal_type) }}</dd></div>
+        <div><dt>Cliente</dt><dd>{{ contract.client.full_name }}</dd></div>
+        <div><dt>Teléfono</dt><dd>{{ contract.client.phone or '—' }}</dd></div>
+        <div><dt>Bien</dt><dd>{{ contract.asset.name }}</dd></div>
+        <div><dt>Identificador</dt><dd>{{ contract.asset.identifier or contract.asset.serial_number or '—' }}</dd></div>
+        <div><dt>Inicio</dt><dd>{{ contract.start_date.strftime('%d/%m/%Y') }}</dd></div>
+        <div><dt>Inicial</dt><dd>{{ money(contract.down_payment) }}</dd></div>
+        <div><dt>Frecuencia</dt><dd>{{ frequency_label(contract.frequency) }}</dd></div>
+      </dl>
+      {% if contract.notes %}<div class="note-box">{{ contract.notes }}</div>{% endif %}
+    </div>
+  </details>
+
+  {% if contract.payments %}
+  <details class="surface advanced-options detail-more">
+    <summary>Historial de pagos ({{ contract.payments|length }})</summary>
+    <div class="advanced-options-body payment-history">{% for payment in contract.payments[:12] %}<div><span><strong>{{ money(payment.amount) }}</strong><small>{{ payment.method|capitalize }}</small></span><time>{{ payment.paid_at.strftime('%d/%m/%Y') }}</time></div>{% endfor %}</div>
+  </details>
+  {% endif %}
+</section>
+{% endblock %}

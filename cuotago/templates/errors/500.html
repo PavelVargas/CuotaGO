@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block title %}Error · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="offline-card"><div class="empty-icon">!</div><h1>Algo no salió bien</h1><p>Recarga la pantalla. Si continúa, revisa el registro del servidor.</p><a class="btn btn-primary" href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">Volver</a></section>
+{% endblock %}

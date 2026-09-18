@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Calendario · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page">
+  <div class="page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back', 22) }}</a><div><span class="eyebrow">CALENDARIO</span><h1>Próximos 60 días</h1><p>Una agenda simple para saber quién paga y cuándo.</p></div></div></div>
+  <div class="timeline">
+    {% for day, installments in grouped.items() %}
+    <section class="timeline-day">
+      <div class="timeline-date"><strong>{{ day.strftime('%d') }}</strong><span>{{ day.strftime('%b') }}</span><small>{{ day.strftime('%Y') }}</small></div>
+      <div class="timeline-items">
+        {% for installment in installments %}
+        <a class="timeline-item" href="{{ url_for('main.contract_detail', contract_id=installment.contract.id) }}">
+          <div><strong>{{ installment.contract.client.full_name }}</strong><span>{{ installment.contract.asset.name }} · {{ installment.contract.code }}</span></div><strong>{{ money(installment.remaining) }}</strong>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% else %}
+    <div class="surface empty-state"><span class="empty-icon">{{ icon('calendar', 34) }}</span><h3>No hay pagos en los próximos 60 días</h3><p>Los acuerdos activos aparecerán aquí automáticamente.</p></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

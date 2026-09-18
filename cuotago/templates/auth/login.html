@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Entrar · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="auth-card">
+  <div class="auth-brand auth-brand-centered">
+    <img class="auth-app-icon" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Icono de {{ app_name }}">
+    <div><h1>{{ app_name }}</h1><p>Tu cartera, tus clientes y tus fechas en un solo lugar.</p></div>
+  </div>
+
+  <div class="auth-heading">
+    <h2>Bienvenido</h2>
+    <p>Entra para continuar con tus cobros.</p>
+  </div>
+
+  <form method="post" class="form-stack auth-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="field">
+      <span>Correo</span>
+      <input type="email" name="email" value="{{ email or '' }}" autocomplete="email" autocapitalize="none" spellcheck="false" inputmode="email" required placeholder="tu@correo.com">
+    </label>
+    <label class="field">
+      <span>Contraseña</span>
+      <input type="password" name="password" autocomplete="current-password" required placeholder="••••••••">
+    </label>
+    <label class="check-row"><input type="checkbox" name="remember"><span>Mantener sesión iniciada</span></label>
+    <button class="btn btn-primary btn-lg btn-block" type="submit">Entrar</button>
+  </form>
+
+  <p class="auth-switch">¿Es tu primera vez? <a href="{{ url_for('auth.register') }}">Crear cuenta</a></p>
+  <p class="auth-pwa-note">Diseñado para instalarse en tu iPhone o Android como app.</p>
+</section>
+{% endblock %}

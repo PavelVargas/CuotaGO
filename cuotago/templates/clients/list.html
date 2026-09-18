@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Clientes · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page">
+  <div class="page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <div><span class="eyebrow">CLIENTES</span><h1>Personas</h1><p>Contactos ligados a tus acuerdos.</p></div>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('main.client_new') }}">+ Nuevo cliente</a>
+  </div>
+
+  <div class="toolbar">
+    <form class="search-box" method="get">
+      {{ icon('search', 19) }}
+      <input name="q" value="{{ q }}" placeholder="Buscar por nombre, teléfono o documento">
+    </form>
+    <span class="result-count">{{ clients|length }} cliente{{ 's' if clients|length != 1 }}</span>
+  </div>
+
+  <div class="surface table-surface">
+    {% if clients %}
+    <table class="data-table">
+      <thead><tr><th>Cliente</th><th>Teléfono</th><th>Documento</th><th>Acuerdos</th><th></th></tr></thead>
+      <tbody>
+      {% for client in clients %}
+        <tr>
+          <td data-label="Cliente"><div class="person-cell"><span class="mini-avatar">{{ client.full_name[:1]|upper }}</span><div><strong>{{ client.full_name }}</strong><small>{{ client.email or 'Sin correo' }}</small></div></div></td>
+          <td data-label="Teléfono">{{ client.phone or '—' }}</td>
+          <td data-label="Documento">{{ client.document_id or '—' }}</td>
+          <td data-label="Acuerdos">{{ client.contracts|length }}</td>
+          <td class="table-actions"><a class="text-link" href="{{ url_for('main.client_edit', client_id=client.id) }}">Editar</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-state"><span class="empty-icon">{{ icon('users', 34) }}</span><h3>No hay clientes</h3><p>Agrega la primera persona para poder crear un acuerdo.</p><a class="btn btn-primary" href="{{ url_for('main.client_new') }}">Crear cliente</a></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Sin conexión · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="offline-card">
+  <div class="empty-icon">↻</div>
+  <h1>Sin conexión</h1>
+  <p>La app está instalada, pero esta pantalla necesita internet para actualizar los cobros.</p>
+  <button class="btn btn-primary" onclick="location.reload()">Reintentar</button>
+</section>
+{% endblock %}

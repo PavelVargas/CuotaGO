@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block title %}No encontrado · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="offline-card"><div class="empty-icon">404</div><h1>No encontramos esa pantalla</h1><p>Puede que el enlace haya cambiado.</p><a class="btn btn-primary" href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">Volver</a></section>
+{% endblock %}

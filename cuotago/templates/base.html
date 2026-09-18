@@ -1,0 +1,159 @@
+{% from 'macros/icons.html' import icon %}
+<!doctype html>
+<html lang="es" data-theme="light" data-theme-choice="system">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="cuotago-push-enabled" content="{{ '1' if config.get('PUSH_NOTIFICATIONS_ENABLED') and config.get('VAPID_PUBLIC_KEY') else '0' }}">
+  <meta name="cuotago-vapid-key" content="{{ config.get('VAPID_PUBLIC_KEY', '') }}">
+  <meta name="theme-color" content="#fffaf6" id="themeColorMeta">
+  <meta name="application-name" content="{{ app_name }}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" id="appleStatusMeta">
+  <meta name="apple-mobile-web-app-title" content="{{ app_name }}">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const standalone = matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      let showBoot = false;
+      if (standalone) {
+        try {
+          showBoot = sessionStorage.getItem('cuotago-boot-shown') !== '1';
+          if (showBoot) sessionStorage.setItem('cuotago-boot-shown', '1');
+        } catch (_) {
+          showBoot = true;
+        }
+      }
+      if (showBoot) root.classList.add('show-boot');
+
+      const key = 'cuotago-theme';
+      let choice = 'system';
+      try { choice = localStorage.getItem(key) || 'system'; } catch (_) {}
+      const dark = choice === 'dark' || (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+      root.dataset.themeChoice = choice;
+      root.dataset.theme = dark ? 'dark' : 'light';
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', showBoot ? '#fffaf6' : (dark ? '#0b0f14' : '#f4f7fb'));
+      document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.setAttribute('content', showBoot ? 'default' : (dark ? 'black-translucent' : 'default'));
+    })();
+  </script>
+  <style>
+    html,body{margin:0;min-height:100%;background:#f4f7fb}html[data-theme="dark"],html[data-theme="dark"] body{background:#0b0f14}
+    html.show-boot,html.show-boot body{background:#fffaf6!important}
+    .boot-splash{position:fixed;inset:0;z-index:9999;display:none;place-items:center;padding:max(env(safe-area-inset-top),16px) 18px max(env(safe-area-inset-bottom),16px);background:#fffaf6;transition:opacity .2s ease,visibility .2s ease}
+    html.show-boot .boot-splash{display:grid}.boot-splash-inner{display:flex;flex-direction:column;align-items:center;gap:12px;transform:translateY(-4vh)}.boot-splash img{width:112px;height:112px;border-radius:30px;box-shadow:0 18px 46px rgba(229,81,24,.14)}.boot-splash strong{font-family:"MuseoModerno",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:27px;font-weight:900;line-height:1;letter-spacing:-.055em;color:#101828}.boot-splash strong b{color:#ff6429}.boot-splash small{font-family:"MuseoModerno",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;font-weight:600;line-height:1.25;color:#7b8491}.boot-splash.is-hidden{opacity:0;visibility:hidden;pointer-events:none}@media(prefers-reduced-motion:reduce){.boot-splash{transition:none}}
+  </style>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=MuseoModerno:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}?v={{ config.get('APP_VERSION', '1.8.1') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+  <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='icons/favicon-64.png') }}">
+
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1320x2868-light.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1320x2868-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1290x2796-light.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1290x2796-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1206x2622-light.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1206x2622-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1179x2556-light.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1179x2556-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1284x2778-light.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1284x2778-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1242x2688-light.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1242x2688-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1170x2532-light.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1170x2532-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1125x2436-light.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1125x2436-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1080x2340-light.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1080x2340-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/828x1792-light.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/828x1792-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-light.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-dark.png') }}">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('APP_VERSION', '1.8.1') }}">
+</head>
+<body class="{% if current_user.is_authenticated %}app-authenticated{% else %}auth-shell{% endif %}">
+  <div class="boot-splash" id="bootSplash" aria-hidden="true">
+    <div class="boot-splash-inner">
+      <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="">
+      <strong>Cuota<b>Go</b></strong>
+      <small>Cobros simples, sin enredos</small>
+    </div>
+  </div>
+
+  <div class="network-banner" id="networkBanner" role="status" hidden>{{ icon('offline', 16) }} <span>Sin conexión</span></div>
+
+  {% if current_user.is_authenticated %}
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="{{ url_for('main.dashboard') }}" aria-label="Ir al inicio">
+        <img class="brand-app-icon" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="">
+        <span class="brand-name">{{ app_name }}</span>
+        <span class="brand-badge">v{{ config.get('APP_VERSION', '1.8.1') }}</span>
+      </a>
+
+      <div class="topbar-actions">
+        <a class="topbar-notifications" href="{{ url_for('main.notifications') }}" aria-label="Notificaciones de pago">
+          {{ icon('bell', 22) }}
+          <span class="notification-count" data-notification-badge {% if not notification_count %}hidden{% endif %}>{{ notification_count if notification_count < 100 else '99+' }}</span>
+        </a>
+        <details class="user-menu">
+          <summary aria-label="Abrir menú de cuenta">
+            <span class="avatar">{{ current_user.name[:1]|upper }}</span>
+            <span class="user-copy"><strong>{{ current_user.name }}</strong><small>{{ current_user.role|capitalize }}</small></span>
+            <span class="chevron">⌄</span>
+          </summary>
+          <div class="user-dropdown">
+            <div class="dropdown-business"><span>{{ current_user.organization.name }}</span><small>{{ current_user.email }}</small></div>
+            <a href="{{ url_for('main.notifications') }}">{{ icon('bell', 18) }} <span>Notificaciones</span></a>
+            <div class="theme-inline" aria-label="Apariencia">
+              <span>Tema</span>
+              <div class="theme-segment">
+                <button type="button" data-theme-choice="light" aria-label="Tema claro">{{ icon('sun', 17) }}</button>
+                <button type="button" data-theme-choice="system" aria-label="Tema del sistema">{{ icon('phone', 17) }}</button>
+                <button type="button" data-theme-choice="dark" aria-label="Tema oscuro">{{ icon('moon', 17) }}</button>
+              </div>
+            </div>
+            <a href="{{ url_for('main.settings') }}">{{ icon('settings', 18) }} <span>Configuración</span></a>
+            <button type="button" id="installAppBtn" class="dropdown-link" hidden>{{ icon('download', 18) }} <span>Instalar app</span></button>
+            <form method="post" action="{{ url_for('auth.logout') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="dropdown-link danger">{{ icon('logout', 18) }} <span>Cerrar sesión</span></button>
+            </form>
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  {% else %}
+    <button class="auth-theme-toggle" type="button" id="authThemeToggle" aria-label="Cambiar tema"><span class="theme-moon">{{ icon('moon', 20) }}</span><span class="theme-sun">{{ icon('sun', 20) }}</span></button>
+  {% endif %}
+
+  <div class="flash-stack" aria-live="polite">
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="flash flash-{{ category }}" data-flash>{{ message }}</div>
+    {% endfor %}
+  </div>
+
+  <main class="{% if current_user.is_authenticated %}page-shell{% else %}auth-main{% endif %}">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% if current_user.is_authenticated %}
+  <footer class="footer"><span class="status-dot"></span><span>© 2026 {{ app_name }}</span><a href="{{ url_for('main.settings') }}">Configuración</a></footer>
+  {% endif %}
+
+  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('APP_VERSION', '1.8.1') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

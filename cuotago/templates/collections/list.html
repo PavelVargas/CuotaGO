@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Cobros · {{ app_name }}{% endblock %}
+{% macro collection_rows(items, state) %}
+  {% for installment in items %}
+  <div class="collection-row {{ state }}">
+    <div class="collection-date"><strong>{{ installment.due_date.strftime('%d') }}</strong><span>{{ installment.due_date.strftime('%b') }}</span></div>
+    <div class="collection-person"><strong>{{ installment.contract.client.full_name }}</strong><small>{{ installment.contract.code }} · {{ installment.contract.asset.name }}</small></div>
+    <div class="collection-amount"><strong>{{ money(installment.remaining) }}</strong><small>Cuota #{{ installment.sequence }}</small></div>
+    <div class="collection-actions">
+      {% if wa_link(installment.contract.client, installment.contract, installment) %}<a class="icon-action whatsapp" href="{{ wa_link(installment.contract.client, installment.contract, installment) }}" target="_blank" rel="noopener" title="WhatsApp">WA</a>{% endif %}
+      <a class="icon-action" href="{{ url_for('main.contract_detail', contract_id=installment.contract.id) }}" title="Ver acuerdo">{{ icon('contract', 17) }}</a>
+      <form method="post" action="{{ url_for('main.contract_pay', contract_id=installment.contract.id) }}" class="collection-pay-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="amount" value="{{ installment.remaining }}">
+        <input type="hidden" name="method" value="cash">
+        <input type="hidden" name="next" value="{{ url_for('main.collections') }}">
+        <button class="btn btn-primary btn-sm quick-collect-btn" type="submit">Cobrar</button>
+      </form>
+    </div>
+  </div>
+  {% else %}<div class="empty-inline">Nada por aquí.</div>{% endfor %}
+{% endmacro %}
+{% block content %}
+<section class="content-page">
+  <div class="page-head">
+    <div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back', 22) }}</a><div><h1>Cobros</h1><p>Toca <strong>Cobrar</strong> y registra la cuota completa al instante.</p></div></div>
+  </div>
+
+  <div class="kpi-grid three-kpi">
+    <div class="kpi-card danger"><span>Vencido</span><strong>{{ money(overdue_total) }}</strong><small>{{ overdue|length }} cuota{{ 's' if overdue|length != 1 }}</small></div>
+    <div class="kpi-card warning"><span>Para hoy</span><strong>{{ due_today|length }}</strong><small>cobro{{ 's' if due_today|length != 1 }}</small></div>
+    <div class="kpi-card"><span>Próximos 30 días</span><strong>{{ upcoming|length }}</strong><small>cuota{{ 's' if upcoming|length != 1 }}</small></div>
+  </div>
+
+  <section class="surface collection-section">
+    <div class="section-heading"><div><span class="eyebrow danger-text">VENCIDOS</span><h2>Necesitan atención</h2></div><span>{{ overdue|length }}</span></div>
+    <div class="collection-list">{{ collection_rows(overdue, 'is-overdue') }}</div>
+  </section>
+
+  <section class="surface collection-section">
+    <div class="section-heading"><div><span class="eyebrow warning-text">HOY</span><h2>Cobros del día</h2></div><span>{{ due_today|length }}</span></div>
+    <div class="collection-list">{{ collection_rows(due_today, 'is-today') }}</div>
+  </section>
+
+  <section class="surface collection-section">
+    <div class="section-heading"><div><span class="eyebrow">PRÓXIMOS</span><h2>Siguientes 30 días</h2></div><span>{{ upcoming|length }}</span></div>
+    <div class="collection-list">{{ collection_rows(upcoming, '') }}</div>
+  </section>
+</section>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}{{ 'Editar' if client else 'Nuevo' }} cliente · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page narrow-page simple-form-page">
+  <div class="page-head simple-page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.clients') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <div><h1>{{ 'Editar cliente' if client else 'Nuevo cliente' }}</h1><p>Nombre y teléfono. Lo demás es opcional.</p></div>
+    </div>
+  </div>
+
+  <form method="post" class="surface form-surface simple-form-card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-stack primary-fields">
+      <label class="field"><span>Nombre completo *</span><input name="full_name" value="{{ client.full_name if client else request.form.get('full_name','') }}" required autofocus autocomplete="name" placeholder="Ej. Juan Pérez"></label>
+      <label class="field"><span>Teléfono</span><input name="phone" value="{{ client.phone if client else request.form.get('phone','') }}" inputmode="tel" autocomplete="tel" placeholder="809-000-0000"></label>
+    </div>
+
+    {% set has_more = client and (client.document_id or client.email or client.address or client.notes) %}
+    <details class="advanced-options" {% if has_more %}open{% endif %}>
+      <summary>Más datos</summary>
+      <div class="advanced-options-body">
+        <div class="form-grid two compact-grid">
+          <label class="field"><span>Cédula / documento</span><input name="document_id" value="{{ client.document_id if client else request.form.get('document_id','') }}" placeholder="Opcional"></label>
+          <label class="field"><span>Correo</span><input type="email" name="email" value="{{ client.email if client else request.form.get('email','') }}" autocomplete="email" placeholder="Opcional"></label>
+          <label class="field field-span-2"><span>Dirección</span><input name="address" value="{{ client.address if client else request.form.get('address','') }}" placeholder="Opcional"></label>
+          <label class="field field-span-2"><span>Notas</span><textarea name="notes" rows="2" placeholder="Referencia o detalle útil">{{ client.notes if client else request.form.get('notes','') }}</textarea></label>
+        </div>
+      </div>
+    </details>
+
+    <div class="quick-create-actions inside-card"><button class="btn btn-primary btn-lg btn-block" type="submit">Guardar cliente</button></div>
+  </form>
+</section>
+{% endblock %}
