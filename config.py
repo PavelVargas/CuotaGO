@@ -19,7 +19,7 @@ def normalize_database_url(url: str) -> str:
     url = (url or "").strip()
     if not url:
         user = quote_plus(os.getenv("POSTGRES_USER", "postgres"))
-        password = quote_plus(os.getenv("POSTGRES_PASSWORD", "12345"))
+        password = quote_plus(os.getenv("POSTGRES_PASSWORD", ""))
         host = os.getenv("POSTGRES_HOST", "127.0.0.1").strip() or "127.0.0.1"
         port = os.getenv("POSTGRES_PORT", "5432").strip() or "5432"
         database = quote_plus(os.getenv("POSTGRES_DB", "cuotago"))
@@ -35,7 +35,7 @@ def normalize_database_url(url: str) -> str:
 
 class Config:
     APP_NAME = os.getenv("APP_NAME", "CuotaGo")
-    APP_VERSION = os.getenv("APP_VERSION", "1.8.1")
+    APP_VERSION = os.getenv("APP_VERSION", "1.9.0")
     APP_ENV = os.getenv("APP_ENV", "local").strip().lower()
     APP_CURRENCY = os.getenv("APP_CURRENCY", "DOP")
     APP_TIMEZONE = os.getenv("APP_TIMEZONE", "America/Santo_Domingo")
@@ -61,6 +61,13 @@ class Config:
     REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
 
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+
+    # Cuenta maestra opcional. En Railway configura estas variables para crear/actualizar
+    # automáticamente un superadmin. No se usan credenciales por defecto en producción.
+    SUPERADMIN_EMAIL = os.getenv("SUPERADMIN_EMAIL", "").strip().lower()
+    SUPERADMIN_PASSWORD = os.getenv("SUPERADMIN_PASSWORD", "")
+    SUPERADMIN_NAME = os.getenv("SUPERADMIN_NAME", "Superadmin").strip() or "Superadmin"
+    SUPERADMIN_ORG_NAME = os.getenv("SUPERADMIN_ORG_NAME", "CuotaGo Administracion").strip() or "CuotaGo Administracion"
 
     # Web Push / notificaciones PWA
     VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY", "").strip()

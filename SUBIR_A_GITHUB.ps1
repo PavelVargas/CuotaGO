@@ -39,7 +39,7 @@ try { git rev-parse --verify HEAD *> $null } catch { $hasHead = $false }
 
 if (-not $hasHead -or $status) {
     git add .
-    git commit -m "CuotaGo v1.8.1 - PostgreSQL + Railway"
+    git commit -m "CuotaGo v1.9.0 - Superadmin + PWA + Push"
 }
 
 git branch -M main

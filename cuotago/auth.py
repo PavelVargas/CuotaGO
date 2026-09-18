@@ -1,5 +1,5 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import current_user, login_user, logout_user
+from flask_login import confirm_login, current_user, login_fresh, login_user, logout_user
 
 from .extensions import db
 from .models import Organization, User
@@ -7,10 +7,21 @@ from .models import Organization, User
 auth_bp = Blueprint("auth", __name__)
 
 
+def _safe_next(default_endpoint="main.dashboard"):
+    next_url = (request.values.get("next") or "").strip()
+    if next_url.startswith("/") and not next_url.startswith("//"):
+        return next_url
+    if current_user.is_authenticated and getattr(current_user, "role", "") == "superadmin":
+        return url_for("admin.dashboard")
+    return url_for(default_endpoint)
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        if not login_fresh():
+            return redirect(url_for("auth.resume", next=request.args.get("next", "")))
+        return redirect(url_for("admin.dashboard" if current_user.role == "superadmin" else "main.dashboard"))
 
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
@@ -25,16 +36,33 @@ def login():
         login_user(user, remember=remember)
         next_url = request.args.get("next", "")
         if next_url.startswith("/") and not next_url.startswith("//"):
-            return redirect(next_url)
-        return redirect(url_for("main.dashboard"))
+            separator = "&" if "?" in next_url else "?"
+            return redirect(f"{next_url}{separator}entered=1")
+        endpoint = "admin.dashboard" if user.role == "superadmin" else "main.dashboard"
+        return redirect(url_for(endpoint, entered=1))
 
     return render_template("auth/login.html")
+
+
+@auth_bp.route("/resume", methods=["GET", "POST"])
+def resume():
+    if not current_user.is_authenticated:
+        return redirect(url_for("auth.login", next=request.args.get("next", "")))
+
+    if request.method == "POST":
+        # UX confirmation for a trusted remembered session. No password is requested by design.
+        confirm_login()
+        target = _safe_next()
+        separator = "&" if "?" in target else "?"
+        return redirect(f"{target}{separator}entered=1")
+
+    return render_template("auth/resume.html", next_url=request.args.get("next", ""))
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        return redirect(url_for("admin.dashboard" if current_user.role == "superadmin" else "main.dashboard"))
 
     if request.method == "POST":
         business_name = request.form.get("business_name", "").strip()
@@ -74,7 +102,7 @@ def register():
         db.session.commit()
         login_user(user)
         flash("Tu cuenta está lista. Ya puedes empezar.", "success")
-        return redirect(url_for("main.dashboard"))
+        return redirect(url_for("main.dashboard", entered=1))
 
     return render_template("auth/register.html")
 

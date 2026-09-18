@@ -25,6 +25,6 @@ exit /b 0
 echo.
 echo ERROR: No se pudo conectar a PostgreSQL.
 echo Verifica que PostgreSQL este iniciado y que exista la base cuotago.
-echo Datos configurados: postgres / 12345 / cuotago / puerto 5432
+echo PostgreSQL se comprobara usando DATABASE_URL de tu .env
 pause
 exit /b 1

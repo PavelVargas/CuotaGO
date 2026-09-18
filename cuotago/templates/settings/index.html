@@ -49,10 +49,11 @@
     <div class="notification-actions">
       <a class="btn btn-secondary" href="{{ url_for('main.notifications') }}">Ver notificaciones de pago</a>
       <button class="btn btn-primary" type="button" data-push-enable>Activar notificaciones</button>
-      <button class="btn btn-secondary" type="button" data-push-test hidden>Probar Push</button>
+      <button class="btn btn-secondary" type="button" data-push-test hidden>Probar ahora</button>
+      <button class="btn btn-secondary btn-outside-test" type="button" data-push-test-background hidden>Simular con app cerrada</button>
       <button class="btn btn-ghost" type="button" data-push-disable hidden>Desactivar</button>
     </div>
-    <small class="notification-footnote" data-push-footnote>Las alertas remotas se configuran solo desde Ajustes. Para la demostración local, CuotaGo funciona normalmente aunque todavía no actives Push.</small>
+    <small class="notification-footnote" data-push-footnote>En Railway/HTTPS, “Simular con app cerrada” programa una alerta real 10 segundos después. Tócala, sal de CuotaGo y espera la notificación del sistema.</small>
   </section>
 
   <form method="post" class="surface form-surface settings-form">

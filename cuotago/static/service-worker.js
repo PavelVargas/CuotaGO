@@ -1,4 +1,4 @@
-const VERSION = '1.8.1';
+const VERSION = '1.9.0';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const RUNTIME_CACHE = `cuotago-runtime-${VERSION}`;
 const CORE = [
@@ -42,6 +42,7 @@ self.addEventListener('push', (event) => {
     icon: '/static/icons/icon-192.png',
     badge: '/static/icons/favicon-64.png',
     tag: payload.tag || `cuotago-${Date.now()}`,
+    silent: false,
     data: {
       url: payload.url || '/notifications',
       type: payload.type || 'general',

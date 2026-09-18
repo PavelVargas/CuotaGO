@@ -1,4 +1,4 @@
-# CuotaGo v1.8.1 en Railway
+# CuotaGo v1.9.0 en Railway
 
 Esta carpeta esta preparada para Railway con PostgreSQL.
 
@@ -31,7 +31,7 @@ En el mismo proyecto:
 2. Database.
 3. PostgreSQL.
 
-Railway crea sus propias credenciales de PostgreSQL. No uses `127.0.0.1` ni la clave local `12345` en produccion.
+Railway crea sus propias credenciales de PostgreSQL. No uses `127.0.0.1` ni tus credenciales locales en produccion.
 
 ## 4. Variables del servicio CuotaGo
 
@@ -39,7 +39,7 @@ Agrega estas variables en el servicio WEB de CuotaGo:
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.8.1
+APP_VERSION=1.9.0
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -50,6 +50,12 @@ PUSH_NOTIFICATIONS_ENABLED=true
 PUSH_SCHEDULER_ENABLED=true
 PUSH_CHECK_INTERVAL_MINUTES=5
 PUSH_ALERT_START_HOUR=8
+
+# Superadmin
+SUPERADMIN_EMAIL=admin@cuotago.app
+SUPERADMIN_PASSWORD=USA_UNA_CLAVE_LARGA_Y_UNICA
+SUPERADMIN_NAME=Superadmin
+SUPERADMIN_ORG_NAME=CuotaGo Administracion
 ```
 
 Ademas agrega:
@@ -82,6 +88,11 @@ En iPhone:
 2. Compartir -> Anadir a pantalla de inicio.
 3. Abre CuotaGo desde el icono instalado.
 4. Inicia sesion.
-5. Ajustes -> activa/probar notificaciones.
+5. Ajustes -> activa las notificaciones.
+6. Usa **Simular con app cerrada**: CuotaGo programa un Push real a 10 segundos; sal de la PWA y espera la alerta del sistema.
 
-Las notificaciones Push con la PWA cerrada requieren HTTPS y que el usuario conceda permiso desde una accion directa.
+Las notificaciones Push con la PWA cerrada requieren HTTPS y que el usuario conceda permiso desde una accion directa. El sonido/haptico final de una notificacion Web Push lo controla iOS/Android segun los ajustes del telefono.
+
+## 7. Superadmin
+
+Al arrancar, si `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD` estan configurados, CuotaGo crea o actualiza esa cuenta con rol `superadmin`. Ese usuario entra a `/superadmin`, desde donde puede vaciar Cobros, Acuerdos, Bienes, Clientes, Alertas, dispositivos Push, vaciar una empresa conservando sus usuarios o eliminar la empresa completa.

@@ -6,7 +6,7 @@ import pytest
 
 from cuotago import create_app
 from cuotago.extensions import db
-from cuotago.models import Asset, Client, Contract, Installment, PushSubscription, User
+from cuotago.models import Asset, Client, Contract, Installment, Organization, PushSubscription, User
 
 
 @pytest.fixture()
@@ -219,3 +219,53 @@ def test_mobile_bottom_bar_removed_and_museomoderno_loaded(client):
     response = register(client)
     assert b"mobile-tabbar" not in response.data
     assert b"MuseoModerno" in response.data
+
+
+def test_auth_pages_force_light_theme(client):
+    response = client.get('/login')
+    assert response.status_code == 200
+    assert b'data-auth-screen="1"' in response.data
+    assert b'auth-theme-toggle' not in response.data
+
+
+def test_resume_screen_shows_remembered_account(client, app):
+    register(client)
+    response = client.get('/resume')
+    assert response.status_code == 200
+    assert b'Continua con la cuenta' in response.data or b'Contin\xc3\xbaa con la cuenta' in response.data
+    assert b'pavel@example.com' in response.data
+    assert b'>Entrar<' in response.data
+
+
+def test_superadmin_can_clear_company_data(client, app):
+    register(client)
+    with app.app_context():
+        owner = User.query.filter_by(email='pavel@example.com').one()
+        admin_org = Organization(name='Admin CuotaGo', currency='DOP')
+        admin = User(organization=admin_org, name='Admin', email='admin@example.com', role='superadmin')
+        admin.set_password('superadmin12345')
+        db.session.add_all([admin_org, admin])
+        db.session.commit()
+
+    client.post('/logout')
+    client.post('/login', data={'email': 'admin@example.com', 'password': 'superadmin12345'}, follow_redirects=True)
+    with app.app_context():
+        target_org = User.query.filter_by(email='pavel@example.com').one().organization_id
+
+    response = client.post(f'/superadmin/organizations/{target_org}/reset', follow_redirects=True)
+    assert response.status_code == 200
+    assert b'quedo vacia' in response.data or b'qued\xc3\xb3 vac\xc3\xada' in response.data
+    with app.app_context():
+        assert User.query.filter_by(email='pavel@example.com').count() == 1
+        assert Client.query.filter_by(organization_id=target_org).count() == 0
+        assert Asset.query.filter_by(organization_id=target_org).count() == 0
+        assert Contract.query.filter_by(organization_id=target_org).count() == 0
+
+
+def test_delayed_push_route_exists_in_source():
+    from pathlib import Path
+    source = Path('cuotago/push.py').read_text(encoding='utf-8')
+    assert '/api/push/test-delayed' in source
+    js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
+    assert 'data-push-test-background' in js
+    assert 'setupPullToRefresh' in js

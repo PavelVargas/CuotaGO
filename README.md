@@ -1,8 +1,18 @@
-# CuotaGo MOBILE PWA v1.8.1 - PostgreSQL local
+# CuotaGo MOBILE PWA v1.9.0 · PostgreSQL + Railway
 
-Aplicación Flask funcional para controlar clientes que reciben carros, celulares u otros bienes y pagan por cuotas. Registra qué se entregó, cuánto debe cada persona, el calendario de pagos, pagos parciales, vencidos, próximos cobros y recordatorios por WhatsApp.
+Esta version parte de la aplicacion PostgreSQL v1.8.1 y agrega cinco mejoras: **superadmin**, login siempre claro, pantalla de reentrada de una cuenta recordada, pull-to-refresh movil y simulacion Web Push real con la PWA cerrada.
 
-Esta entrega **no depende de un `.env.example`**. El ZIP incluye un `.env` real con una `SECRET_KEY` única generada para este paquete y configuración local lista para arrancar. PostgreSQL es la base de datos del proyecto tanto en ejecución local como en despliegue.
+> Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
+
+## Cambios v1.9.0
+
+- Superadmin por variables `SUPERADMIN_*` con panel `/superadmin`.
+- Puede limpiar Cobros, Acuerdos, Bienes, Clientes, historial de alertas y dispositivos Push por empresa.
+- Puede vaciar todos los datos operativos de una empresa sin borrar sus usuarios o eliminar la empresa completa.
+- Login/registro/reentrada siempre arrancan en modo claro, aunque el telefono este en oscuro.
+- Si se eligio **Mantener sesion iniciada**, al reabrir la PWA se muestra el logo, la cuenta recordada y un unico boton **Entrar**.
+- Pull-to-refresh: desde arriba, arrastra hacia abajo y suelta para recargar.
+- En Railway/HTTPS, **Simular con app cerrada** agenda una notificacion Web Push real 10 segundos despues para que puedas salir de la PWA y verla llegar desde el sistema.
 
 ## PostgreSQL local configurado
 
@@ -11,7 +21,7 @@ Esta entrega conserva la aplicación v1.8 y cambia únicamente la persistencia l
 - host: `127.0.0.1`
 - puerto: `5432`
 - usuario: `postgres`
-- clave: `12345`
+- clave: la definida en tu `.env` local
 - base: `cuotago`
 
 Primero ejecuta `COMPROBAR_POSTGRES.bat`. Si muestra PostgreSQL OK, inicia normalmente con `INICIAR_WINDOWS.bat`.
@@ -48,15 +58,15 @@ Primero ejecuta `COMPROBAR_POSTGRES.bat`. Si muestra PostgreSQL OK, inicia norma
 Esta es la forma más rápida para comenzar.
 
 1. Descomprime el ZIP.
-2. Entra a la carpeta `CuotaGo_MOBILE_PWA_v1.7`.
+2. Entra a la carpeta de CuotaGo v1.9.0.
 3. Haz doble clic en `INICIAR_WINDOWS.bat`.
 4. El script crea `venv`, instala dependencias, comprueba `.env` y la base de datos, y arranca la aplicación.
 5. Abre `http://127.0.0.1:5000`.
 6. Pulsa **Crear cuenta** y registra el propietario real.
 
-La aplicación local usa PostgreSQL directamente con esta conexión incluida en `.env`:
+La aplicación local usa PostgreSQL directamente. Conserva tu `.env` actual o crea uno desde `.env.example` con esta conexión:
 
-`postgresql+psycopg://postgres:12345@127.0.0.1:5432/cuotago`
+`postgresql+psycopg://postgres:TU_CLAVE@127.0.0.1:5432/cuotago`
 
 Debe estar iniciado PostgreSQL y debe existir la base `cuotago`. Las tablas de CuotaGo se crean automáticamente al primer arranque. No hay usuario de demostración: la primera cuenta la crea el propietario desde Registro.
 
@@ -128,7 +138,7 @@ El `Dockerfile` arranca con Gunicorn y escucha el puerto entregado en `PORT`. Pa
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.8.1
+APP_VERSION=1.9.0
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -143,7 +153,7 @@ PUSH_CHECK_INTERVAL_MINUTES=5
 PUSH_ALERT_START_HOUR=8
 VAPID_SUBJECT=mailto:admin@cuotago.app
 VAPID_PUBLIC_KEY=<copiar del .env incluido>
-VAPID_PRIVATE_KEY_B64=<copiar del .env incluido>
+VAPID_PRIVATE_KEY_B64=<copiar de tu .env local>
 ```
 
 En producción conviene reemplazar la `SECRET_KEY` del ZIP por una clave exclusiva del servidor y mantenerla únicamente en las variables privadas del hosting.
@@ -161,7 +171,7 @@ Debe terminar mostrando:
 ```text
 [OK] .env cargado
 [OK] Base de datos accesible: ...
-[OK] App: CuotaGo v1.8.1
+[OK] App: CuotaGo v1.9.0
 [OK] CuotaGo esta listo para iniciar.
 ```
 
@@ -268,7 +278,7 @@ flask --app app notify-overdue
 - Launcher rediseñado a 3 columnas en teléfono: tarjetas/iconos más grandes, iconos de 46 px y espacios más compactos.
 - Web Push permanece separado en Ajustes y se activa cuando CuotaGo disponga de HTTPS; no interrumpe una demo local.
 
-## Cambios v1.8.1
+## Cambios v1.9.0
 
 - MuseoModerno se mantiene en todo el sistema, pero con pesos, espaciado y alturas de linea mas legibles.
 - Las alertas locales ya no dependen de `alert.wav`: usan Web Audio desbloqueado por el primer toque, con tres tonos y vibracion cuando el navegador la soporta.

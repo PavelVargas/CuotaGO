@@ -1,6 +1,6 @@
 {% from 'macros/icons.html' import icon %}
 <!doctype html>
-<html lang="es" data-theme="light" data-theme-choice="system">
+<html lang="es" data-theme="light" data-theme-choice="system" data-auth-screen="{{ '1' if request.blueprint == 'auth' else '0' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -33,9 +33,10 @@
       if (showBoot) root.classList.add('show-boot');
 
       const key = 'cuotago-theme';
-      let choice = 'system';
-      try { choice = localStorage.getItem(key) || 'system'; } catch (_) {}
-      const dark = choice === 'dark' || (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+      const authScreen = root.dataset.authScreen === '1' || new URLSearchParams(location.search).get('source') === 'pwa';
+      let choice = authScreen ? 'light' : 'system';
+      if (!authScreen) { try { choice = localStorage.getItem(key) || 'system'; } catch (_) {} }
+      const dark = !authScreen && (choice === 'dark' || (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches));
       root.dataset.themeChoice = choice;
       root.dataset.theme = dark ? 'dark' : 'light';
       document.querySelector('meta[name="theme-color"]')?.setAttribute('content', showBoot ? '#fffaf6' : (dark ? '#0b0f14' : '#f4f7fb'));
@@ -53,36 +54,36 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=MuseoModerno:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}?v={{ config.get('APP_VERSION', '1.8.1') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}?v={{ config.get('APP_VERSION', '1.9.0') }}">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
   <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='icons/favicon-64.png') }}">
 
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1320x2868-light.png') }}">
-  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1320x2868-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1320x2868-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1290x2796-light.png') }}">
-  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1290x2796-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1290x2796-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1206x2622-light.png') }}">
-  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1206x2622-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1206x2622-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1179x2556-light.png') }}">
-  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1179x2556-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1179x2556-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1284x2778-light.png') }}">
-  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1284x2778-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1284x2778-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1242x2688-light.png') }}">
-  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1242x2688-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1242x2688-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1170x2532-light.png') }}">
-  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1170x2532-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1170x2532-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1125x2436-light.png') }}">
-  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1125x2436-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1125x2436-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1080x2340-light.png') }}">
-  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1080x2340-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1080x2340-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/828x1792-light.png') }}">
-  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/828x1792-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/828x1792-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-light.png') }}">
-  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-dark.png') }}">
+  <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-light.png') }}">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('APP_VERSION', '1.8.1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('APP_VERSION', '1.9.0') }}">
 </head>
-<body class="{% if current_user.is_authenticated %}app-authenticated{% else %}auth-shell{% endif %}">
+<body class="{% if current_user.is_authenticated and request.blueprint != 'auth' %}app-authenticated{% else %}auth-shell{% endif %}">
   <div class="boot-splash" id="bootSplash" aria-hidden="true">
     <div class="boot-splash-inner">
       <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="">
@@ -93,20 +94,22 @@
 
   <div class="network-banner" id="networkBanner" role="status" hidden>{{ icon('offline', 16) }} <span>Sin conexión</span></div>
 
-  {% if current_user.is_authenticated %}
+  {% if current_user.is_authenticated and request.blueprint != 'auth' %}
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="brand" href="{{ url_for('main.dashboard') }}" aria-label="Ir al inicio">
+      <a class="brand" href="{{ url_for('admin.dashboard') if current_user.role == 'superadmin' else url_for('main.dashboard') }}" aria-label="Ir al inicio">
         <img class="brand-app-icon" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="">
         <span class="brand-name">{{ app_name }}</span>
-        <span class="brand-badge">v{{ config.get('APP_VERSION', '1.8.1') }}</span>
+        <span class="brand-badge">v{{ config.get('APP_VERSION', '1.9.0') }}</span>
       </a>
 
       <div class="topbar-actions">
+        {% if current_user.role != 'superadmin' %}
         <a class="topbar-notifications" href="{{ url_for('main.notifications') }}" aria-label="Notificaciones de pago">
           {{ icon('bell', 22) }}
           <span class="notification-count" data-notification-badge {% if not notification_count %}hidden{% endif %}>{{ notification_count if notification_count < 100 else '99+' }}</span>
         </a>
+        {% endif %}
         <details class="user-menu">
           <summary aria-label="Abrir menú de cuenta">
             <span class="avatar">{{ current_user.name[:1]|upper }}</span>
@@ -115,7 +118,11 @@
           </summary>
           <div class="user-dropdown">
             <div class="dropdown-business"><span>{{ current_user.organization.name }}</span><small>{{ current_user.email }}</small></div>
+            {% if current_user.role == 'superadmin' %}
+            <a href="{{ url_for('admin.dashboard') }}">{{ icon('shield', 18) }} <span>Superadmin</span></a>
+            {% else %}
             <a href="{{ url_for('main.notifications') }}">{{ icon('bell', 18) }} <span>Notificaciones</span></a>
+            {% endif %}
             <div class="theme-inline" aria-label="Apariencia">
               <span>Tema</span>
               <div class="theme-segment">
@@ -124,7 +131,7 @@
                 <button type="button" data-theme-choice="dark" aria-label="Tema oscuro">{{ icon('moon', 17) }}</button>
               </div>
             </div>
-            <a href="{{ url_for('main.settings') }}">{{ icon('settings', 18) }} <span>Configuración</span></a>
+            {% if current_user.role != 'superadmin' %}<a href="{{ url_for('main.settings') }}">{{ icon('settings', 18) }} <span>Configuración</span></a>{% endif %}
             <button type="button" id="installAppBtn" class="dropdown-link" hidden>{{ icon('download', 18) }} <span>Instalar app</span></button>
             <form method="post" action="{{ url_for('auth.logout') }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -135,8 +142,6 @@
       </div>
     </div>
   </header>
-  {% else %}
-    <button class="auth-theme-toggle" type="button" id="authThemeToggle" aria-label="Cambiar tema"><span class="theme-moon">{{ icon('moon', 20) }}</span><span class="theme-sun">{{ icon('sun', 20) }}</span></button>
   {% endif %}
 
   <div class="flash-stack" aria-live="polite">
@@ -145,15 +150,17 @@
     {% endfor %}
   </div>
 
-  <main class="{% if current_user.is_authenticated %}page-shell{% else %}auth-main{% endif %}">
+  {% if current_user.is_authenticated and request.blueprint != 'auth' %}<div class="pull-refresh-indicator" id="pullRefreshIndicator" aria-hidden="true">{{ icon('refresh', 18) }}<span>Desliza para actualizar</span></div>{% endif %}
+
+  <main class="{% if current_user.is_authenticated and request.blueprint != 'auth' %}page-shell{% else %}auth-main{% endif %}">
     {% block content %}{% endblock %}
   </main>
 
-  {% if current_user.is_authenticated %}
-  <footer class="footer"><span class="status-dot"></span><span>© 2026 {{ app_name }}</span><a href="{{ url_for('main.settings') }}">Configuración</a></footer>
+  {% if current_user.is_authenticated and request.blueprint != 'auth' %}
+  <footer class="footer"><span class="status-dot"></span><span>© 2026 {{ app_name }}</span>{% if current_user.role == 'superadmin' %}<a href="{{ url_for('admin.dashboard') }}">Superadmin</a>{% else %}<a href="{{ url_for('main.settings') }}">Configuración</a>{% endif %}</footer>
   {% endif %}
 
-  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('APP_VERSION', '1.8.1') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('APP_VERSION', '1.9.0') }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

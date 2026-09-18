@@ -1,11 +1,59 @@
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, send_from_directory
+from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_login import current_user, login_fresh
 from sqlalchemy import text
 
 from config import Config
 from .extensions import csrf, db, login_manager
+
+
+def _ensure_superadmin(app):
+    """Create or refresh the configured superadmin without hard-coded production credentials."""
+    email = (app.config.get("SUPERADMIN_EMAIL") or "").strip().lower()
+    password = app.config.get("SUPERADMIN_PASSWORD") or ""
+    if not email or not password:
+        return
+    if len(password) < 10:
+        app.logger.warning("SUPERADMIN_PASSWORD debe tener al menos 10 caracteres; superadmin no creado.")
+        return
+
+    from .models import Organization, User
+
+    user = User.query.filter_by(email=email).first()
+    if user is None:
+        organization = Organization(
+            name=app.config.get("SUPERADMIN_ORG_NAME", "CuotaGo Administracion"),
+            currency=app.config.get("APP_CURRENCY", "DOP"),
+        )
+        user = User(
+            organization=organization,
+            name=app.config.get("SUPERADMIN_NAME", "Superadmin"),
+            email=email,
+            role="superadmin",
+        )
+        user.set_password(password)
+        db.session.add_all([organization, user])
+        db.session.commit()
+        app.logger.info("Superadmin creado: %s", email)
+        return
+
+    changed = False
+    if user.role != "superadmin":
+        user.role = "superadmin"
+        changed = True
+    desired_name = app.config.get("SUPERADMIN_NAME", "Superadmin")
+    if desired_name and user.name != desired_name:
+        user.name = desired_name
+        changed = True
+    # The configured password is authoritative so Railway can recover access by redeploying.
+    if not user.check_password(password):
+        user.set_password(password)
+        changed = True
+    if changed:
+        db.session.commit()
+
 
 
 def create_app(test_config=None):
@@ -26,10 +74,26 @@ def create_app(test_config=None):
     from .auth import auth_bp
     from .main import main_bp
     from .push import push_bp
+    from .admin import admin_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(push_bp)
+    app.register_blueprint(admin_bp)
+
+    @app.before_request
+    def require_resume_for_remembered_session():
+        """A remembered login must be confirmed with the one-tap resume screen."""
+        if not current_user.is_authenticated or login_fresh():
+            return None
+        allowed = {
+            "auth.login", "auth.resume", "auth.logout",
+            "static", "service_worker", "healthz", "offline",
+        }
+        if request.endpoint in allowed:
+            return None
+        next_url = request.full_path if request.query_string else request.path
+        return redirect(url_for("auth.resume", next=next_url))
 
     @app.get("/healthz")
     def healthz():
@@ -77,6 +141,7 @@ def create_app(test_config=None):
     if app.config.get("AUTO_CREATE_DB", True):
         with app.app_context():
             db.create_all()
+            _ensure_superadmin(app)
 
     from .push import scan_overdue_and_notify, start_push_scheduler
     start_push_scheduler(app)

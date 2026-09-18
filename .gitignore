@@ -12,3 +12,7 @@ __pycache__/
 railway.env
 *.pem
 *.key
+
+# CuotaGo private generated configuration
+.env.railway.private
+CREDENCIALES_PRIVADAS.txt

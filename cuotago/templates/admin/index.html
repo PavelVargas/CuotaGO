@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Superadmin · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page admin-page">
+  <div class="page-head admin-page-head">
+    <div class="page-head-left">
+      <span class="admin-shield">{{ icon('shield', 26) }}</span>
+      <div><span class="eyebrow">SUPERADMIN</span><h1>Empresas y datos</h1><p>Control total para limpiar módulos, reiniciar una empresa o eliminarla.</p></div>
+    </div>
+  </div>
+
+  <section class="surface admin-warning">
+    <span>{{ icon('shield', 22) }}</span>
+    <div><strong>Zona administrativa</strong><p>Las acciones rojas son permanentes. “Vaciar empresa” conserva la empresa y sus usuarios; “Eliminar empresa” borra todo.</p></div>
+  </section>
+
+  {% if rows %}
+    <div class="admin-company-list">
+      {% for row in rows %}
+      <details class="surface admin-company" {% if request.args.get('open_org') == row.organization.id|string %}open{% endif %}>
+        <summary>
+          <div class="admin-company-main">
+            <span class="admin-company-avatar">{{ row.organization.name[:1]|upper }}</span>
+            <div><strong>{{ row.organization.name }}</strong><small>Creada {{ row.organization.created_at.strftime('%d/%m/%Y') }}</small></div>
+          </div>
+          <div class="admin-company-counts"><span>{{ row.clients }} clientes</span><span>{{ row.contracts }} acuerdos</span></div>
+          <span class="admin-chevron">⌄</span>
+        </summary>
+        <div class="admin-company-body">
+          <div class="admin-kpis">
+            <div><span>Usuarios</span><strong>{{ row.users }}</strong></div>
+            <div><span>Clientes</span><strong>{{ row.clients }}</strong></div>
+            <div><span>Bienes</span><strong>{{ row.assets }}</strong></div>
+            <div><span>Acuerdos</span><strong>{{ row.contracts }}</strong></div>
+            <div><span>Push</span><strong>{{ row.push_devices }}</strong></div>
+          </div>
+
+          <div class="admin-section-title"><strong>Vaciar un módulo</strong><small>Se eliminan solo los datos necesarios para mantener la base consistente.</small></div>
+          <div class="admin-module-actions">
+            {% set actions = [
+              ('collections', 'Cobros', 'wallet'),
+              ('contracts', 'Acuerdos', 'contract'),
+              ('assets', 'Bienes', 'box'),
+              ('clients', 'Clientes', 'users'),
+              ('notifications', 'Alertas', 'bell'),
+              ('push_devices', 'Push', 'phone')
+            ] %}
+            {% for value, label, icon_name in actions %}
+            <form method="post" action="{{ url_for('admin.clear_module', organization_id=row.organization.id) }}" data-confirm="¿Vaciar {{ label }} de {{ row.organization.name }}?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="module" value="{{ value }}">
+              <button type="submit" class="admin-module-btn"><span>{{ icon(icon_name, 22) }}</span><b>{{ label }}</b></button>
+            </form>
+            {% endfor %}
+          </div>
+
+          <div class="admin-danger-zone">
+            <div><strong>Acciones de empresa</strong><small>Úsalas solo cuando estés seguro.</small></div>
+            <div class="admin-danger-actions">
+              <form method="post" action="{{ url_for('admin.reset_company', organization_id=row.organization.id) }}" data-confirm="¿Vaciar TODOS los datos operativos de {{ row.organization.name }}? La empresa y sus usuarios se conservarán.">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-secondary" type="submit">Vaciar empresa</button>
+              </form>
+              <form method="post" action="{{ url_for('admin.delete_company', organization_id=row.organization.id) }}" data-confirm="¿ELIMINAR por completo {{ row.organization.name }}? Esta acción no se puede deshacer.">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-danger" type="submit">Eliminar empresa</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="surface admin-empty"><span>{{ icon('shield', 34) }}</span><strong>No hay empresas creadas todavía</strong><p>Cuando alguien se registre, aparecerá aquí.</p></section>
+  {% endif %}
+</section>
+{% endblock %}

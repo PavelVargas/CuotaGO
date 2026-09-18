@@ -11,3 +11,5 @@ instance
 .pytest_cache
 tests
 *.zip
+.env.railway.private
+CREDENCIALES_PRIVADAS.txt

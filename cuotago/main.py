@@ -247,6 +247,8 @@ def inject_helpers():
 @main_bp.get("/")
 @login_required
 def dashboard():
+    if getattr(current_user, "role", "") == "superadmin":
+        return redirect(url_for("admin.dashboard"))
     org_id = current_user.organization_id
     today_value = local_today()
     installments = tenant_installments(active_only=True)

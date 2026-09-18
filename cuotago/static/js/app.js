@@ -77,7 +77,7 @@
         window.setTimeout(() => {
           splash.remove();
           root.classList.remove('show-boot');
-          applyTheme(readTheme(), false);
+          applyTheme(document.body?.classList.contains('auth-shell') ? 'light' : readTheme(), false);
         }, 210);
       }, remaining);
     };
@@ -114,7 +114,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = '1.8.1';
+  const APP_VERSION = '1.9.0';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -540,7 +540,7 @@
         el.textContent = 'Pendiente de HTTPS';
         el.dataset.active = '0';
       });
-      document.querySelectorAll('[data-push-enable],[data-push-disable],[data-push-test]').forEach((el) => { el.hidden = true; });
+      document.querySelectorAll('[data-push-enable],[data-push-disable],[data-push-test],[data-push-test-background]').forEach((el) => { el.hidden = true; });
       document.querySelectorAll('[data-push-footnote]').forEach((el) => {
         el.textContent = 'Puedes enseñar y usar CuotaGo en tu red local sin Push. Cuando tengas un dominio HTTPS, esta misma sección habilitará las alertas remotas.';
       });
@@ -554,7 +554,7 @@
         el.textContent = 'No disponible';
         el.dataset.active = '0';
       });
-      document.querySelectorAll('[data-push-enable],[data-push-disable],[data-push-test]').forEach((el) => { el.hidden = true; });
+      document.querySelectorAll('[data-push-enable],[data-push-disable],[data-push-test],[data-push-test-background]').forEach((el) => { el.hidden = true; });
       return;
     }
 
@@ -581,7 +581,7 @@
         el.dataset.active = active ? '1' : '0';
       });
       document.querySelectorAll('[data-push-enable]').forEach((el) => { el.hidden = active; });
-      document.querySelectorAll('[data-push-disable],[data-push-test]').forEach((el) => { el.hidden = !active; });
+      document.querySelectorAll('[data-push-disable],[data-push-test],[data-push-test-background]').forEach((el) => { el.hidden = !active; });
       if (active) {
         setPushMessage('Alertas listas. CuotaGo podrá avisarte aunque la PWA esté cerrada.', 'success');
       } else {
@@ -699,6 +699,45 @@
     }
   };
 
+  const testPushOutside = async (button) => {
+    if (button) button.disabled = true;
+    const originalLabel = button?.textContent || 'Simular fuera de la app';
+    try {
+      if (!window.isSecureContext) throw new Error('Esta prueba necesita HTTPS.');
+      if (isIOS() && !isStandalone()) throw new Error('En iPhone, instala CuotaGo en la pantalla de inicio y abre la PWA desde su icono.');
+      const registration = await registerServiceWorker();
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription || Notification.permission !== 'granted') {
+        throw new Error('Primero activa las notificaciones en este teléfono.');
+      }
+      const data = await apiJson('/api/push/test-delayed', {
+        method: 'POST',
+        body: JSON.stringify({ endpoint: subscription.endpoint, delay: 10 }),
+      });
+      let remaining = Number(data.delay || 10);
+      setPushMessage('Prueba programada. Sal de CuotaGo AHORA y espera la notificación del sistema.', 'success');
+      if (button) button.textContent = `Cierra la app · ${remaining}s`;
+      const timer = window.setInterval(() => {
+        remaining -= 1;
+        if (button && remaining > 0) button.textContent = `Cierra la app · ${remaining}s`;
+        if (remaining <= 0) {
+          window.clearInterval(timer);
+          if (button) {
+            button.textContent = originalLabel;
+            button.disabled = false;
+          }
+        }
+      }, 1000);
+      return;
+    } catch (error) {
+      setPushMessage(await friendlyPushError(error), 'error');
+    }
+    if (button) {
+      button.textContent = originalLabel;
+      button.disabled = false;
+    }
+  };
+
   navigator.serviceWorker?.addEventListener('message', (event) => {
     if (event.data?.type === 'CUOTAGO_PUSH') {
       const payload = event.data.payload || {};
@@ -713,8 +752,76 @@
     }
   });
 
+  const setupRememberedLaunchGate = () => {
+    if (!document.body.classList.contains('app-authenticated') || !isStandalone()) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('entered') === '1') {
+      try { sessionStorage.setItem('cuotago-launch-unlocked', '1'); } catch (_) {}
+      params.delete('entered');
+      params.delete('source');
+      const cleanQuery = params.toString();
+      history.replaceState({}, '', `${location.pathname}${cleanQuery ? `?${cleanQuery}` : ''}${location.hash}`);
+      return;
+    }
+    let unlocked = false;
+    try { unlocked = sessionStorage.getItem('cuotago-launch-unlocked') === '1'; } catch (_) {}
+    if (!unlocked) {
+      const next = `${location.pathname}${location.search}${location.hash}`;
+      location.replace(`/resume?next=${encodeURIComponent(next)}`);
+    }
+  };
+
+  const setupPullToRefresh = () => {
+    const indicator = document.getElementById('pullRefreshIndicator');
+    if (!indicator || !document.body.classList.contains('app-authenticated')) return;
+    let startY = null;
+    let distance = 0;
+    let active = false;
+    const threshold = 72;
+    const reset = () => {
+      startY = null;
+      distance = 0;
+      active = false;
+      indicator.classList.remove('is-ready', 'is-pulling');
+      indicator.style.setProperty('--pull', '0px');
+      indicator.querySelector('span').textContent = 'Desliza para actualizar';
+    };
+    document.addEventListener('touchstart', (event) => {
+      if (event.touches?.length !== 1 || window.scrollY > 0) return;
+      if (event.target.closest('input,textarea,select,[contenteditable="true"],.user-menu')) return;
+      startY = event.touches[0].clientY;
+      distance = 0;
+    }, { passive: true });
+    document.addEventListener('touchmove', (event) => {
+      if (startY === null || event.touches?.length !== 1 || window.scrollY > 0) return;
+      const delta = event.touches[0].clientY - startY;
+      if (delta <= 8) return;
+      active = true;
+      event.preventDefault();
+      distance = Math.min(110, (delta - 8) * 0.58);
+      indicator.classList.add('is-pulling');
+      indicator.style.setProperty('--pull', `${distance}px`);
+      const ready = distance >= threshold;
+      indicator.classList.toggle('is-ready', ready);
+      indicator.querySelector('span').textContent = ready ? 'Suelta para actualizar' : 'Desliza para actualizar';
+    }, { passive: false });
+    document.addEventListener('touchend', () => {
+      if (!active) return reset();
+      if (distance >= threshold) {
+        indicator.classList.add('is-refreshing');
+        indicator.querySelector('span').textContent = 'Actualizando…';
+        window.setTimeout(() => window.location.reload(), 120);
+        return;
+      }
+      reset();
+    }, { passive: true });
+    document.addEventListener('touchcancel', reset, { passive: true });
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
-    applyTheme(readTheme(), false);
+    setupRememberedLaunchGate();
+    setupPullToRefresh();
+    applyTheme(document.body.classList.contains('auth-shell') ? 'light' : readTheme(), false);
 
     document.querySelectorAll('[data-theme-choice]').forEach((button) => {
       button.addEventListener('click', () => applyTheme(button.dataset.themeChoice));
@@ -724,6 +831,12 @@
     authThemeToggle?.addEventListener('click', () => {
       const current = root.dataset.theme === 'dark' ? 'dark' : 'light';
       applyTheme(current === 'dark' ? 'light' : 'dark');
+    });
+
+    document.querySelectorAll('form[data-confirm]').forEach((form) => {
+      form.addEventListener('submit', (event) => {
+        if (!window.confirm(form.dataset.confirm || '¿Continuar?')) event.preventDefault();
+      });
     });
 
     document.querySelectorAll('[data-flash]').forEach((el) => {
@@ -738,6 +851,7 @@
     document.querySelectorAll('[data-push-enable]').forEach((button) => button.addEventListener('click', () => enablePush(button)));
     document.querySelectorAll('[data-push-disable]').forEach((button) => button.addEventListener('click', () => disablePush(button)));
     document.querySelectorAll('[data-push-test]').forEach((button) => button.addEventListener('click', () => testPush(button)));
+    document.querySelectorAll('[data-push-test-background]').forEach((button) => button.addEventListener('click', () => testPushOutside(button)));
     document.querySelectorAll('[data-inapp-alert-test],[data-local-alert-test]').forEach((button) => button.addEventListener('click', async () => {
       button.disabled = true;
       try {

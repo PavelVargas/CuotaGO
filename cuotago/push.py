@@ -2,6 +2,8 @@ import atexit
 import base64
 import json
 import logging
+import threading
+import time
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -24,7 +26,8 @@ def _private_key_path(app):
     encoded = (app.config.get("VAPID_PRIVATE_KEY_B64") or "").strip()
     if encoded:
         try:
-            raw = base64.urlsafe_b64decode(encoded.encode("ascii"))
+            padded = encoded + ("=" * ((4 - len(encoded) % 4) % 4))
+            raw = base64.urlsafe_b64decode(padded.encode("ascii"))
             if not path.exists() or path.read_bytes() != raw:
                 path.write_bytes(raw)
             return str(path)
@@ -102,6 +105,29 @@ def send_payload_to_org(app, organization_id, payload):
             sent += 1
     return sent
 
+
+
+def _schedule_test_push(app, subscription_id, delay_seconds=10):
+    """Send a real Web Push after a short delay so the user can close/background the PWA."""
+    delay_seconds = max(5, min(int(delay_seconds or 10), 30))
+
+    def worker():
+        time.sleep(delay_seconds)
+        with app.app_context():
+            subscription = db.session.get(PushSubscription, subscription_id)
+            if not subscription or not subscription.is_active:
+                return
+            payload = {
+                "type": "outside-test",
+                "title": "Pago atrasado · Simulación",
+                "body": "Cliente de prueba no ha pagado RD$2,500.00. Toca para abrir CuotaGo.",
+                "url": "/notifications",
+                "tag": f"cuotago-outside-test-{subscription_id}-{int(time.time())}",
+            }
+            send_payload_to_subscription(app, subscription, payload)
+
+    threading.Thread(target=worker, name=f"cuotago-push-test-{subscription_id}", daemon=True).start()
+    return delay_seconds
 
 def overdue_payload(installment):
     contract = installment.contract
@@ -315,3 +341,30 @@ def push_test():
     if sent:
         return jsonify({"ok": True, "sent": sent, "message": "Notificacion de prueba enviada a este telefono."})
     return jsonify({"ok": False, "sent": 0, "message": "El servicio Push no pudo entregar la prueba a este telefono."}), 502
+
+
+@push_bp.post("/api/push/test-delayed")
+@login_required
+def push_test_delayed():
+    """Schedule a real push so the installed PWA can be backgrounded before delivery."""
+    if not _push_ready(current_app):
+        return jsonify({"ok": False, "message": "Push no esta configurado en Railway."}), 503
+
+    data = request.get_json(silent=True) or {}
+    endpoint = (data.get("endpoint") or "").strip()
+    delay = data.get("delay", 10)
+    if not endpoint:
+        return jsonify({"ok": False, "message": "No se encontro la suscripcion de este telefono."}), 400
+
+    subscription = PushSubscription.query.filter_by(
+        user_id=current_user.id, endpoint=endpoint, is_active=True
+    ).first()
+    if not subscription:
+        return jsonify({"ok": False, "message": "Este telefono no tiene una suscripcion Push activa."}), 400
+
+    seconds = _schedule_test_push(current_app._get_current_object(), subscription.id, delay)
+    return jsonify({
+        "ok": True,
+        "delay": seconds,
+        "message": f"Prueba programada. Sal de CuotaGo ahora; la alerta llegara en {seconds} segundos.",
+    }), 202
