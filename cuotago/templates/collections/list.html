@@ -8,7 +8,7 @@
     <div class="collection-person"><strong>{{ installment.contract.client.full_name }}</strong><small>{{ installment.contract.code }} · {{ installment.contract.asset.name }}</small></div>
     <div class="collection-amount"><strong>{{ money(installment.remaining) }}</strong><small>Cuota #{{ installment.sequence }}</small></div>
     <div class="collection-actions">
-      {% if wa_link(installment.contract.client, installment.contract, installment) %}<a class="icon-action whatsapp" href="{{ wa_link(installment.contract.client, installment.contract, installment) }}" target="_blank" rel="noopener" title="WhatsApp">WA</a>{% endif %}
+      {% if wa_link(installment.contract.client, installment.contract, installment) %}<a class="icon-action whatsapp" href="{{ wa_link(installment.contract.client, installment.contract, installment) }}" target="_blank" rel="noopener" title="Avisar por WhatsApp" aria-label="Avisar por WhatsApp">{{ icon('whatsapp', 18) }}</a>{% endif %}
       <a class="icon-action" href="{{ url_for('main.contract_detail', contract_id=installment.contract.id) }}" title="Ver acuerdo">{{ icon('contract', 17) }}</a>
       <form method="post" action="{{ url_for('main.contract_pay', contract_id=installment.contract.id) }}" class="collection-pay-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

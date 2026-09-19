@@ -1,4 +1,4 @@
-const VERSION = '1.12.1-payment-modal-v7';
+const VERSION = '1.12.1-whatsapp-brand-v8';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const RUNTIME_CACHE = `cuotago-runtime-${VERSION}`;
 const CORE = [

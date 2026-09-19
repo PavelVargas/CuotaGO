@@ -29,7 +29,7 @@
       {{ icon('wallet', 18) }}<span>Registrar pago</span>
     </button>
     {% if contract.client.phone and contract.next_installment and wa_link(contract.client, contract, contract.next_installment) %}
-    <a class="btn btn-secondary contract-reminder-button" target="_blank" rel="noopener" href="{{ wa_link(contract.client, contract, contract.next_installment) }}">Recordar por WhatsApp</a>
+    <a class="btn btn-whatsapp contract-reminder-button" target="_blank" rel="noopener" href="{{ wa_link(contract.client, contract, contract.next_installment) }}">{{ icon('whatsapp', 18) }}<span>Recordar por WhatsApp</span></a>
     {% endif %}
   </div>
 
