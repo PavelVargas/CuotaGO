@@ -543,3 +543,18 @@ def test_profit_margin_is_applied_before_installments(client, app):
         assert contract.total_amount == Decimal('60000.00')
         assert contract.installment_amount == Decimal('10000.00')
         assert len(contract.installments) == 6
+
+
+def test_settings_demo_enables_real_background_push_and_dashboard_desktop_icons_are_larger():
+    from pathlib import Path
+    js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    settings = Path('cuotago/templates/settings/index.html').read_text(encoding='utf-8')
+    push = Path('cuotago/push.py').read_text(encoding='utf-8')
+    assert 'data-notification-demo' in settings
+    assert 'subscribePushFromUserGesture' in js
+    assert "'/api/push/test-delayed'" in js
+    assert 'def due_today_payload' in push
+    assert 'event_type="due_today"' in push
+    assert 'width:104px' in css
+    assert 'width:84px;height:84px' in css

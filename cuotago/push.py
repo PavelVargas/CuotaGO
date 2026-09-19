@@ -171,6 +171,30 @@ def overdue_payload(installment):
     }
 
 
+def due_today_payload(installment):
+    contract = installment.contract
+    currency = "DOP"
+    try:
+        from .models import Organization
+        organization = db.session.get(Organization, contract.organization_id)
+        if organization and organization.currency:
+            currency = organization.currency
+    except Exception:
+        pass
+
+    return {
+        "type": "due_today",
+        "title": "Cobro para hoy",
+        "body": f"{contract.client.full_name} tiene una cuota de {_money(installment.remaining, currency)} para hoy.",
+        "url": f"/contracts/{contract.id}#pay",
+        "tag": f"cuotago-due-today-{installment.id}",
+        "installmentId": installment.id,
+        "contractId": contract.id,
+        "clientName": contract.client.full_name,
+        "amount": str(installment.remaining),
+    }
+
+
 def scan_overdue_and_notify(app):
     if not _push_ready(app):
         return 0
@@ -182,6 +206,12 @@ def scan_overdue_and_notify(app):
 
     today_local = now_local.date()
     with app.app_context():
+        due_today = (
+            Installment.query.join(Contract)
+            .filter(Contract.status == "active", Installment.due_date == today_local)
+            .order_by(Installment.id.asc())
+            .all()
+        )
         candidates = (
             Installment.query.join(Contract)
             .filter(Contract.status == "active", Installment.due_date < today_local)
@@ -190,6 +220,36 @@ def scan_overdue_and_notify(app):
         )
         sent_events = 0
         fees_changed = False
+
+        # A cuota due today is pushed once per device/org, even when the PWA is closed.
+        for installment in due_today:
+            if installment.remaining <= Decimal("0.009"):
+                continue
+            exists = PushNotificationLog.query.filter_by(
+                installment_id=installment.id,
+                event_type="due_today",
+            ).first()
+            if exists:
+                continue
+            active_count = PushSubscription.query.filter_by(
+                organization_id=installment.contract.organization_id,
+                is_active=True,
+            ).count()
+            if not active_count:
+                continue
+
+            sent = send_payload_to_org(app, installment.contract.organization_id, due_today_payload(installment))
+            if sent:
+                db.session.add(PushNotificationLog(
+                    organization_id=installment.contract.organization_id,
+                    installment_id=installment.id,
+                    event_type="due_today",
+                ))
+                try:
+                    db.session.commit()
+                    sent_events += 1
+                except IntegrityError:
+                    db.session.rollback()
         for installment in candidates:
             fees_changed = _sync_installment_late_fee(installment, today_local) or fees_changed
             if installment.remaining <= Decimal("0.009"):
@@ -250,7 +310,7 @@ def start_push_scheduler(app):
         lambda: scan_overdue_and_notify(app),
         trigger="interval",
         minutes=interval,
-        id="cuotago-overdue-push",
+        id="cuotago-payment-push",
         replace_existing=True,
         max_instances=1,
         coalesce=True,
@@ -259,7 +319,7 @@ def start_push_scheduler(app):
     scheduler.start()
     _scheduler = scheduler
     atexit.register(lambda: scheduler.shutdown(wait=False) if scheduler.running else None)
-    app.logger.info("Push scheduler activo cada %s minuto(s).", interval)
+    app.logger.info("Push de cobros activo cada %s minuto(s), incluso con la PWA cerrada.", interval)
 
 
 @push_bp.get("/api/push/config")

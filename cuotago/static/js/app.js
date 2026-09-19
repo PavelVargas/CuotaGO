@@ -628,27 +628,35 @@
     }
   };
 
+  const subscribePushFromUserGesture = async () => {
+    if (!window.isSecureContext) throw new Error('Las alertas con la app cerrada necesitan HTTPS.');
+    if (isIOS() && !isStandalone()) throw new Error('En iPhone/iPad, instala CuotaGo en la pantalla de inicio y ábrela desde su icono para recibir alertas con la app cerrada.');
+    if (!pushSupported()) throw new Error('Este navegador no admite Web Push.');
+
+    const publicKey = document.querySelector('meta[name="cuotago-vapid-key"]')?.content || '';
+    const pushEnabled = document.querySelector('meta[name="cuotago-push-enabled"]')?.content === '1';
+    if (!pushEnabled || !publicKey) throw new Error('El servidor todavía no tiene Web Push habilitado.');
+
+    // iOS/Safari exige solicitar permiso directamente desde el toque del usuario.
+    // Esta llamada sucede antes de cualquier espera de red.
+    const permission = Notification.permission === 'granted'
+      ? 'granted'
+      : await Notification.requestPermission();
+    if (permission !== 'granted') throw new Error('No se concedió permiso para notificaciones.');
+
+    const registration = await registerServiceWorker();
+    const subscription = await createPushSubscription(publicKey, () => {
+      setPushMessage('Reparando la conexión Push y reintentando...', 'info');
+    });
+    await saveSubscriptionOnServer(subscription);
+    return subscription;
+  };
+
   const enablePush = async (button) => {
     if (button) button.disabled = true;
     try {
-      if (!window.isSecureContext) throw new Error('Las alertas necesitan HTTPS.');
-      if (isIOS() && !isStandalone()) throw new Error('Instala CuotaGo en la pantalla de inicio y ábrela desde su icono para activar alertas en iPhone/iPad.');
-      if (!pushSupported()) throw new Error('Este navegador no admite Web Push.');
-
-      const publicKey = document.querySelector('meta[name="cuotago-vapid-key"]')?.content || '';
-      const pushEnabled = document.querySelector('meta[name="cuotago-push-enabled"]')?.content === '1';
-      if (!pushEnabled || !publicKey) throw new Error('El servidor todavía no tiene Web Push habilitado.');
-
-      // Safari/iOS exige que el permiso nazca directamente del toque del usuario.
-      // Por eso requestPermission ocurre antes de cualquier fetch o espera de red.
-      const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
-      if (permission !== 'granted') throw new Error('No se concedió permiso para notificaciones.');
-
       setPushMessage('Conectando este dispositivo...', 'info');
-      const subscription = await createPushSubscription(publicKey, () => {
-        setPushMessage('Reparando la conexión Push y reintentando...', 'info');
-      });
-      await saveSubscriptionOnServer(subscription);
+      const subscription = await subscribePushFromUserGesture();
 
       playAlertSound();
       setPushMessage('Alertas activadas. Enviando una prueba...', 'success');
@@ -1267,6 +1275,72 @@
     render();
   };
 
+  const runNotificationDemo = async (button) => {
+    if (button?.dataset.demoBusy === '1') return;
+    if (button) {
+      button.dataset.demoBusy = '1';
+      button.disabled = true;
+    }
+    const originalLabel = button?.textContent.trim() || 'Probar';
+
+    // Request system notification permission immediately from this user gesture.
+    // Do not put an await before this subscription flow; iOS requires the gesture.
+    let subscription = null;
+    let remoteError = null;
+    try {
+      setPushMessage('Activando notificaciones del sistema...', 'info');
+      subscription = await subscribePushFromUserGesture();
+    } catch (error) {
+      remoteError = error;
+    }
+
+    try {
+      setLocalAlertsEnabled(true);
+      updateLocalAlertStatus();
+      await unlockAlertAudio();
+
+      showInAppPaymentAlert({
+        type: 'due_today',
+        title: subscription ? 'Notificaciones activadas' : 'Prueba de notificación',
+        client: 'Cliente de ejemplo',
+        amount: 'RD$2,500.00',
+        detail: subscription ? 'CuotaGo ya puede avisarte con la app cerrada' : 'Esta es una notificación de prueba',
+        url: '/notifications',
+      }, { forceSound: true });
+
+      if (subscription) {
+        const data = await apiJson('/api/push/test-delayed', {
+          method: 'POST',
+          body: JSON.stringify({ endpoint: subscription.endpoint, delay: 7 }),
+        });
+        const delay = Number(data.delay || 7);
+        setPushMessage('Notificaciones activadas. CuotaGo te avisará aunque la PWA esté cerrada.', 'success');
+        document.querySelectorAll('[data-local-alert-copy]').forEach((el) => {
+          el.textContent = `Listo. Puedes cerrar CuotaGo: llegará una prueba del sistema en ${delay} s.`;
+        });
+        if (button) button.textContent = 'Activas ✓';
+        await updatePushUI();
+      } else {
+        const message = await friendlyPushError(remoteError || new Error('No se pudo activar Web Push.'));
+        setPushMessage(message, 'error');
+        document.querySelectorAll('[data-local-alert-copy]').forEach((el) => {
+          el.textContent = 'La alerta dentro de CuotaGo funciona, pero falta habilitar el aviso con la app cerrada.';
+        });
+        if (button) button.textContent = 'Revisar';
+      }
+    } catch (error) {
+      setPushMessage(await friendlyPushError(error), 'error');
+      if (button) button.textContent = 'Reintentar';
+    } finally {
+      window.setTimeout(() => {
+        if (!button) return;
+        button.disabled = false;
+        button.dataset.demoBusy = '0';
+        button.textContent = originalLabel;
+      }, subscription ? 1800 : 1300);
+    }
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     setupRememberedLaunchGate();
     setupProfileMenu();
@@ -1323,37 +1397,21 @@
     document.querySelectorAll('[data-push-disable]').forEach((button) => button.addEventListener('click', () => disablePush(button)));
     document.querySelectorAll('[data-push-test]').forEach((button) => button.addEventListener('click', () => testPush(button)));
     document.querySelectorAll('[data-push-test-background]').forEach((button) => button.addEventListener('click', () => testPushOutside(button)));
-    document.querySelectorAll('[data-notification-demo],[data-inapp-alert-test],[data-local-alert-test]').forEach((button) => button.addEventListener('click', async () => {
-      if (button.dataset.demoBusy === '1') return;
-      button.dataset.demoBusy = '1';
-      button.disabled = true;
-      const originalLabel = button.textContent.trim();
-      button.textContent = 'Enviando…';
-      try {
-        setLocalAlertsEnabled(true);
-        updateLocalAlertStatus();
-        await unlockAlertAudio();
-        showInAppPaymentAlert({
-          type: 'due_today',
-          title: 'Pago para hoy',
-          client: 'Cliente de ejemplo',
-          amount: 'RD$2,500.00',
-          detail: 'Esta es una notificación de prueba',
-          url: '/notifications',
-        }, { forceSound: true });
-        button.textContent = 'Enviada ✓';
-        document.querySelectorAll('[data-local-alert-copy]').forEach((el) => {
-          el.textContent = alertAudioUnlocked
-            ? 'Listo: alerta visual y sonido comprobados.'
-            : 'La alerta visual funciona; vuelve a tocar si iOS todavía no habilitó el sonido.';
-        });
-      } finally {
-        window.setTimeout(() => {
-          button.disabled = false;
-          button.dataset.demoBusy = '0';
-          button.textContent = originalLabel || 'Probar';
-        }, 1250);
-      }
+    document.querySelectorAll('[data-notification-demo]').forEach((button) => {
+      button.addEventListener('click', () => runNotificationDemo(button));
+    });
+    document.querySelectorAll('[data-inapp-alert-test],[data-local-alert-test]').forEach((button) => button.addEventListener('click', async () => {
+      setLocalAlertsEnabled(true);
+      updateLocalAlertStatus();
+      await unlockAlertAudio();
+      showInAppPaymentAlert({
+        type: 'due_today',
+        title: 'Pago para hoy',
+        client: 'Cliente de ejemplo',
+        amount: 'RD$2,500.00',
+        detail: 'Esta es una notificación de prueba',
+        url: '/notifications',
+      }, { forceSound: true });
     }));
     updateLocalAlertStatus();
     startPaymentAlertWatcher();

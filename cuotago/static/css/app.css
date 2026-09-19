@@ -2430,3 +2430,35 @@ body.app-authenticated .page-shell>*{
   .profit-margin-line{grid-template-columns:minmax(0,1fr) 78px}
   .profit-margin-money{grid-column:1/-1;justify-self:end;margin-top:-2px}
 }
+
+
+/* --------------------------------------------------------------------------
+   CuotaGo UI v13 · desktop launcher scale + one-touch background Push.
+   Mobile launcher is intentionally unchanged.
+   -------------------------------------------------------------------------- */
+@media(min-width:720px){
+  .dashboard-launcher-v3 .module-grid{
+    max-width:850px;
+    column-gap:48px;
+    row-gap:36px;
+  }
+  .dashboard-launcher-v3 .module-card{gap:9px}
+  .dashboard-launcher-v3 .module-icon{
+    width:96px;
+    border-radius:27px;
+    box-shadow:0 8px 22px rgba(31,45,61,.09),inset 0 1px 0 rgba(255,255,255,.56);
+  }
+  .dashboard-launcher-v3 .module-icon svg{width:77px;height:77px}
+  .dashboard-launcher-v3 .module-card strong{font-size:12.5px}
+  .dashboard-launcher-v3 .module-card small{font-size:9px}
+  .dashboard-launcher-v3 .module-card:hover .module-icon{
+    transform:translateY(-3px) scale(1.02);
+    box-shadow:0 13px 28px rgba(31,45,61,.12),inset 0 1px 0 rgba(255,255,255,.6);
+  }
+}
+@media(min-width:1180px){
+  .dashboard-launcher-v3 .module-grid{max-width:900px;column-gap:58px;row-gap:40px}
+  .dashboard-launcher-v3 .module-icon{width:104px;border-radius:29px}
+  .dashboard-launcher-v3 .module-icon svg{width:84px;height:84px}
+  .dashboard-launcher-v3 .module-card strong{font-size:13px}
+}
