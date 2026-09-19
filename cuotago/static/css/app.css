@@ -806,3 +806,164 @@ html[data-auth-screen="1"] .auth-main{color:#253142}
   .module-icon svg{width:48px;height:48px}
   .module-card strong{font-size:8.9px}
 }
+
+/* Home launcher visual lock · referencia móvil/escritorio 2026-09-18.
+   Mantiene el launcher sobrio: iconos grandes sin tarjetas pesadas y resumen separado. */
+@media (max-width:719px){
+  .launcher-wrap{
+    min-height:calc(100dvh - var(--topbar-h) - var(--safe-top) - var(--safe-bottom) - 24px);
+    padding-top:20px;
+    padding-left:max(5px,var(--safe-left));
+    padding-right:max(5px,var(--safe-right));
+    padding-bottom:max(10px,var(--safe-bottom));
+  }
+  .module-grid{
+    width:100%;
+    max-width:none;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    column-gap:3px;
+    row-gap:13px;
+    margin:0;
+  }
+  .module-card,
+  .module-card:nth-last-child(2),
+  .module-card:last-child{
+    width:100%;
+    grid-column:auto;
+    gap:5px;
+  }
+  .module-icon{
+    width:min(78px,100%);
+    border-radius:19px;
+    border:1px solid color-mix(in srgb,var(--line-strong) 86%,transparent);
+    background:var(--surface);
+    box-shadow:0 2px 7px rgba(34,45,60,.045);
+  }
+  .module-icon:before{
+    width:76%;
+    height:76%;
+    border-radius:14px;
+    transform:none;
+    background:color-mix(in srgb,var(--accent,var(--primary)) 13%,var(--surface));
+  }
+  .module-icon svg{
+    width:44px;
+    height:44px;
+    filter:none;
+  }
+  .module-card strong{
+    min-height:19px;
+    font-size:9.4px;
+    line-height:1.12;
+    font-weight:700!important;
+    letter-spacing:-.01em;
+  }
+  .module-badge{
+    max-width:72px;
+    font-size:6.8px!important;
+    padding:2px 5px;
+  }
+  .home-status{
+    width:100%;
+    max-width:none;
+    margin-top:auto;
+    padding-top:13px;
+    border-top:1px solid color-mix(in srgb,var(--line) 88%,transparent);
+  }
+  .status-kpis{
+    gap:5px;
+  }
+  .status-kpis>div{
+    min-height:56px;
+    padding:9px 9px;
+    border:1px solid color-mix(in srgb,var(--line) 92%,transparent)!important;
+    border-radius:12px;
+    box-shadow:none;
+  }
+  .status-kpis span{font-size:8px}
+  .status-kpis strong{font-size:12px}
+  .home-empty{
+    min-height:62px;
+    margin-top:8px;
+    padding:11px 13px;
+    border-radius:13px;
+    box-shadow:none;
+  }
+  .home-empty>span{width:31px;height:31px;flex-basis:31px}
+  .home-empty strong{font-size:11.5px}
+  .home-empty small{font-size:9px}
+}
+
+@media (max-width:380px){
+  .launcher-wrap{padding-left:max(4px,var(--safe-left));padding-right:max(4px,var(--safe-right))}
+  .module-grid{column-gap:2px;row-gap:12px}
+  .module-icon{width:min(74px,100%);border-radius:18px}
+  .module-icon svg{width:42px;height:42px}
+  .module-card strong{font-size:8.9px}
+}
+
+@media (min-width:720px){
+  :root{--topbar-h:60px}
+  .topbar-inner{height:var(--topbar-h)}
+  .launcher-wrap{
+    max-width:940px;
+    padding:52px 22px 54px;
+  }
+  .module-grid{
+    width:100%;
+    max-width:728px;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    column-gap:0;
+    row-gap:32px;
+    position:relative;
+    left:1px;
+  }
+  .module-card{gap:5px}
+  .module-icon{
+    width:112px;
+    border-radius:27px;
+    border:1px solid color-mix(in srgb,var(--line-strong) 82%,transparent);
+    box-shadow:0 4px 12px rgba(34,45,60,.055);
+  }
+  .module-icon:before{
+    width:86%;
+    height:86%;
+    border-radius:25px;
+    transform:none;
+    background:color-mix(in srgb,var(--accent,var(--primary)) 17%,var(--surface));
+  }
+  .module-icon svg{width:62px;height:62px;filter:none}
+  .module-card strong{font-size:12px;line-height:1.16}
+  .module-card small{font-size:8.5px;line-height:1.25}
+  .home-status{
+    max-width:900px;
+    margin-top:43px;
+    padding-top:23px;
+    border-top:1px solid color-mix(in srgb,var(--line) 82%,transparent);
+  }
+  .status-kpis{gap:8px}
+  .status-kpis>div{
+    min-height:46px;
+    padding:10px 12px;
+    border:1px solid color-mix(in srgb,var(--line) 90%,transparent)!important;
+    border-radius:12px;
+    box-shadow:none;
+  }
+  .status-kpis span{font-size:9px}
+  .status-kpis strong{font-size:12px}
+  .home-empty{
+    min-height:62px;
+    margin-top:9px;
+    padding:10px 13px;
+    border-radius:12px;
+    box-shadow:none;
+  }
+  .home-empty>span{width:31px;height:31px;flex-basis:31px}
+  .home-empty strong{font-size:10.5px}
+  .home-empty small{font-size:8.5px}
+}
+
+@media (min-width:1040px){
+  .launcher-wrap{max-width:940px;padding-left:20px;padding-right:20px}
+  .module-grid{max-width:728px;column-gap:0;row-gap:32px}
+}
