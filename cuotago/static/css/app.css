@@ -715,3 +715,94 @@ html[data-auth-screen="1"] .auth-main{color:#253142}
   .wizard-panel{padding:0}
   .wizard-progress{margin-bottom:18px}
 }
+
+/* v1.12.1 · launcher PWA más serio, más grande y resumen realmente al fondo */
+@media(max-width:719px){
+  /* Usa casi todo el ancho útil del teléfono. */
+  .launcher-wrap{
+    min-height:calc(100dvh - var(--topbar-h) - var(--safe-top) - var(--safe-bottom) - 28px);
+    padding-top:18px;
+    padding-left:max(5px,var(--safe-left));
+    padding-right:max(5px,var(--safe-right));
+    padding-bottom:max(8px,var(--safe-bottom));
+  }
+
+  /* Cuatro módulos por fila, ocupando el ancho completo y sin márgenes decorativos grandes. */
+  .module-grid{
+    width:100%;
+    max-width:none;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    column-gap:3px;
+    row-gap:13px;
+    margin:0;
+    justify-items:stretch;
+  }
+  .module-card,.module-card:nth-last-child(2),.module-card:last-child{
+    grid-column:auto;
+    width:100%;
+    gap:5px;
+  }
+
+  /* Tarjeta visual más grande, pero con sombra mínima y geometría más sobria. */
+  .module-icon{
+    width:min(94px,100%);
+    justify-self:center;
+    border-radius:19px;
+    border-color:color-mix(in srgb,var(--line-strong) 92%,transparent);
+    box-shadow:0 2px 7px rgba(34,45,60,.055);
+    background:var(--surface);
+  }
+  .module-icon:before{
+    width:76%;
+    height:76%;
+    border-radius:14px;
+    transform:none;
+    background:color-mix(in srgb,var(--accent,var(--primary)) 13%,var(--surface));
+  }
+  .module-icon svg{
+    width:51px;
+    height:51px;
+    filter:none;
+  }
+  .module-card strong{
+    min-height:19px;
+    font-size:9.6px;
+    line-height:1.12;
+    font-weight:700!important;
+    letter-spacing:-.01em;
+  }
+  .module-badge{
+    max-width:76px;
+    font-size:6.9px!important;
+    padding:2px 5px;
+  }
+
+  /* El bloque financiero queda en el fondo real de la pantalla de Inicio. */
+  .home-status{
+    width:100%;
+    max-width:none;
+    margin-top:auto;
+    padding-top:13px;
+    border-top:1px solid color-mix(in srgb,var(--line) 88%,transparent);
+  }
+  .status-kpis{gap:5px}
+  .status-kpis>div{
+    padding:10px 8px;
+    border-radius:12px;
+    box-shadow:none;
+  }
+  .home-empty,
+  .home-reminders{
+    margin-top:8px;
+    box-shadow:none;
+  }
+  .home-empty{border-radius:13px}
+}
+
+@media(max-width:380px){
+  .launcher-wrap{padding-left:max(4px,var(--safe-left));padding-right:max(4px,var(--safe-right))}
+  .module-grid{column-gap:2px;row-gap:12px;max-width:none}
+  .module-icon{width:100%;max-width:88px;border-radius:18px}
+  .module-icon svg{width:48px;height:48px}
+  .module-card strong{font-size:8.9px}
+}

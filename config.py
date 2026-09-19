@@ -35,7 +35,7 @@ def normalize_database_url(url: str) -> str:
 
 class Config:
     APP_NAME = os.getenv("APP_NAME", "CuotaGo")
-    APP_VERSION = os.getenv("APP_VERSION", "1.12.0")
+    APP_VERSION = os.getenv("APP_VERSION", "1.12.1")
     APP_ENV = os.getenv("APP_ENV", "local").strip().lower()
     APP_CURRENCY = os.getenv("APP_CURRENCY", "DOP")
     APP_TIMEZONE = os.getenv("APP_TIMEZONE", "America/Santo_Domingo")

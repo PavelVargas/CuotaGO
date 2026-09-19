@@ -1,10 +1,10 @@
-# CuotaGo MOBILE PWA v1.12.0 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.12.1 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
 
-## Cambios v1.12.0
+## Cambios v1.12.1
 
 - **Cuotas automáticas:** al seleccionar un artículo, CuotaGo toma su valor de referencia, multiplica por la cantidad entregada y solo pide cuántas cuotas quieres. El monto de cada cuota se calcula solo y el calendario se genera con exactamente esa cantidad de pagos.
 - **Precio editable por acuerdo:** el precio detectado del inventario se muestra automáticamente, pero puede ajustarse para una venta o préstamo específico sin cambiar el valor maestro del artículo.
@@ -59,7 +59,7 @@ Primero ejecuta `COMPROBAR_POSTGRES.bat`. Si muestra PostgreSQL OK, inicia norma
 Esta es la forma más rápida para comenzar.
 
 1. Descomprime el ZIP.
-2. Entra a la carpeta de CuotaGo v1.12.0.
+2. Entra a la carpeta de CuotaGo v1.12.1.
 3. Haz doble clic en `INICIAR_WINDOWS.bat`.
 4. El script crea `venv`, instala dependencias, comprueba `.env` y la base de datos, y arranca la aplicación.
 5. Abre `http://127.0.0.1:5000`.
@@ -139,7 +139,7 @@ El `Dockerfile` arranca con Gunicorn y escucha el puerto entregado en `PORT`. Pa
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.12.0
+APP_VERSION=1.12.1
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -172,7 +172,7 @@ Debe terminar mostrando:
 ```text
 [OK] .env cargado
 [OK] Base de datos accesible: ...
-[OK] App: CuotaGo v1.12.0
+[OK] App: CuotaGo v1.12.1
 [OK] CuotaGo esta listo para iniciar.
 ```
 
@@ -279,7 +279,7 @@ flask --app app notify-overdue
 - Launcher rediseñado a 3 columnas en teléfono: tarjetas/iconos más grandes, iconos de 46 px y espacios más compactos.
 - Web Push permanece separado en Ajustes y se activa cuando CuotaGo disponga de HTTPS; no interrumpe una demo local.
 
-## Cambios v1.12.0
+## Cambios v1.12.1
 
 - Menu de perfil redisenado: en movil/PWA abre desde abajo como bottom sheet y ya no queda pegado o recortado por la barra superior de Safari.
 - Fondo modal, boton de cerrar, cuenta visible y zonas tactiles mas grandes.

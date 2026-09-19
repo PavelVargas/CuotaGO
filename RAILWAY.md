@@ -1,4 +1,4 @@
-# CuotaGo v1.12.0 en Railway
+# CuotaGo v1.12.1 en Railway
 
 Esta carpeta esta preparada para Railway con PostgreSQL.
 
@@ -39,7 +39,7 @@ Agrega estas variables en el servicio WEB de CuotaGo:
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.12.0
+APP_VERSION=1.12.1
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -98,6 +98,6 @@ Las notificaciones Push con la PWA cerrada requieren HTTPS y que el usuario conc
 Al arrancar, si `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD` estan configurados, CuotaGo crea o actualiza esa cuenta con rol `superadmin`. Ese usuario entra a `/superadmin`, desde donde puede vaciar Cobros, Acuerdos, Bienes, Clientes, Alertas, dispositivos Push, vaciar una empresa conservando sus usuarios o eliminar la empresa completa.
 
 
-## Actualización v1.12.0
+## Actualización v1.12.1
 
 Esta versión no agrega columnas nuevas. Solo cambia la UX del plan de pago, el launcher móvil/escritorio y el resumen de inicio. La misma base PostgreSQL de Railway es compatible.
