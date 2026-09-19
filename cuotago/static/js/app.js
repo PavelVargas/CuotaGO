@@ -117,7 +117,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = '1.12.1-ui-v14';
+  const APP_VERSION = '1.12.1-ui-v15';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -1276,9 +1276,16 @@
     // Do not put an await before this subscription flow; iOS requires the gesture.
     let subscription = null;
     let remoteError = null;
+    let remotePushPromise = null;
     try {
       setPushMessage('Activando notificaciones del sistema...', 'info');
       subscription = await subscribePushFromUserGesture();
+      // Fire the real Web Push request immediately after the subscription exists.
+      // Local sound/UI work continues while the provider delivers the notification.
+      remotePushPromise = apiJson('/api/push/test', {
+        method: 'POST',
+        body: JSON.stringify({ endpoint: subscription.endpoint }),
+      });
     } catch (error) {
       remoteError = error;
     }
@@ -1286,7 +1293,7 @@
     try {
       setLocalAlertsEnabled(true);
       updateLocalAlertStatus();
-      await unlockAlertAudio();
+      const audioUnlockPromise = unlockAlertAudio();
 
       showInAppPaymentAlert({
         type: 'due_today',
@@ -1298,10 +1305,8 @@
       }, { forceSound: true });
 
       if (subscription) {
-        const data = await apiJson('/api/push/test', {
-          method: 'POST',
-          body: JSON.stringify({ endpoint: subscription.endpoint }),
-        });
+        const data = await remotePushPromise;
+        await audioUnlockPromise.catch(() => {});
         setPushMessage(data.message || 'Notificación enviada ahora.', 'success');
         document.querySelectorAll('[data-local-alert-copy]').forEach((el) => {
           el.textContent = 'Listo. La prueba Push se envió inmediatamente al sistema.';
@@ -1342,7 +1347,10 @@
       button.addEventListener('click', () => applyTheme(button.dataset.themeChoice));
     });
     document.querySelectorAll('[data-theme-toggle-switch]').forEach((input) => {
-      input.addEventListener('change', () => applyTheme(input.checked ? 'dark' : 'light', true));
+      const syncDarkSwitch = () => applyTheme(input.checked ? 'dark' : 'light', true);
+      // `input` reacts immediately on touch; `change` is kept as a browser fallback.
+      input.addEventListener('input', syncDarkSwitch);
+      input.addEventListener('change', syncDarkSwitch);
     });
     document.querySelectorAll('[data-local-alert-switch]').forEach((input) => {
       input.addEventListener('change', async () => {

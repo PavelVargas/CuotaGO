@@ -416,7 +416,7 @@ def push_test():
         "title": "CuotaGo esta listo",
         "body": "Las alertas de cobro estan activas. Cuando un cliente se atrase, te avisaremos aqui.",
         "url": "/notifications",
-        "tag": f"cuotago-test-{current_user.id}",
+        "tag": f"cuotago-test-{current_user.id}-{int(time.time() * 1000)}",
     }
     data = request.get_json(silent=True) or {}
     endpoint = (data.get("endpoint") or "").strip()
