@@ -1,6 +1,39 @@
 {% macro icon(name, size=28) -%}
 <svg class="ui-icon" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-  {% if name == 'agreements' %}
+  {% if name == 'dashboard-agreements' %}
+    <rect x="5" y="3.5" width="14" height="17" rx="3.2" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M8.5 8h7M8.5 11.5h4.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="m9 16 1.7 1.7 4-4.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  {% elif name == 'dashboard-payments' %}
+    <path d="M4.5 7.3A2.8 2.8 0 0 1 7.3 4.5H17a2.5 2.5 0 0 1 2.5 2.5v10a2.5 2.5 0 0 1-2.5 2.5H7A2.5 2.5 0 0 1 4.5 17z" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M4.5 8.5h15" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M14.5 12h5v4h-5a2 2 0 1 1 0-4Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+    <circle cx="15.4" cy="14" r=".85" fill="currentColor"/>
+  {% elif name == 'dashboard-alerts' %}
+    <path d="M7 16.3h10l-1.2-2V10a3.8 3.8 0 1 0-7.6 0v4.3z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+    <path d="M10.2 18.4a2 2 0 0 0 3.6 0" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <circle cx="17.8" cy="6.2" r="2.2" fill="currentColor"/>
+  {% elif name == 'dashboard-clients' %}
+    <circle cx="9" cy="9" r="2.7" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M4.5 18c.45-3.25 2-5 4.5-5s4.05 1.75 4.5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <circle cx="16.5" cy="8.2" r="2.1" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M15 12.8c2.6.1 4.15 1.8 4.5 4.7" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+  {% elif name == 'dashboard-inventory' %}
+    <path d="m5 8 7-4 7 4v8l-7 4-7-4z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+    <path d="m5.4 8.2 6.6 3.7 6.6-3.7M12 11.9V20" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+    <path d="M8.4 6.1 15 9.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" opacity=".55"/>
+  {% elif name == 'dashboard-calendar' %}
+    <rect x="4.2" y="5.2" width="15.6" height="14.6" rx="3" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M8 3.5v3.4M16 3.5v3.4M4.2 9.2h15.6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="m8.2 14.6 1.8 1.8 4-4.1" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  {% elif name == 'dashboard-reports' %}
+    <path d="M5 19.5V5.5M5 19.5h14" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="m8 15 3.3-3.6 2.6 2 4.1-5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="8" cy="15" r="1" fill="currentColor"/><circle cx="11.3" cy="11.4" r="1" fill="currentColor"/><circle cx="13.9" cy="13.4" r="1" fill="currentColor"/><circle cx="18" cy="8.4" r="1" fill="currentColor"/>
+  {% elif name == 'dashboard-settings' %}
+    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M19.2 13.5v-3l-2-.7a6.2 6.2 0 0 0-.8-1.8l.9-1.9L15.2 4l-1.9.9a6.1 6.1 0 0 0-2.6 0L8.8 4 6.7 6.1 7.6 8a6.2 6.2 0 0 0-.8 1.8l-2 .7v3l2 .7a6.2 6.2 0 0 0 .8 1.8l-.9 1.9L8.8 20l1.9-.9a6.1 6.1 0 0 0 2.6 0l1.9.9 2.1-2.1-.9-1.9a6.2 6.2 0 0 0 .8-1.8z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+  {% elif name == 'agreements' %}
     <path d="M4 6.5h7.5l1.7 2H20v9.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
     <path d="M8 13h8M8 16.5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
     <circle cx="17.3" cy="8.5" r="2.2" fill="currentColor"/>
