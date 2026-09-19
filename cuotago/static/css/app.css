@@ -1559,3 +1559,23 @@ button,input,select,textarea{font-family:inherit}
   .dashboard-launcher-v3 .module-grid{max-width:800px;column-gap:44px;row-gap:34px}
   .dashboard-launcher-v3 .home-status{max-width:820px;padding-top:92px}
 }
+
+/* CuotaGo home final polish · 2026-09-19
+   Only two intentional changes:
+   1) thin #ddd outline around launcher icon tiles on PWA + desktop;
+   2) desktop module grid centered on the viewport, independent of bottom status. */
+.dashboard-launcher-v3 .module-icon{
+  border:1px solid #ddd;
+}
+
+@media(min-width:720px){
+  .dashboard-launcher-v3{
+    position:relative;
+  }
+  .dashboard-launcher-v3 .module-grid{
+    position:absolute;
+    left:50%;
+    top:calc(50% - 31px);
+    transform:translate(-50%,-50%);
+  }
+}
