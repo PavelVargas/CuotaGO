@@ -882,20 +882,49 @@ def collections():
 @main_bp.get("/calendar")
 @login_required
 def payment_calendar():
-    """Complete payment agenda: overdue, today and every future unpaid date."""
+    """Interactive payment calendar with client-side, real-time filtering."""
     today_value = local_today()
     items = [i for i in tenant_installments(active_only=True) if i.remaining > Decimal("0.009")]
-    grouped = {}
-    for installment in items:
-        grouped.setdefault(installment.due_date, []).append(installment)
     future_items = [i for i in items if i.due_date >= today_value]
     next_due = future_items[0].due_date if future_items else None
+
+    calendar_events = []
+    seen_clients = {}
+    for installment in items:
+        contract = installment.contract
+        client = contract.client
+        seen_clients[client.id] = {
+            "id": client.id,
+            "name": client.full_name,
+        }
+        calendar_events.append(
+            {
+                "id": installment.id,
+                "date": installment.due_date.isoformat(),
+                "date_label": installment.due_date.strftime("%d/%m/%Y"),
+                "client_id": client.id,
+                "client_name": client.full_name,
+                "client_phone": client.phone or "",
+                "client_document": client.document_id or "",
+                "contract_id": contract.id,
+                "contract_code": contract.code or f"#{contract.id}",
+                "contract_url": url_for("main.contract_detail", contract_id=contract.id, _anchor="pay"),
+                "asset_name": contract.asset.name,
+                "quantity": max(int(contract.quantity or 1), 1),
+                "sequence": installment.sequence,
+                "amount": format_money(installment.remaining),
+                "late_fee": format_money(installment.late_fee_remaining) if installment.late_fee_remaining > Decimal("0.009") else "",
+            }
+        )
+
+    calendar_clients = sorted(seen_clients.values(), key=lambda item: item["name"].casefold())
     return render_template(
         "calendar/list.html",
-        grouped=grouped,
         today_value=today_value,
         pending_count=len(items),
         next_due=next_due,
+        calendar_events=calendar_events,
+        calendar_clients=calendar_clients,
     )
 
 

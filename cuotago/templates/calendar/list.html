@@ -2,33 +2,90 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Calendario · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page calendar-page">
-  <div class="page-head">
-    <div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back', 22) }}</a><div><span class="eyebrow">CALENDARIO</span><h1>Agenda de pagos</h1><p>Todas las cuotas pendientes, desde las vencidas hasta las próximas.</p></div></div>
+<section class="content-page calendar-page" data-payment-calendar data-today="{{ today_value.isoformat() }}">
+  <div class="page-head calendar-page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver al inicio">{{ icon('back', 22) }}</a>
+      <div>
+        <span class="eyebrow">CALENDARIO</span>
+        <h1>Agenda de pagos</h1>
+        <p>Busca un cliente y mira sus días de pago al instante.</p>
+      </div>
+    </div>
   </div>
 
-  <div class="calendar-summary surface">
-    <span class="calendar-summary-icon">{{ icon('calendar-pay', 28) }}</span>
-    <div><small>Pendientes</small><strong>{{ pending_count }}</strong></div>
-    <div><small>Próximo pago</small><strong>{{ next_due.strftime('%d/%m/%Y') if next_due else '—' }}</strong></div>
+  <div class="calendar-filterbar surface">
+    <label class="calendar-search" for="calendarClientSearch">
+      <span class="calendar-search-icon">{{ icon('search', 19) }}</span>
+      <input
+        id="calendarClientSearch"
+        type="search"
+        inputmode="search"
+        autocomplete="off"
+        list="calendarClientOptions"
+        placeholder="Buscar cliente, teléfono o documento"
+        aria-label="Buscar cliente"
+        data-calendar-search
+      >
+      <datalist id="calendarClientOptions">
+        {% for client in calendar_clients %}<option value="{{ client.name }}"></option>{% endfor %}
+      </datalist>
+      <button class="calendar-search-clear" type="button" aria-label="Limpiar búsqueda" data-calendar-clear hidden>×</button>
+    </label>
+    <div class="calendar-filter-status" aria-live="polite">
+      <span data-calendar-filter-label>Todos los clientes</span>
+      <small><span data-calendar-visible-count>{{ pending_count }}</span> pagos pendientes</small>
+    </div>
   </div>
 
-  <div class="timeline">
-    {% for day, installments in grouped.items() %}
-    <section class="timeline-day {{ 'is-overdue' if day < today_value else 'is-today' if day == today_value else '' }}">
-      <div class="timeline-date"><strong>{{ day.strftime('%d') }}</strong><span>{{ day.strftime('%b') }}</span><small>{{ 'Vencido' if day < today_value else 'Hoy' if day == today_value else day.strftime('%Y') }}</small></div>
-      <div class="timeline-items">
-        {% for installment in installments %}
-        <a class="timeline-item" href="{{ url_for('main.contract_detail', contract_id=installment.contract.id, _anchor='pay') }}">
-          <div><strong>{{ installment.contract.client.full_name }}</strong><span>{{ installment.contract.asset.name }}{% if installment.contract.quantity > 1 %} · {{ installment.contract.quantity }} uds.{% endif %} · cuota {{ installment.sequence }}</span>{% if installment.late_fee_remaining > 0 %}<small class="late-fee-copy">+ {{ money(installment.late_fee_remaining) }} interés por atraso</small>{% endif %}</div>
-          <strong>{{ money(installment.remaining) }}</strong>
-        </a>
-        {% endfor %}
+  <div class="calendar-summary-row">
+    <div class="calendar-mini-stat">
+      <span>Pendientes</span>
+      <strong data-calendar-pending-count>{{ pending_count }}</strong>
+    </div>
+    <div class="calendar-mini-stat">
+      <span>Próximo pago</span>
+      <strong data-calendar-next-due>{{ next_due.strftime('%d/%m/%Y') if next_due else '—' }}</strong>
+    </div>
+  </div>
+
+  <div class="calendar-workspace">
+    <section class="real-calendar surface" aria-label="Calendario de pagos">
+      <div class="real-calendar-head">
+        <div>
+          <span class="eyebrow">MES</span>
+          <h2 data-calendar-month-label>—</h2>
+        </div>
+        <div class="real-calendar-nav" aria-label="Navegación del calendario">
+          <button type="button" class="calendar-nav-btn" data-calendar-prev aria-label="Mes anterior">{{ icon('back', 18) }}</button>
+          <button type="button" class="calendar-today-btn" data-calendar-today>Hoy</button>
+          <button type="button" class="calendar-nav-btn calendar-nav-next" data-calendar-next aria-label="Mes siguiente">{{ icon('back', 18) }}</button>
+        </div>
+      </div>
+
+      <div class="real-calendar-weekdays" aria-hidden="true">
+        <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+      </div>
+      <div class="real-calendar-grid" data-calendar-grid></div>
+
+      <div class="real-calendar-legend">
+        <span><i class="calendar-legend-dot"></i>Día de pago</span>
+        <small data-calendar-month-summary></small>
       </div>
     </section>
-    {% else %}
-    <div class="surface empty-state"><span class="empty-icon">{{ icon('calendar-pay', 36) }}</span><h3>No hay pagos pendientes</h3><p>Cuando crees un acuerdo, todas sus fechas aparecerán aquí automáticamente.</p><a class="btn btn-primary" href="{{ url_for('main.contract_new') }}">Crear acuerdo</a></div>
-    {% endfor %}
+
+    <aside class="calendar-day-panel surface" aria-live="polite">
+      <div class="calendar-day-panel-head">
+        <div>
+          <span class="eyebrow">DETALLE DEL DÍA</span>
+          <h2 data-calendar-day-title>Selecciona una fecha</h2>
+        </div>
+        <span class="calendar-day-count" data-calendar-day-count>0</span>
+      </div>
+      <div class="calendar-day-items" data-calendar-day-items></div>
+    </aside>
   </div>
+
+  <script type="application/json" id="paymentCalendarEvents">{{ calendar_events|tojson }}</script>
 </section>
 {% endblock %}

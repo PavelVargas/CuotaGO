@@ -841,10 +841,281 @@
     document.addEventListener('touchcancel', reset, { passive: true });
   };
 
+  const setupPaymentCalendar = () => {
+    const host = document.querySelector('[data-payment-calendar]');
+    const dataNode = document.getElementById('paymentCalendarEvents');
+    if (!host || !dataNode) return;
+
+    let events = [];
+    try {
+      events = JSON.parse(dataNode.textContent || '[]');
+    } catch (_) {
+      events = [];
+    }
+
+    const searchInput = host.querySelector('[data-calendar-search]');
+    const clearButton = host.querySelector('[data-calendar-clear]');
+    const grid = host.querySelector('[data-calendar-grid]');
+    const monthLabel = host.querySelector('[data-calendar-month-label]');
+    const monthSummary = host.querySelector('[data-calendar-month-summary]');
+    const dayTitle = host.querySelector('[data-calendar-day-title]');
+    const dayCount = host.querySelector('[data-calendar-day-count]');
+    const dayItems = host.querySelector('[data-calendar-day-items]');
+    const filterLabel = host.querySelector('[data-calendar-filter-label]');
+    const visibleCount = host.querySelector('[data-calendar-visible-count]');
+    const pendingCount = host.querySelector('[data-calendar-pending-count]');
+    const nextDue = host.querySelector('[data-calendar-next-due]');
+    if (!grid || !monthLabel || !dayItems) return;
+
+    const pad = (value) => String(value).padStart(2, '0');
+    const isoFromDate = (value) => `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+    const dateFromIso = (value) => {
+      const [year, month, day] = String(value || '').split('-').map(Number);
+      return new Date(year || 2000, (month || 1) - 1, day || 1);
+    };
+    const normalize = (value) => String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+      .trim();
+    const titleCase = (value) => value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+    const monthFormatter = new Intl.DateTimeFormat('es-DO', { month: 'long', year: 'numeric' });
+    const dayFormatter = new Intl.DateTimeFormat('es-DO', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    const todayIso = host.dataset.today || isoFromDate(new Date());
+    const todayDate = dateFromIso(todayIso);
+    let viewYear = todayDate.getFullYear();
+    let viewMonth = todayDate.getMonth();
+    let selectedIso = todayIso;
+    let query = '';
+
+    const getFilteredEvents = () => {
+      if (!query) return events;
+      return events.filter((item) => normalize([
+        item.client_name,
+        item.client_phone,
+        item.client_document,
+      ].join(' ')).includes(query));
+    };
+
+    const setPreferredDayForMonth = (filtered, preserveCurrent = false) => {
+      const prefix = `${viewYear}-${pad(viewMonth + 1)}-`;
+      if (preserveCurrent && selectedIso.startsWith(prefix)) return;
+      const firstPayment = filtered.find((item) => String(item.date).startsWith(prefix));
+      selectedIso = firstPayment?.date || `${viewYear}-${pad(viewMonth + 1)}-01`;
+    };
+
+    const updateSummary = (filtered) => {
+      const upcoming = filtered.find((item) => item.date >= todayIso);
+      if (visibleCount) visibleCount.textContent = String(filtered.length);
+      if (pendingCount) pendingCount.textContent = String(filtered.length);
+      if (nextDue) nextDue.textContent = upcoming?.date_label || '—';
+      if (filterLabel) {
+        const raw = searchInput?.value.trim() || '';
+        filterLabel.textContent = raw ? `Filtrando: ${raw}` : 'Todos los clientes';
+      }
+    };
+
+    const makeEmptyState = (title, copy) => {
+      const empty = document.createElement('div');
+      empty.className = 'calendar-day-empty';
+      const mark = document.createElement('span');
+      mark.className = 'calendar-day-empty-mark';
+      mark.textContent = '•';
+      const heading = document.createElement('strong');
+      heading.textContent = title;
+      const text = document.createElement('span');
+      text.textContent = copy;
+      empty.append(mark, heading, text);
+      return empty;
+    };
+
+    const renderDayPanel = (filtered, byDate, monthEvents) => {
+      const selectedEvents = byDate.get(selectedIso) || [];
+      const selectedDate = dateFromIso(selectedIso);
+      if (dayTitle) dayTitle.textContent = titleCase(dayFormatter.format(selectedDate));
+      if (dayCount) dayCount.textContent = String(selectedEvents.length);
+      dayItems.replaceChildren();
+
+      if (selectedEvents.length) {
+        selectedEvents.forEach((item) => {
+          const link = document.createElement('a');
+          link.className = 'calendar-payment-item';
+          link.href = item.contract_url;
+
+          const copy = document.createElement('div');
+          copy.className = 'calendar-payment-copy';
+          const name = document.createElement('strong');
+          name.textContent = item.client_name;
+          const meta = document.createElement('span');
+          meta.textContent = `${item.asset_name}${Number(item.quantity) > 1 ? ` · ${item.quantity} uds.` : ''} · cuota ${item.sequence}`;
+          copy.append(name, meta);
+          if (item.late_fee) {
+            const fee = document.createElement('small');
+            fee.className = 'calendar-payment-late';
+            fee.textContent = `Incluye ${item.late_fee} de interés`;
+            copy.append(fee);
+          }
+
+          const money = document.createElement('div');
+          money.className = 'calendar-payment-money';
+          const amount = document.createElement('strong');
+          amount.textContent = item.amount;
+          const code = document.createElement('small');
+          code.textContent = item.contract_code;
+          money.append(amount, code);
+          link.append(copy, money);
+          dayItems.append(link);
+        });
+        return;
+      }
+
+      if (!filtered.length) {
+        dayItems.append(makeEmptyState('Sin resultados', 'No hay pagos pendientes para esa búsqueda.'));
+        return;
+      }
+
+      if (!monthEvents.length) {
+        const upcoming = filtered.find((item) => item.date >= `${viewYear}-${pad(viewMonth + 1)}-01`) || filtered[0];
+        const empty = makeEmptyState('Sin pagos este mes', 'Puedes ir directamente al próximo día de pago de este filtro.');
+        if (upcoming) {
+          const jump = document.createElement('button');
+          jump.type = 'button';
+          jump.className = 'calendar-jump-btn';
+          jump.textContent = `Ir al ${upcoming.date_label}`;
+          jump.addEventListener('click', () => {
+            const target = dateFromIso(upcoming.date);
+            viewYear = target.getFullYear();
+            viewMonth = target.getMonth();
+            selectedIso = upcoming.date;
+            render();
+          });
+          empty.append(jump);
+        }
+        dayItems.append(empty);
+        return;
+      }
+
+      dayItems.append(makeEmptyState('Sin pagos este día', 'Los días de pago aparecen marcados en naranja.'));
+    };
+
+    const render = () => {
+      const filtered = getFilteredEvents();
+      updateSummary(filtered);
+
+      const byDate = new Map();
+      filtered.forEach((item) => {
+        if (!byDate.has(item.date)) byDate.set(item.date, []);
+        byDate.get(item.date).push(item);
+      });
+
+      const monthStart = new Date(viewYear, viewMonth, 1);
+      const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      const mondayOffset = (monthStart.getDay() + 6) % 7;
+      const totalCells = Math.ceil((mondayOffset + daysInMonth) / 7) * 7;
+      const gridStart = new Date(viewYear, viewMonth, 1 - mondayOffset);
+      const monthPrefix = `${viewYear}-${pad(viewMonth + 1)}-`;
+      const monthEvents = filtered.filter((item) => String(item.date).startsWith(monthPrefix));
+
+      monthLabel.textContent = titleCase(monthFormatter.format(monthStart));
+      if (monthSummary) {
+        const uniqueClients = new Set(monthEvents.map((item) => item.client_id)).size;
+        monthSummary.textContent = monthEvents.length
+          ? `${monthEvents.length} pago${monthEvents.length === 1 ? '' : 's'} · ${uniqueClients} cliente${uniqueClients === 1 ? '' : 's'}`
+          : 'Sin pagos en este mes';
+      }
+
+      grid.replaceChildren();
+      for (let index = 0; index < totalCells; index += 1) {
+        const cellDate = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index);
+        const cellIso = isoFromDate(cellDate);
+        const cellEvents = byDate.get(cellIso) || [];
+        const isOutside = cellDate.getMonth() !== viewMonth;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'real-calendar-day';
+        button.classList.toggle('is-outside', isOutside);
+        button.classList.toggle('is-today', cellIso === todayIso);
+        button.classList.toggle('is-selected', cellIso === selectedIso);
+        button.classList.toggle('has-payment', cellEvents.length > 0);
+        button.dataset.date = cellIso;
+        button.setAttribute('aria-label', `${titleCase(dayFormatter.format(cellDate))}${cellEvents.length ? `, ${cellEvents.length} pago${cellEvents.length === 1 ? '' : 's'}` : ''}`);
+
+        const number = document.createElement('span');
+        number.className = 'real-calendar-day-number';
+        number.textContent = String(cellDate.getDate());
+        button.append(number);
+
+        if (cellEvents.length) {
+          const due = document.createElement('span');
+          due.className = 'real-calendar-due';
+          const dot = document.createElement('i');
+          const label = document.createElement('span');
+          label.textContent = cellEvents.length === 1 ? 'Pago' : `${cellEvents.length} pagos`;
+          due.append(dot, label);
+          button.append(due);
+        }
+
+        button.addEventListener('click', () => {
+          selectedIso = cellIso;
+          if (isOutside) {
+            viewYear = cellDate.getFullYear();
+            viewMonth = cellDate.getMonth();
+          }
+          render();
+        });
+        grid.append(button);
+      }
+
+      renderDayPanel(filtered, byDate, monthEvents);
+    };
+
+    host.querySelector('[data-calendar-prev]')?.addEventListener('click', () => {
+      const target = new Date(viewYear, viewMonth - 1, 1);
+      viewYear = target.getFullYear();
+      viewMonth = target.getMonth();
+      setPreferredDayForMonth(getFilteredEvents());
+      render();
+    });
+    host.querySelector('[data-calendar-next]')?.addEventListener('click', () => {
+      const target = new Date(viewYear, viewMonth + 1, 1);
+      viewYear = target.getFullYear();
+      viewMonth = target.getMonth();
+      setPreferredDayForMonth(getFilteredEvents());
+      render();
+    });
+    host.querySelector('[data-calendar-today]')?.addEventListener('click', () => {
+      viewYear = todayDate.getFullYear();
+      viewMonth = todayDate.getMonth();
+      selectedIso = todayIso;
+      render();
+    });
+
+    searchInput?.addEventListener('input', () => {
+      query = normalize(searchInput.value);
+      if (clearButton) clearButton.hidden = !searchInput.value;
+      setPreferredDayForMonth(getFilteredEvents());
+      render();
+    });
+    clearButton?.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      query = '';
+      clearButton.hidden = true;
+      setPreferredDayForMonth(events, true);
+      searchInput?.focus();
+      render();
+    });
+
+    setPreferredDayForMonth(events, true);
+    render();
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     setupRememberedLaunchGate();
     setupProfileMenu();
     setupPullToRefresh();
+    setupPaymentCalendar();
     applyTheme(document.body.classList.contains('auth-shell') ? 'light' : readTheme(), false);
 
     document.querySelectorAll('[data-theme-choice]').forEach((button) => {

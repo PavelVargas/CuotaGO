@@ -81,7 +81,7 @@
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-light.png') }}">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('APP_VERSION', '1.12.1') }}-ui-20260919-center-border-v5">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('APP_VERSION', '1.12.1') }}-calendar-v6">
 </head>
 <body class="{% if current_user.is_authenticated and request.blueprint != 'auth' %}app-authenticated{% else %}auth-shell{% endif %}">
   <div class="boot-splash" id="bootSplash" aria-hidden="true">
@@ -174,7 +174,7 @@
   <footer class="footer"><span class="status-dot"></span><span>© 2026 {{ app_name }}</span>{% if current_user.role == 'superadmin' %}<a href="{{ url_for('admin.dashboard') }}">Superadmin</a>{% else %}<a href="{{ url_for('main.settings') }}">Configuración</a>{% endif %}</footer>
   {% endif %}
 
-  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('APP_VERSION', '1.12.1') }}-ui-20260919-center-border-v5" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('APP_VERSION', '1.12.1') }}-calendar-v6" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

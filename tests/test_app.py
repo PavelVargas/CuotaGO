@@ -299,6 +299,20 @@ def test_calendar_lists_new_agreement_dates(client, app):
     assert calendar.status_code == 200
     assert b'Cliente Calendario' in calendar.data
     assert due.strftime('%d/%m/%Y').encode() in calendar.data
+    assert b'data-calendar-search' in calendar.data
+    assert b'data-calendar-grid' in calendar.data
+    assert b'paymentCalendarEvents' in calendar.data
+
+
+def test_calendar_frontend_has_realtime_client_filter_and_payment_day_state():
+    from pathlib import Path
+    js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    assert 'setupPaymentCalendar' in js
+    assert "searchInput?.addEventListener('input'" in js
+    assert 'has-payment' in js
+    assert '.real-calendar-day.has-payment' in css
+    assert 'var(--primary)' in css
 
 
 def test_inventory_quantity_allows_multiple_agreements(client, app):
