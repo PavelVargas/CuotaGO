@@ -2549,3 +2549,69 @@ body.app-authenticated .page-shell>*{
   body.dashboard-home .dashboard-launcher-v3 .module-grid{top:41.5%;row-gap:24px}
   body.dashboard-home .dashboard-launcher-v3 .home-reminders{max-height:92px}
 }
+
+/* --------------------------------------------------------------------------
+   CuotaGo UI v17 · larger PWA launcher + stable bottom status on refresh.
+   Keep the mobile home visually fixed: no flex/viewport reflow makes the
+   receivables block jump while Safari/PWA resolves its dynamic viewport.
+   -------------------------------------------------------------------------- */
+@media(max-width:719px){
+  body.dashboard-home{
+    height:100svh;
+    min-height:100svh;
+    overflow:hidden;
+  }
+  body.dashboard-home .page-shell{
+    height:calc(100svh - var(--topbar-h) - var(--safe-top));
+    min-height:0;
+    padding-bottom:0;
+    overflow:hidden;
+  }
+  body.dashboard-home .dashboard-launcher-v3{
+    position:relative;
+    height:100%;
+    min-height:0;
+    max-height:100%;
+    padding:12px max(8px,var(--safe-right)) 0 max(8px,var(--safe-left));
+    overflow:hidden;
+  }
+  body.dashboard-home .dashboard-launcher-v3 .module-grid{
+    flex:0 0 auto;
+    gap:16px 5px;
+  }
+  body.dashboard-home .dashboard-launcher-v3 .module-icon{
+    width:min(70px,92%);
+    border-radius:21px;
+  }
+  body.dashboard-home .dashboard-launcher-v3 .module-icon svg{
+    width:58px;
+    height:58px;
+  }
+  body.dashboard-home .dashboard-launcher-v3 .home-status{
+    position:absolute;
+    left:max(8px,var(--safe-left));
+    right:max(8px,var(--safe-right));
+    bottom:max(8px,var(--safe-bottom));
+    width:auto;
+    max-width:none;
+    margin:0;
+    padding:0;
+    transform:translateZ(0);
+    backface-visibility:hidden;
+  }
+  body.dashboard-home .dashboard-launcher-v3 .home-reminders{
+    max-height:min(178px,31svh);
+  }
+}
+
+@media(max-width:370px){
+  body.dashboard-home .dashboard-launcher-v3 .module-grid{gap:14px 4px}
+  body.dashboard-home .dashboard-launcher-v3 .module-icon{
+    width:min(67px,92%);
+    border-radius:20px;
+  }
+  body.dashboard-home .dashboard-launcher-v3 .module-icon svg{
+    width:56px;
+    height:56px;
+  }
+}
