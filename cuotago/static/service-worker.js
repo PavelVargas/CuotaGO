@@ -1,4 +1,4 @@
-const VERSION = '1.12.1-whatsapp-brand-v8';
+const VERSION = '1.12.1-ui-v9';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const RUNTIME_CACHE = `cuotago-runtime-${VERSION}`;
 const CORE = [
@@ -11,6 +11,7 @@ const CORE = [
   '/static/icons/apple-touch-icon.png',
   '/static/icons/icon-maskable-512.png',
   '/static/icons/favicon-64.png',
+  '/static/icons/favicon-32.png',
   '/static/sounds/alert.wav'
 ];
 

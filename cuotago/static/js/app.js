@@ -41,6 +41,9 @@
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
+    document.querySelectorAll('[data-theme-toggle-switch]').forEach((input) => {
+      input.checked = resolvedTheme(choice) === 'dark';
+    });
   };
 
   const applyTheme = (choice, persist = true) => {
@@ -114,7 +117,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = '1.12.1-ux3';
+  const APP_VERSION = '1.12.1-ui-v9';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -193,6 +196,7 @@
   };
 
   const LOCAL_ALERT_SOUND_KEY = 'cuotago-local-alert-sound-v2';
+  const LOCAL_ALERTS_ENABLED_KEY = 'cuotago-local-alerts-enabled-v1';
   let alertAudioContext = null;
   let alertAudioUnlocked = false;
   let pendingAlertSound = false;
@@ -209,16 +213,31 @@
     }
   };
 
+  const localAlertsEnabled = () => {
+    try { return localStorage.getItem(LOCAL_ALERTS_ENABLED_KEY) !== '0'; } catch (_) { return true; }
+  };
+
+  const setLocalAlertsEnabled = (enabled) => {
+    try { localStorage.setItem(LOCAL_ALERTS_ENABLED_KEY, enabled ? '1' : '0'); } catch (_) {}
+  };
+
   const updateLocalAlertStatus = () => {
+    const enabled = localAlertsEnabled();
     const supported = Boolean(window.AudioContext || window.webkitAudioContext);
+    document.querySelectorAll('[data-local-alert-switch]').forEach((input) => { input.checked = enabled; });
     document.querySelectorAll('[data-local-alert-status]').forEach((el) => {
-      if (!supported) {
-        el.textContent = 'Sin audio';
+      if (!enabled) {
+        el.textContent = 'Desactivadas';
         el.dataset.active = '0';
         return;
       }
-      el.textContent = alertAudioUnlocked ? 'Sonido listo' : 'Se activa al tocar';
-      el.dataset.active = alertAudioUnlocked ? '1' : '0';
+      if (!supported) {
+        el.textContent = 'Activadas · sin sonido';
+        el.dataset.active = '1';
+        return;
+      }
+      el.textContent = alertAudioUnlocked ? 'Activadas · sonido listo' : 'Activadas';
+      el.dataset.active = '1';
     });
   };
 
@@ -284,6 +303,7 @@
   };
 
   const playAlertSound = () => {
+    if (!localAlertsEnabled()) return false;
     const played = playSynthAlert();
     try { navigator.vibrate?.([180, 90, 180, 90, 320]); } catch (_) {}
     return played;
@@ -344,6 +364,13 @@
     });
   };
 
+  const syncPushSwitch = ({ checked = false, disabled = false } = {}) => {
+    document.querySelectorAll('[data-push-switch]').forEach((input) => {
+      input.checked = checked;
+      input.disabled = disabled;
+    });
+  };
+
   const ALERT_MEMORY_KEY = 'cuotago-inapp-alert-memory-v1';
   const ALERT_REPEAT_MS = 30 * 60 * 1000;
 
@@ -388,7 +415,8 @@
   };
 
   let inAppAlertTimer = null;
-  const showInAppPaymentAlert = (item = {}, { forceSound = true } = {}) => {
+  const showInAppPaymentAlert = (item = {}, { forceSound = true, ignorePreference = false } = {}) => {
+    if (!ignorePreference && !localAlertsEnabled()) return;
     let host = document.querySelector('.inapp-alert-host');
     if (!host) {
       host = document.createElement('div');
@@ -451,7 +479,7 @@
     if (!document.body.classList.contains('app-authenticated')) return;
     try {
       const data = await fetchPaymentNotifications();
-      if (!showToast) return;
+      if (!showToast || !localAlertsEnabled()) return;
       const candidate = (data.items || []).find((item) => item.urgent && canRepeatAlert(item.id));
       if (!candidate) return;
       rememberAlert(candidate.id);
@@ -541,6 +569,7 @@
         el.dataset.active = '0';
       });
       document.querySelectorAll('[data-push-enable],[data-push-disable],[data-push-test],[data-push-test-background]').forEach((el) => { el.hidden = true; });
+      syncPushSwitch({ checked: false, disabled: true });
       document.querySelectorAll('[data-push-footnote]').forEach((el) => {
         el.textContent = 'Puedes enseñar y usar CuotaGo en tu red local sin Push. Cuando tengas un dominio HTTPS, esta misma sección habilitará las alertas remotas.';
       });
@@ -555,6 +584,7 @@
         el.dataset.active = '0';
       });
       document.querySelectorAll('[data-push-enable],[data-push-disable],[data-push-test],[data-push-test-background]').forEach((el) => { el.hidden = true; });
+      syncPushSwitch({ checked: false, disabled: true });
       return;
     }
 
@@ -565,6 +595,7 @@
         el.textContent = 'Instala la PWA';
         el.dataset.active = '0';
       });
+      syncPushSwitch({ checked: false, disabled: true });
       return;
     }
 
@@ -576,6 +607,7 @@
         try { await saveSubscriptionOnServer(subscription); } catch (_) {}
       }
       controls.forEach((el) => el.dataset.state = active ? 'active' : 'inactive');
+      syncPushSwitch({ checked: active, disabled: Notification.permission === 'denied' || !config.enabled });
       document.querySelectorAll('[data-push-status]').forEach((el) => {
         el.textContent = active ? 'Activadas' : (Notification.permission === 'denied' ? 'Bloqueadas' : 'Desactivadas');
         el.dataset.active = active ? '1' : '0';
@@ -592,6 +624,7 @@
     } catch (error) {
       setPushMessage(await friendlyPushError(error), 'error');
       setEnableButtonLabel('Reintentar');
+      syncPushSwitch({ checked: false, disabled: false });
     }
   };
 
@@ -634,6 +667,7 @@
       const message = await friendlyPushError(error);
       setPushMessage(message, 'error');
       setEnableButtonLabel('Reintentar');
+      syncPushSwitch({ checked: false, disabled: false });
     } finally {
       if (button) button.disabled = false;
     }
@@ -908,6 +942,7 @@
     const visibleCount = host.querySelector('[data-calendar-visible-count]');
     const pendingCount = host.querySelector('[data-calendar-pending-count]');
     const nextDue = host.querySelector('[data-calendar-next-due]');
+    const calendarSurface = host.querySelector('.real-calendar');
     if (!grid || !monthLabel || !dayItems) return;
 
     const pad = (value) => String(value).padStart(2, '0');
@@ -1114,20 +1149,60 @@
       renderDayPanel(filtered, byDate, monthEvents);
     };
 
-    host.querySelector('[data-calendar-prev]')?.addEventListener('click', () => {
-      const target = new Date(viewYear, viewMonth - 1, 1);
+    const animateCalendarSwipe = (delta) => {
+      const className = delta > 0 ? 'calendar-swipe-from-right' : 'calendar-swipe-from-left';
+      grid.classList.remove('calendar-swipe-from-right', 'calendar-swipe-from-left');
+      void grid.offsetWidth;
+      grid.classList.add(className);
+      grid.addEventListener('animationend', () => grid.classList.remove(className), { once: true });
+    };
+
+    const shiftCalendarMonth = (delta, { animate = false } = {}) => {
+      const target = new Date(viewYear, viewMonth + delta, 1);
       viewYear = target.getFullYear();
       viewMonth = target.getMonth();
       setPreferredDayForMonth(getFilteredEvents());
       render();
-    });
-    host.querySelector('[data-calendar-next]')?.addEventListener('click', () => {
-      const target = new Date(viewYear, viewMonth + 1, 1);
-      viewYear = target.getFullYear();
-      viewMonth = target.getMonth();
-      setPreferredDayForMonth(getFilteredEvents());
-      render();
-    });
+      if (animate) animateCalendarSwipe(delta);
+    };
+
+    host.querySelector('[data-calendar-prev]')?.addEventListener('click', () => shiftCalendarMonth(-1));
+    host.querySelector('[data-calendar-next]')?.addEventListener('click', () => shiftCalendarMonth(1));
+
+    if (calendarSurface) {
+      let swipeStartX = 0;
+      let swipeStartY = 0;
+      let trackingSwipe = false;
+      let suppressCalendarClickUntil = 0;
+
+      grid.addEventListener('click', (event) => {
+        if (Date.now() < suppressCalendarClickUntil) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      }, true);
+
+      calendarSurface.addEventListener('touchstart', (event) => {
+        if (window.innerWidth > 719 || event.touches?.length !== 1) return;
+        const touch = event.touches[0];
+        swipeStartX = touch.clientX;
+        swipeStartY = touch.clientY;
+        trackingSwipe = true;
+      }, { passive: true });
+
+      calendarSurface.addEventListener('touchend', (event) => {
+        if (!trackingSwipe || window.innerWidth > 719 || event.changedTouches?.length !== 1) return;
+        trackingSwipe = false;
+        const touch = event.changedTouches[0];
+        const deltaX = touch.clientX - swipeStartX;
+        const deltaY = touch.clientY - swipeStartY;
+        if (Math.abs(deltaX) < 46 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) return;
+        suppressCalendarClickUntil = Date.now() + 360;
+        shiftCalendarMonth(deltaX < 0 ? 1 : -1, { animate: true });
+      }, { passive: true });
+
+      calendarSurface.addEventListener('touchcancel', () => { trackingSwipe = false; }, { passive: true });
+    }
     host.querySelector('[data-calendar-today]')?.addEventListener('click', () => {
       viewYear = todayDate.getFullYear();
       viewMonth = todayDate.getMonth();
@@ -1164,6 +1239,24 @@
 
     document.querySelectorAll('[data-theme-choice]').forEach((button) => {
       button.addEventListener('click', () => applyTheme(button.dataset.themeChoice));
+    });
+    document.querySelectorAll('[data-theme-toggle-switch]').forEach((input) => {
+      input.addEventListener('change', () => applyTheme(input.checked ? 'dark' : 'light'));
+    });
+    document.querySelectorAll('[data-local-alert-switch]').forEach((input) => {
+      input.addEventListener('change', async () => {
+        setLocalAlertsEnabled(input.checked);
+        if (input.checked) await unlockAlertAudio();
+        updateLocalAlertStatus();
+        if (input.checked) pollPaymentAlerts({ showToast: true });
+      });
+    });
+    document.querySelectorAll('[data-push-switch]').forEach((input) => {
+      input.addEventListener('change', async () => {
+        if (input.checked) await enablePush(input);
+        else await disablePush(input);
+        await updatePushUI();
+      });
     });
 
     const authThemeToggle = document.getElementById('authThemeToggle');

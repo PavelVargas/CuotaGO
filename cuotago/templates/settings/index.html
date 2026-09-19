@@ -2,74 +2,56 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Ajustes · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page narrow-page">
-  <div class="page-head">
+<section class="content-page settings-page narrow-page">
+  <div class="page-head settings-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><span class="eyebrow">AJUSTES</span><h1>Negocio y cuenta</h1><p>Configuración simple para usar {{ app_name }} todos los días.</p></div>
+      <div><span class="eyebrow">AJUSTES</span><h1>Configuración</h1><p>Solo lo necesario para usar CuotaGo.</p></div>
     </div>
   </div>
 
-  <section class="surface theme-card">
-    <div class="theme-card-copy"><strong>Apariencia</strong><p>El tema se guarda en este dispositivo y también se aplica al modo PWA.</p></div>
-    <div class="theme-picker" aria-label="Seleccionar apariencia">
-      <button class="theme-option" type="button" data-theme-choice="light">{{ icon('sun', 22) }}<span>Claro</span></button>
-      <button class="theme-option" type="button" data-theme-choice="system">{{ icon('phone', 22) }}<span>Sistema</span></button>
-      <button class="theme-option" type="button" data-theme-choice="dark">{{ icon('moon', 22) }}<span>Oscuro</span></button>
+  <section class="surface settings-switch-panel" aria-label="Preferencias">
+    <div class="settings-section-heading">
+      <strong>Preferencias</strong>
+      <small>Los cambios se aplican en este dispositivo.</small>
     </div>
+
+    <label class="settings-switch-row">
+      <span class="settings-row-icon">{{ icon('moon', 20) }}</span>
+      <span class="settings-row-copy"><strong>Modo oscuro</strong><small>Activa una interfaz oscura.</small></span>
+      <span class="ios-switch"><input type="checkbox" data-theme-toggle-switch aria-label="Modo oscuro"><i></i></span>
+    </label>
+
+    <label class="settings-switch-row">
+      <span class="settings-row-icon">{{ icon('bell', 20) }}</span>
+      <span class="settings-row-copy"><strong>Alertas dentro de CuotaGo</strong><small data-local-alert-status>Activadas</small></span>
+      <span class="ios-switch"><input type="checkbox" data-local-alert-switch aria-label="Alertas dentro de CuotaGo"><i></i></span>
+    </label>
+
+    <label class="settings-switch-row" data-push-controls>
+      <span class="settings-row-icon">{{ icon('phone', 20) }}</span>
+      <span class="settings-row-copy">
+        <strong>Notificaciones con la app cerrada</strong>
+        <small data-push-message>Comprobando disponibilidad…</small>
+        <span class="settings-switch-status" data-push-status>Comprobando…</span>
+      </span>
+      <span class="ios-switch"><input type="checkbox" data-push-switch aria-label="Notificaciones con la app cerrada"><i></i></span>
+    </label>
   </section>
 
-  <section class="surface notification-card local-alert-card" data-local-alert-controls>
-    <div class="notification-card-head">
-      <span class="notification-card-icon">{{ icon('bell', 24) }}</span>
-      <div>
-        <div class="notification-title-line"><strong>Alertas dentro de CuotaGo</strong><span class="push-status" data-local-alert-status>Se activa al tocar</span></div>
-        <p data-local-alert-copy>Mientras CuotaGo esté abierta, los pagos vencidos muestran una alerta visible y reproducen un sonido.</p>
-      </div>
-    </div>
-    <div class="notification-actions">
-      <button class="btn btn-primary" type="button" data-local-alert-test>Probar alerta y sonido</button>
-      <a class="btn btn-secondary" href="{{ url_for('main.notifications') }}">Abrir notificaciones</a>
-    </div>
-    <small class="notification-footnote">Esta prueba funciona también en tu Wi‑Fi local. En iPhone, el primer toque habilita el audio de la PWA.</small>
-  </section>
-
-  <section class="surface notification-card" data-push-controls>
-    <div class="notification-card-head">
-      <span class="notification-card-icon">{{ icon('bell', 24) }}</span>
-      <div>
-        <div class="notification-title-line"><strong>Alertas con la app cerrada</strong><span class="push-status" data-push-status>Comprobando…</span></div>
-        <p data-push-message>Estas son las notificaciones del sistema. Necesitan HTTPS para funcionar cuando CuotaGo esté cerrada.</p>
-      </div>
-    </div>
-    <div class="notification-example">
-      <span>{{ icon('bell', 18) }}</span>
-      <div><strong>Pago atrasado</strong><small>Juan Pérez no ha pagado RD$2,500.00.</small></div>
-    </div>
-    <div class="notification-actions">
-      <a class="btn btn-secondary" href="{{ url_for('main.notifications') }}">Ver notificaciones de pago</a>
-      <button class="btn btn-primary" type="button" data-push-enable>Activar notificaciones</button>
-      <button class="btn btn-secondary" type="button" data-push-test hidden>Probar ahora</button>
-      <button class="btn btn-secondary btn-outside-test" type="button" data-push-test-background hidden>Simular con app cerrada</button>
-      <button class="btn btn-ghost" type="button" data-push-disable hidden>Desactivar</button>
-    </div>
-    <small class="notification-footnote" data-push-footnote>En Railway/HTTPS, “Simular con app cerrada” programa una alerta real 10 segundos después. Tócala, sal de CuotaGo y espera la notificación del sistema.</small>
-  </section>
-
-  <form method="post" class="surface form-surface settings-form">
+  <form method="post" class="surface settings-account-card">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="form-grid two">
-      <label class="field field-span-2"><span>Nombre del negocio</span><input name="business_name" value="{{ current_user.organization.name }}" required autocomplete="organization"></label>
+    <div class="settings-section-heading">
+      <strong>Cuenta</strong>
+      <small>Datos básicos del negocio.</small>
+    </div>
+    <div class="settings-account-grid">
+      <label class="field"><span>Negocio</span><input name="business_name" value="{{ current_user.organization.name }}" required autocomplete="organization"></label>
       <label class="field"><span>Tu nombre</span><input name="name" value="{{ current_user.name }}" required autocomplete="name"></label>
       <label class="field"><span>Moneda</span><select name="currency"><option value="DOP" {{ 'selected' if current_user.organization.currency=='DOP' }}>DOP · Peso dominicano</option><option value="USD" {{ 'selected' if current_user.organization.currency=='USD' }}>USD · Dólar</option><option value="EUR" {{ 'selected' if current_user.organization.currency=='EUR' }}>EUR · Euro</option></select></label>
-      <label class="field field-span-2"><span>Correo</span><input value="{{ current_user.email }}" disabled><small>El correo de acceso todavía no se cambia desde la app.</small></label>
+      <label class="field"><span>Correo</span><input value="{{ current_user.email }}" disabled></label>
     </div>
-    <div class="form-actions"><button class="btn btn-primary" type="submit">Guardar cambios</button></div>
+    <div class="settings-save-row"><button class="btn btn-primary" type="submit">Guardar cambios</button></div>
   </form>
-
-  <section class="surface settings-note">
-    <strong>PWA optimizada para móvil</strong>
-    <p>Incluye splash screen claro, centro de notificaciones de pago, alertas dentro de la app, Push cuando haya HTTPS, safe areas de iPhone, formularios táctiles, modo oscuro unificado y pantalla offline. En iPhone puedes usar “Compartir → Añadir a pantalla de inicio”.</p>
-  </section>
 </section>
 {% endblock %}

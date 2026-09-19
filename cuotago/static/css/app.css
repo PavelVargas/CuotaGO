@@ -1855,3 +1855,152 @@ body.payment-dialog-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){
   .payment-dialog-sheet{animation:none}
 }
+
+/* --------------------------------------------------------------------------
+   CuotaGo UI v9 · PWA fit, swipe calendar, compact inventory and switches.
+   -------------------------------------------------------------------------- */
+
+/* Home: the installed mobile dashboard is a true one-screen launcher. */
+@media(max-width:719px){
+  body.dashboard-home{overflow:hidden}
+  body.dashboard-home .page-shell{
+    height:calc(100dvh - var(--topbar-h) - var(--safe-top));
+    min-height:0;
+    padding-bottom:0;
+    overflow:hidden;
+  }
+  body.dashboard-home .dashboard-launcher-v3{
+    height:100%;
+    min-height:0;
+    max-height:100%;
+    overflow:hidden;
+    padding-top:14px;
+    padding-bottom:max(8px,var(--safe-bottom));
+  }
+  body.dashboard-home .dashboard-launcher-v3 .home-status{padding-top:9px}
+  body.dashboard-home .dashboard-launcher-v3 .home-reminders{
+    max-height:178px;
+    overflow:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+}
+
+/* Calendar: keep vertical page scrolling, but make horizontal month swipes native. */
+.real-calendar{
+  touch-action:pan-y;
+  overscroll-behavior-x:contain;
+  -webkit-user-select:none;
+  user-select:none;
+}
+.real-calendar-grid{will-change:transform,opacity}
+.real-calendar-grid.calendar-swipe-from-right{animation:calendar-from-right .18s cubic-bezier(.2,.75,.25,1)}
+.real-calendar-grid.calendar-swipe-from-left{animation:calendar-from-left .18s cubic-bezier(.2,.75,.25,1)}
+@keyframes calendar-from-right{from{opacity:.55;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+@keyframes calendar-from-left{from{opacity:.55;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}
+
+/* Inventory: replace oversized cards with compact, scannable rows. */
+.inventory-page{max-width:1040px}
+.inventory-page-head{margin-bottom:12px}
+.inventory-new-button{min-width:auto;padding-inline:12px}
+.inventory-toolbar{margin-bottom:8px}
+.inventory-filter-row{min-width:0;flex:1}
+.inventory-list{display:grid;grid-template-columns:1fr;gap:7px}
+.inventory-row{
+  min-width:0;
+  min-height:68px;
+  padding:8px 9px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:var(--surface);
+  display:grid;
+  grid-template-columns:36px minmax(0,1fr) 12px;
+  align-items:center;
+  gap:9px;
+  box-shadow:none;
+  transition:background-color .14s ease,border-color .14s ease,transform .12s ease;
+}
+.inventory-row:active{transform:scale(.992);background:var(--surface-2)}
+.inventory-row-icon{
+  width:36px;
+  height:36px;
+  border-radius:11px;
+  display:grid;
+  place-items:center;
+  background:color-mix(in srgb,currentColor 10%,var(--surface));
+  color:var(--accent,var(--primary));
+}
+.inventory-row-main{min-width:0;display:flex;flex-direction:column;gap:2px}
+.inventory-row-title{min-width:0;display:flex;align-items:center;gap:6px}
+.inventory-row-title>strong{min-width:0;flex:1;color:var(--text-strong);font-size:11.5px;line-height:1.16;font-weight:760;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inventory-row-title .status-pill{min-height:19px;padding:3px 6px;font-size:7px;line-height:1;flex:0 0 auto}
+.inventory-row-subtitle{font-size:8.4px;line-height:1.2;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inventory-row-meta{min-width:0;display:flex;align-items:center;gap:4px 9px;flex-wrap:wrap;margin-top:3px;color:var(--muted);font-size:7.7px;line-height:1.15}
+.inventory-row-meta span{white-space:nowrap}
+.inventory-row-meta b{color:var(--text-strong);font-size:8.2px}
+.inventory-row-chevron{color:var(--muted-2);font-size:19px;line-height:1;transform:translateY(-1px)}
+
+@media(max-width:719px){
+  .inventory-page{padding-top:14px}
+  .inventory-page-head p{display:none}
+  .inventory-page-head h1{font-size:18px}
+  .inventory-toolbar{align-items:stretch;gap:6px}
+  .inventory-filter-row{gap:6px}
+  .inventory-filter-row .search-box{min-height:38px}
+  .inventory-filter-row select{min-width:88px;min-height:38px;padding-top:7px;padding-bottom:7px}
+  .inventory-toolbar .result-count{display:none}
+}
+@media(min-width:720px){
+  .inventory-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .inventory-row{min-height:72px;padding:9px 10px}
+  .inventory-row:hover{background:var(--surface-2);border-color:var(--line-strong)}
+}
+
+/* Settings: three preference switches, then one compact account form. */
+.settings-page{max-width:700px}
+.settings-page-head{margin-bottom:11px}
+.settings-switch-panel,.settings-account-card{box-shadow:none;border-radius:15px}
+.settings-switch-panel{overflow:hidden;padding:0}
+.settings-section-heading{padding:11px 12px 9px;display:flex;flex-direction:column;gap:1px}
+.settings-section-heading>strong{font-size:11.5px;color:var(--text-strong)}
+.settings-section-heading>small{font-size:8.5px;color:var(--muted)}
+.settings-switch-row{
+  min-height:58px;
+  padding:8px 12px;
+  border-top:1px solid var(--line);
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+  cursor:pointer;
+}
+.settings-row-icon{width:34px;height:34px;border-radius:10px;background:var(--surface-2);color:var(--text);display:grid;place-items:center}
+.settings-row-copy{min-width:0;display:flex;flex-direction:column;gap:1px}
+.settings-row-copy>strong{font-size:10.5px;line-height:1.2;color:var(--text-strong);font-weight:750}
+.settings-row-copy>small{font-size:8px;line-height:1.3;color:var(--muted);white-space:normal}
+.settings-switch-status{margin-top:1px;font-size:7.5px;color:var(--muted-2)}
+.settings-switch-status[data-active="1"]{color:var(--success)}
+.ios-switch{position:relative;width:42px;height:24px;flex:0 0 42px;display:block}
+.ios-switch input{position:absolute;opacity:0;pointer-events:none}
+.ios-switch i{position:absolute;inset:0;border-radius:999px;background:var(--line-strong);transition:background-color .16s ease,opacity .16s ease}
+.ios-switch i::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(16,24,40,.2);transition:transform .16s ease}
+.ios-switch input:checked+i{background:var(--success)}
+.ios-switch input:checked+i::after{transform:translateX(18px)}
+.ios-switch input:disabled+i{opacity:.42}
+.settings-account-card{margin-top:9px;padding:0 12px 12px}
+.settings-account-card .settings-section-heading{padding-inline:0}
+.settings-account-grid{display:grid;grid-template-columns:1fr;gap:8px}
+.settings-account-card .field{gap:4px}
+.settings-account-card .field>span{font-size:9px}
+.settings-account-card .field input,.settings-account-card .field select{min-height:40px;padding:8px 10px;border-radius:10px;font-size:16px}
+.settings-save-row{display:flex;justify-content:flex-end;margin-top:10px}
+.settings-save-row .btn{min-width:126px}
+
+@media(min-width:720px){
+  .settings-account-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .settings-account-card .field input,.settings-account-card .field select{font-size:12px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .real-calendar-grid.calendar-swipe-from-right,.real-calendar-grid.calendar-swipe-from-left{animation:none}
+}
