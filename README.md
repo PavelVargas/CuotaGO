@@ -1,10 +1,14 @@
-# CuotaGo MOBILE PWA v1.9.0 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.9.1 · PostgreSQL + Railway
 
-Esta version parte de la aplicacion PostgreSQL v1.8.1 y agrega cinco mejoras: **superadmin**, login siempre claro, pantalla de reentrada de una cuenta recordada, pull-to-refresh movil y simulacion Web Push real con la PWA cerrada.
+Esta version mantiene las mejoras de v1.9 y corrige el menu de perfil para que se comporte como una interfaz movil real: bottom sheet en telefono/PWA y popover limpio en escritorio.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
 
-## Cambios v1.9.0
+## Cambios v1.9.1
+
+- Menu de perfil redisenado: en movil/PWA abre desde abajo como bottom sheet y ya no queda pegado o recortado por la barra superior de Safari.
+- Fondo modal, boton de cerrar, cuenta visible y zonas tactiles mas grandes.
+- En escritorio conserva un popover compacto bajo el area del perfil.
 
 - Superadmin por variables `SUPERADMIN_*` con panel `/superadmin`.
 - Puede limpiar Cobros, Acuerdos, Bienes, Clientes, historial de alertas y dispositivos Push por empresa.
@@ -58,7 +62,7 @@ Primero ejecuta `COMPROBAR_POSTGRES.bat`. Si muestra PostgreSQL OK, inicia norma
 Esta es la forma más rápida para comenzar.
 
 1. Descomprime el ZIP.
-2. Entra a la carpeta de CuotaGo v1.9.0.
+2. Entra a la carpeta de CuotaGo v1.9.1.
 3. Haz doble clic en `INICIAR_WINDOWS.bat`.
 4. El script crea `venv`, instala dependencias, comprueba `.env` y la base de datos, y arranca la aplicación.
 5. Abre `http://127.0.0.1:5000`.
@@ -138,7 +142,7 @@ El `Dockerfile` arranca con Gunicorn y escucha el puerto entregado en `PORT`. Pa
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.9.0
+APP_VERSION=1.9.1
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -171,7 +175,7 @@ Debe terminar mostrando:
 ```text
 [OK] .env cargado
 [OK] Base de datos accesible: ...
-[OK] App: CuotaGo v1.9.0
+[OK] App: CuotaGo v1.9.1
 [OK] CuotaGo esta listo para iniciar.
 ```
 
@@ -278,7 +282,11 @@ flask --app app notify-overdue
 - Launcher rediseñado a 3 columnas en teléfono: tarjetas/iconos más grandes, iconos de 46 px y espacios más compactos.
 - Web Push permanece separado en Ajustes y se activa cuando CuotaGo disponga de HTTPS; no interrumpe una demo local.
 
-## Cambios v1.9.0
+## Cambios v1.9.1
+
+- Menu de perfil redisenado: en movil/PWA abre desde abajo como bottom sheet y ya no queda pegado o recortado por la barra superior de Safari.
+- Fondo modal, boton de cerrar, cuenta visible y zonas tactiles mas grandes.
+- En escritorio conserva un popover compacto bajo el area del perfil.
 
 - MuseoModerno se mantiene en todo el sistema, pero con pesos, espaciado y alturas de linea mas legibles.
 - Las alertas locales ya no dependen de `alert.wav`: usan Web Audio desbloqueado por el primer toque, con tres tonos y vibracion cuando el navegador la soporta.

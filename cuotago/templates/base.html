@@ -54,7 +54,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=MuseoModerno:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}?v={{ config.get('APP_VERSION', '1.9.0') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}?v={{ config.get('APP_VERSION', '1.9.1') }}">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
   <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='icons/favicon-64.png') }}">
 
@@ -81,7 +81,7 @@
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-light.png') }}">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('APP_VERSION', '1.9.0') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('APP_VERSION', '1.9.1') }}">
 </head>
 <body class="{% if current_user.is_authenticated and request.blueprint != 'auth' %}app-authenticated{% else %}auth-shell{% endif %}">
   <div class="boot-splash" id="bootSplash" aria-hidden="true">
@@ -100,7 +100,7 @@
       <a class="brand" href="{{ url_for('admin.dashboard') if current_user.role == 'superadmin' else url_for('main.dashboard') }}" aria-label="Ir al inicio">
         <img class="brand-app-icon" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="">
         <span class="brand-name">{{ app_name }}</span>
-        <span class="brand-badge">v{{ config.get('APP_VERSION', '1.9.0') }}</span>
+        <span class="brand-badge">v{{ config.get('APP_VERSION', '1.9.1') }}</span>
       </a>
 
       <div class="topbar-actions">
@@ -110,38 +110,52 @@
           <span class="notification-count" data-notification-badge {% if not notification_count %}hidden{% endif %}>{{ notification_count if notification_count < 100 else '99+' }}</span>
         </a>
         {% endif %}
-        <details class="user-menu">
-          <summary aria-label="Abrir menú de cuenta">
-            <span class="avatar">{{ current_user.name[:1]|upper }}</span>
-            <span class="user-copy"><strong>{{ current_user.name }}</strong><small>{{ current_user.role|capitalize }}</small></span>
-            <span class="chevron">⌄</span>
-          </summary>
-          <div class="user-dropdown">
-            <div class="dropdown-business"><span>{{ current_user.organization.name }}</span><small>{{ current_user.email }}</small></div>
-            {% if current_user.role == 'superadmin' %}
-            <a href="{{ url_for('admin.dashboard') }}">{{ icon('shield', 18) }} <span>Superadmin</span></a>
-            {% else %}
-            <a href="{{ url_for('main.notifications') }}">{{ icon('bell', 18) }} <span>Notificaciones</span></a>
-            {% endif %}
-            <div class="theme-inline" aria-label="Apariencia">
-              <span>Tema</span>
-              <div class="theme-segment">
-                <button type="button" data-theme-choice="light" aria-label="Tema claro">{{ icon('sun', 17) }}</button>
-                <button type="button" data-theme-choice="system" aria-label="Tema del sistema">{{ icon('phone', 17) }}</button>
-                <button type="button" data-theme-choice="dark" aria-label="Tema oscuro">{{ icon('moon', 17) }}</button>
-              </div>
-            </div>
-            {% if current_user.role != 'superadmin' %}<a href="{{ url_for('main.settings') }}">{{ icon('settings', 18) }} <span>Configuración</span></a>{% endif %}
-            <button type="button" id="installAppBtn" class="dropdown-link" hidden>{{ icon('download', 18) }} <span>Instalar app</span></button>
-            <form method="post" action="{{ url_for('auth.logout') }}">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="dropdown-link danger">{{ icon('logout', 18) }} <span>Cerrar sesión</span></button>
-            </form>
-          </div>
-        </details>
+        <button type="button" class="profile-trigger" id="profileMenuTrigger" aria-label="Abrir menú de cuenta" aria-haspopup="dialog" aria-controls="profileMenuDialog" aria-expanded="false">
+          <span class="avatar">{{ current_user.name[:1]|upper }}</span>
+          <span class="user-copy"><strong>{{ current_user.name }}</strong><small>{{ current_user.role|capitalize }}</small></span>
+          <span class="chevron">⌄</span>
+        </button>
       </div>
     </div>
   </header>
+
+  <dialog class="profile-dialog" id="profileMenuDialog" aria-label="Menú de cuenta">
+    <section class="profile-sheet" role="document">
+      <div class="profile-sheet-handle" aria-hidden="true"></div>
+      <div class="profile-sheet-head">
+        <div class="profile-sheet-account">
+          <span class="avatar avatar-large">{{ current_user.name[:1]|upper }}</span>
+          <div>
+            <strong>{{ current_user.name }}</strong>
+            <small>{{ current_user.organization.name }}</small>
+          </div>
+        </div>
+        <button type="button" class="profile-close" id="profileMenuClose" aria-label="Cerrar menú">×</button>
+      </div>
+      <div class="user-dropdown">
+        <div class="dropdown-business"><span>{{ current_user.organization.name }}</span><small>{{ current_user.email }}</small></div>
+        {% if current_user.role == 'superadmin' %}
+        <a href="{{ url_for('admin.dashboard') }}">{{ icon('shield', 18) }} <span>Superadmin</span></a>
+        {% else %}
+        <a href="{{ url_for('main.notifications') }}">{{ icon('bell', 18) }} <span>Notificaciones</span></a>
+        {% endif %}
+        <div class="theme-inline" aria-label="Apariencia">
+          <span>Tema</span>
+          <div class="theme-segment">
+            <button type="button" data-theme-choice="light" aria-label="Tema claro">{{ icon('sun', 17) }}</button>
+            <button type="button" data-theme-choice="system" aria-label="Tema del sistema">{{ icon('phone', 17) }}</button>
+            <button type="button" data-theme-choice="dark" aria-label="Tema oscuro">{{ icon('moon', 17) }}</button>
+          </div>
+        </div>
+        {% if current_user.role != 'superadmin' %}<a href="{{ url_for('main.settings') }}">{{ icon('settings', 18) }} <span>Configuración</span></a>{% endif %}
+        <button type="button" id="installAppBtn" class="dropdown-link" hidden>{{ icon('download', 18) }} <span>Instalar app</span></button>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="dropdown-link danger">{{ icon('logout', 18) }} <span>Cerrar sesión</span></button>
+        </form>
+      </div>
+    </section>
+  </dialog>
   {% endif %}
 
   <div class="flash-stack" aria-live="polite">
@@ -160,7 +174,7 @@
   <footer class="footer"><span class="status-dot"></span><span>© 2026 {{ app_name }}</span>{% if current_user.role == 'superadmin' %}<a href="{{ url_for('admin.dashboard') }}">Superadmin</a>{% else %}<a href="{{ url_for('main.settings') }}">Configuración</a>{% endif %}</footer>
   {% endif %}
 
-  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('APP_VERSION', '1.9.0') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('APP_VERSION', '1.9.1') }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,4 +1,4 @@
-# CuotaGo v1.9.0 en Railway
+# CuotaGo v1.9.1 en Railway
 
 Esta carpeta esta preparada para Railway con PostgreSQL.
 
@@ -39,7 +39,7 @@ Agrega estas variables en el servicio WEB de CuotaGo:
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.9.0
+APP_VERSION=1.9.1
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo

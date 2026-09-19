@@ -85,25 +85,39 @@ img,svg{display:block}
 .brand-name{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .brand-badge{display:none;font-size:10px;font-weight:850;color:var(--success);background:var(--success-soft);border:1px solid color-mix(in srgb,var(--success) 24%,var(--line));border-radius:999px;padding:3px 7px}
 
-.user-menu{position:relative;flex:0 0 auto}
-.user-menu summary{list-style:none;display:flex;align-items:center;gap:8px;min-height:44px;padding:4px;border-radius:15px;cursor:pointer;user-select:none;outline:none}
-.user-menu summary::-webkit-details-marker{display:none}
-.user-menu summary:active{background:var(--surface-3)}
-.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#ff7b35,#ef501a);color:white;font-weight:900;font-size:13px;box-shadow:0 6px 16px rgba(244,89,31,.22)}
-.user-copy{display:none;flex-direction:column;line-height:1.16;min-width:88px}
+.profile-trigger{display:flex;align-items:center;gap:8px;min-height:44px;padding:4px;border:0;border-radius:15px;background:transparent;color:var(--text);cursor:pointer;user-select:none;outline:none;-webkit-tap-highlight-color:transparent}
+.profile-trigger:active{background:var(--surface-3)}
+.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#ff7b35,#ef501a);color:white;font-weight:900;font-size:13px;box-shadow:0 6px 16px rgba(244,89,31,.22);flex:0 0 auto}
+.avatar-large{width:44px;height:44px;font-size:15px}
+.user-copy{display:none;flex-direction:column;line-height:1.16;min-width:88px;text-align:left}
 .user-copy strong{font-size:12px;color:var(--text-strong)}
 .user-copy small{font-size:10px;color:var(--muted);margin-top:3px}
-.chevron{display:none;color:var(--muted-2)}
-.user-menu[open]::before{content:"";position:fixed;z-index:68;inset:0;background:rgba(6,10,15,.32);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
-.user-menu[open] summary{position:relative;z-index:71}
-.user-dropdown{position:fixed;z-index:72;left:max(12px,var(--safe-left));right:max(12px,var(--safe-right));bottom:calc(var(--safe-bottom) + 12px);background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-float);padding:9px;overflow:hidden}
-.user-dropdown a,.dropdown-link{width:100%;min-height:46px;border:0;background:transparent;text-align:left;padding:10px 11px;border-radius:13px;color:var(--text);font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px}
+.chevron{display:none;color:var(--muted-2);transition:transform .18s ease}
+.profile-trigger[aria-expanded="true"] .chevron{transform:rotate(180deg)}
+
+/* Profile menu: true viewport-level bottom sheet on mobile.
+   It lives outside the sticky/backdrop-filter header so Safari cannot pin it to the top bar. */
+.profile-dialog{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:transparent;color:var(--text);overflow:visible}
+.profile-dialog[open]{display:block}
+.profile-dialog::backdrop{background:rgba(6,10,15,.36);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.profile-sheet{position:absolute;left:max(10px,var(--safe-left));right:max(10px,var(--safe-right));bottom:max(10px,var(--safe-bottom));max-height:min(78dvh,620px);overflow:auto;overscroll-behavior:contain;background:var(--surface);border:1px solid var(--line);border-radius:28px;box-shadow:0 28px 70px rgba(16,24,40,.24);padding:7px 9px 10px;animation:profile-sheet-in .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes profile-sheet-in{from{opacity:.55;transform:translateY(22px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+.profile-sheet-handle{width:38px;height:4px;border-radius:999px;background:var(--line-strong);margin:2px auto 8px}
+.profile-sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 5px 10px}
+.profile-sheet-account{min-width:0;display:flex;align-items:center;gap:11px}
+.profile-sheet-account>div{min-width:0;display:flex;flex-direction:column}
+.profile-sheet-account strong{font-size:14px;color:var(--text-strong);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-sheet-account small{margin-top:2px;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-close{width:38px;height:38px;border:0;border-radius:12px;background:var(--surface-3);color:var(--muted);display:grid;place-items:center;font-size:25px;line-height:1;font-weight:500;flex:0 0 auto}
+.profile-close:active{transform:scale(.96);background:var(--line)}
+.user-dropdown{position:static;width:100%;background:transparent;border:0;border-radius:0;box-shadow:none;padding:0;overflow:visible}
+.user-dropdown a,.dropdown-link{width:100%;min-height:50px;border:0;background:transparent;text-align:left;padding:11px 12px;border-radius:14px;color:var(--text);font-size:13px;font-weight:700;display:flex;align-items:center;gap:11px}
 .user-dropdown a:active,.dropdown-link:active{background:var(--surface-3)}
-.dropdown-business{display:flex;flex-direction:column;gap:2px;padding:10px 11px 12px;border-bottom:1px solid var(--line);margin-bottom:5px}
-.dropdown-business span{color:var(--text-strong);font-size:13px;font-weight:850}
+.dropdown-business{display:flex;flex-direction:column;gap:2px;padding:10px 12px 12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:5px}
+.dropdown-business span{color:var(--text-strong);font-size:12px;font-weight:800}
 .dropdown-business small{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dropdown-link.danger{color:var(--danger)}
-.theme-inline{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 11px;border-bottom:1px solid var(--line);margin-bottom:5px;font-size:12px;font-weight:750;color:var(--muted)}
+.theme-inline{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px;border-bottom:1px solid var(--line);margin-bottom:5px;font-size:12px;font-weight:700;color:var(--muted)}
 .theme-segment{display:grid;grid-template-columns:repeat(3,38px);padding:3px;border-radius:12px;background:var(--surface-3)}
 .theme-segment button{width:38px;height:34px;border:0;border-radius:9px;background:transparent;color:var(--muted);display:grid;place-items:center}
 .theme-segment button.is-active{background:var(--surface);color:var(--text-strong);box-shadow:0 2px 8px rgba(31,41,55,.10)}
@@ -294,7 +308,7 @@ img,svg{display:block}
 @media (min-width:720px){
   :root{--topbar-h:68px}
   .topbar-inner{padding-left:24px;padding-right:24px}.brand-app-icon{width:38px;height:38px;border-radius:11px}.brand-name{font-size:16px}.brand-badge{display:inline-flex}
-  .user-copy,.chevron{display:flex}.user-menu[open]::before{display:none}.user-dropdown{position:absolute;left:auto;right:0;top:52px;bottom:auto;width:250px;border-radius:17px}.user-menu summary{padding:5px 7px}
+  .user-copy,.chevron{display:flex}.profile-trigger{padding:5px 7px}.profile-dialog::backdrop{background:rgba(6,10,15,.10);backdrop-filter:none;-webkit-backdrop-filter:none}.profile-sheet{left:auto;right:24px;top:calc(var(--safe-top) + 74px);bottom:auto;width:292px;max-height:calc(100dvh - 92px);border-radius:20px;padding:9px;box-shadow:var(--shadow-float);animation:profile-popover-in .16s ease-out}.profile-sheet-handle{display:none}@keyframes profile-popover-in{from{opacity:0;transform:translateY(-6px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
   .content-page{padding:30px 24px 54px}.page-head{margin-bottom:22px}.page-head h1{font-size:27px}.page-head p{font-size:13px}.eyebrow{font-size:10px}
   .launcher-wrap{padding:48px 24px 54px}.module-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:18px 10px;max-width:780px}.module-card strong{font-size:12px}.module-card small{display:block}.module-icon{width:92px;border-radius:25px}.module-icon:before{width:74%;height:74%}.module-icon svg{width:50px;height:50px}.home-status{margin-top:34px}.status-kpis>div{padding:14px 17px;flex-direction:row;align-items:center}.status-kpis span{font-size:11px}.status-kpis strong{font-size:14px}
   .form-surface{padding:22px}.form-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.form-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.field-span-2{grid-column:1/-1}.field input,.field select,.field textarea,.search-box input{font-size:13px}.form-actions{position:static;display:flex;justify-content:flex-end;margin:22px 0 0;padding:0;border:0;background:transparent;box-shadow:none}.form-actions .btn{width:auto;min-width:120px}

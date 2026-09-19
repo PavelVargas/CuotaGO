@@ -114,7 +114,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = '1.9.0';
+  const APP_VERSION = '1.9.1';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -771,6 +771,35 @@
     }
   };
 
+  const setupProfileMenu = () => {
+    const trigger = document.getElementById('profileMenuTrigger');
+    const dialog = document.getElementById('profileMenuDialog');
+    const closeButton = document.getElementById('profileMenuClose');
+    if (!trigger || !dialog) return;
+
+    const setExpanded = (expanded) => trigger.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    const openMenu = () => {
+      if (dialog.open) return;
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+      setExpanded(true);
+    };
+    const closeMenu = () => {
+      if (!dialog.open && !dialog.hasAttribute('open')) return;
+      if (typeof dialog.close === 'function') dialog.close();
+      else dialog.removeAttribute('open');
+      setExpanded(false);
+    };
+
+    trigger.addEventListener('click', openMenu);
+    closeButton?.addEventListener('click', closeMenu);
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) closeMenu();
+    });
+    dialog.addEventListener('close', () => setExpanded(false));
+    dialog.addEventListener('cancel', () => setExpanded(false));
+  };
+
   const setupPullToRefresh = () => {
     const indicator = document.getElementById('pullRefreshIndicator');
     if (!indicator || !document.body.classList.contains('app-authenticated')) return;
@@ -788,7 +817,7 @@
     };
     document.addEventListener('touchstart', (event) => {
       if (event.touches?.length !== 1 || window.scrollY > 0) return;
-      if (event.target.closest('input,textarea,select,[contenteditable="true"],.user-menu')) return;
+      if (event.target.closest('input,textarea,select,[contenteditable="true"],.profile-trigger,.profile-dialog')) return;
       startY = event.touches[0].clientY;
       distance = 0;
     }, { passive: true });
@@ -820,6 +849,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     setupRememberedLaunchGate();
+    setupProfileMenu();
     setupPullToRefresh();
     applyTheme(document.body.classList.contains('auth-shell') ? 'light' : readTheme(), false);
 
@@ -878,9 +908,4 @@
     updatePushUI();
   });
 
-  document.addEventListener('click', (event) => {
-    document.querySelectorAll('.user-menu[open]').forEach((menu) => {
-      if (!menu.contains(event.target)) menu.removeAttribute('open');
-    });
-  });
 })();
