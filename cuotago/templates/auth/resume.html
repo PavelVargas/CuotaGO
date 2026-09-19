@@ -5,23 +5,21 @@
   <div class="resume-brand">
     <img class="resume-app-icon" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Icono de {{ app_name }}">
     <h1>{{ app_name }}</h1>
-    <p>Continúa con la cuenta que ya dejaste iniciada.</p>
   </div>
 
-  <div class="resume-account">
-    <span class="resume-avatar">{{ current_user.name[:1]|upper }}</span>
-    <div><strong>{{ current_user.name }}</strong><small>{{ current_user.email }}</small><span>{{ current_user.organization.name }}</span></div>
+  <div class="resume-account" aria-label="Cuenta recordada">
+    <div><strong>{{ current_user.name }}</strong></div>
   </div>
 
   <form method="post" class="resume-actions">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="next" value="{{ next_url or '' }}">
-    <button class="btn btn-primary btn-lg btn-block" type="submit">Entrar</button>
+    <button class="btn btn-primary btn-lg btn-block" type="submit">Iniciar como {{ current_user.name }}</button>
   </form>
 
   <form method="post" action="{{ url_for('auth.logout') }}" class="resume-other-account">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="btn btn-ghost btn-block" type="submit">Usar otra cuenta</button>
+    <button class="btn btn-ghost btn-block" type="submit">Cambiar de cuenta</button>
   </form>
 </section>
 {% endblock %}

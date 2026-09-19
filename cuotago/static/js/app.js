@@ -117,7 +117,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = '1.12.1-ui-v9';
+  const APP_VERSION = '1.12.1-ui-v14';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -743,7 +743,7 @@
 
   const testPushOutside = async (button) => {
     if (button) button.disabled = true;
-    const originalLabel = button?.textContent || 'Simular fuera de la app';
+    const originalLabel = button?.textContent || 'Probar notificación';
     try {
       if (!window.isSecureContext) throw new Error('Esta prueba necesita HTTPS.');
       if (isIOS() && !isStandalone()) throw new Error('En iPhone, instala CuotaGo en la pantalla de inicio y abre la PWA desde su icono.');
@@ -752,31 +752,20 @@
       if (!subscription || Notification.permission !== 'granted') {
         throw new Error('Primero activa las notificaciones en este teléfono.');
       }
-      const data = await apiJson('/api/push/test-delayed', {
+      const data = await apiJson('/api/push/test', {
         method: 'POST',
-        body: JSON.stringify({ endpoint: subscription.endpoint, delay: 10 }),
+        body: JSON.stringify({ endpoint: subscription.endpoint }),
       });
-      let remaining = Number(data.delay || 10);
-      setPushMessage('Prueba programada. Sal de CuotaGo AHORA y espera la notificación del sistema.', 'success');
-      if (button) button.textContent = `Cierra la app · ${remaining}s`;
-      const timer = window.setInterval(() => {
-        remaining -= 1;
-        if (button && remaining > 0) button.textContent = `Cierra la app · ${remaining}s`;
-        if (remaining <= 0) {
-          window.clearInterval(timer);
-          if (button) {
-            button.textContent = originalLabel;
-            button.disabled = false;
-          }
-        }
-      }, 1000);
-      return;
+      setPushMessage(data.message || 'Notificación Push enviada ahora.', 'success');
+      if (button) button.textContent = 'Enviada ✓';
     } catch (error) {
       setPushMessage(await friendlyPushError(error), 'error');
-    }
-    if (button) {
-      button.textContent = originalLabel;
-      button.disabled = false;
+    } finally {
+      window.setTimeout(() => {
+        if (!button) return;
+        button.textContent = originalLabel;
+        button.disabled = false;
+      }, 900);
     }
   };
 
@@ -1309,16 +1298,15 @@
       }, { forceSound: true });
 
       if (subscription) {
-        const data = await apiJson('/api/push/test-delayed', {
+        const data = await apiJson('/api/push/test', {
           method: 'POST',
-          body: JSON.stringify({ endpoint: subscription.endpoint, delay: 7 }),
+          body: JSON.stringify({ endpoint: subscription.endpoint }),
         });
-        const delay = Number(data.delay || 7);
-        setPushMessage('Notificaciones activadas. CuotaGo te avisará aunque la PWA esté cerrada.', 'success');
+        setPushMessage(data.message || 'Notificación enviada ahora.', 'success');
         document.querySelectorAll('[data-local-alert-copy]').forEach((el) => {
-          el.textContent = `Listo. Puedes cerrar CuotaGo: llegará una prueba del sistema en ${delay} s.`;
+          el.textContent = 'Listo. La prueba Push se envió inmediatamente al sistema.';
         });
-        if (button) button.textContent = 'Activas ✓';
+        if (button) button.textContent = 'Enviada ✓';
         await updatePushUI();
       } else {
         const message = await friendlyPushError(remoteError || new Error('No se pudo activar Web Push.'));
@@ -1354,7 +1342,7 @@
       button.addEventListener('click', () => applyTheme(button.dataset.themeChoice));
     });
     document.querySelectorAll('[data-theme-toggle-switch]').forEach((input) => {
-      input.addEventListener('change', () => applyTheme(input.checked ? 'dark' : 'light'));
+      input.addEventListener('change', () => applyTheme(input.checked ? 'dark' : 'light', true));
     });
     document.querySelectorAll('[data-local-alert-switch]').forEach((input) => {
       input.addEventListener('change', async () => {
