@@ -23,24 +23,50 @@
   </section>
 
   {% if contract.status == 'active' %}
-  <section class="surface pay-card primary-pay-card" id="pay">
-    <div class="quick-section-head no-step"><div><strong>Registrar cobro</strong><small>El monto ya viene con la próxima cuota.</small></div></div>
-    <form method="post" action="{{ url_for('main.contract_pay', contract_id=contract.id) }}" class="form-stack quick-payment-form">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label class="field"><span>Monto</span><input class="payment-amount-input" type="number" name="amount" step="0.01" min="0.01" max="{{ contract.balance }}" required value="{{ contract.next_installment.remaining if contract.next_installment else contract.balance }}" inputmode="decimal"></label>
-      <div class="payment-method-pills">
-        <label><input type="radio" name="method" value="cash" checked><span>Efectivo</span></label>
-        <label><input type="radio" name="method" value="transfer"><span>Transferencia</span></label>
-        <label><input type="radio" name="method" value="card"><span>Tarjeta</span></label>
+  {% set suggested_payment = contract.next_installment.remaining if contract.next_installment else contract.balance %}
+  <div class="contract-payment-launch" id="pay">
+    <button class="btn btn-primary btn-lg contract-payment-button" type="button" data-open-payment data-payment-amount="{{ suggested_payment }}">
+      {{ icon('wallet', 18) }}<span>Registrar pago</span>
+    </button>
+    {% if contract.client.phone and contract.next_installment and wa_link(contract.client, contract, contract.next_installment) %}
+    <a class="btn btn-secondary contract-reminder-button" target="_blank" rel="noopener" href="{{ wa_link(contract.client, contract, contract.next_installment) }}">Recordar por WhatsApp</a>
+    {% endif %}
+  </div>
+
+  <dialog class="payment-dialog" id="paymentDialog" aria-labelledby="paymentDialogTitle" data-default-amount="{{ suggested_payment }}">
+    <div class="payment-dialog-sheet">
+      <div class="payment-dialog-handle" aria-hidden="true"></div>
+      <div class="payment-dialog-head">
+        <div>
+          <span class="eyebrow">REGISTRAR PAGO</span>
+          <h2 id="paymentDialogTitle">{{ contract.client.full_name }}</h2>
+          <p>Saldo pendiente <strong>{{ money(contract.balance) }}</strong>{% if contract.next_installment %} · Próxima cuota {{ money(contract.next_installment.remaining) }}{% endif %}</p>
+        </div>
+        <button class="payment-dialog-close" type="button" data-payment-close aria-label="Cerrar">×</button>
       </div>
-      <details class="advanced-options small-advanced">
-        <summary>Agregar nota</summary>
-        <div class="advanced-options-body"><label class="field"><input name="note" placeholder="Nota opcional"></label></div>
-      </details>
-      <button class="btn btn-primary btn-lg btn-block" type="submit">Guardar pago</button>
-    </form>
-    {% if contract.client.phone and contract.next_installment and wa_link(contract.client, contract, contract.next_installment) %}<a class="btn btn-whatsapp btn-block" target="_blank" rel="noopener" href="{{ wa_link(contract.client, contract, contract.next_installment) }}">Recordar por WhatsApp</a>{% endif %}
-  </section>
+
+      <form method="post" action="{{ url_for('main.contract_pay', contract_id=contract.id) }}" class="form-stack quick-payment-form payment-dialog-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="field payment-amount-field">
+          <span>Monto recibido</span>
+          <input class="payment-amount-input" type="number" name="amount" step="0.01" min="0.01" max="{{ contract.balance }}" required value="{{ suggested_payment }}" inputmode="decimal">
+        </label>
+        <div class="payment-method-pills payment-dialog-methods" aria-label="Método de pago">
+          <label><input type="radio" name="method" value="cash" checked><span>Efectivo</span></label>
+          <label><input type="radio" name="method" value="transfer"><span>Transferencia</span></label>
+          <label><input type="radio" name="method" value="card"><span>Tarjeta</span></label>
+        </div>
+        <details class="advanced-options small-advanced payment-note-option">
+          <summary>Agregar nota</summary>
+          <div class="advanced-options-body"><label class="field"><input name="note" placeholder="Nota opcional"></label></div>
+        </details>
+        <div class="payment-dialog-actions">
+          <button class="btn btn-secondary" type="button" data-payment-close>Cancelar</button>
+          <button class="btn btn-primary" type="submit">Registrar pago</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
   {% endif %}
 
   <section class="surface schedule-card simple-schedule-card">
@@ -52,12 +78,7 @@
         <div class="installment-date"><strong>{{ installment.due_date.strftime('%d/%m/%Y') }}</strong><small>{% if installment.is_paid %}Pagada{% elif installment.due_date < today %}Vencida{% elif installment.due_date == today %}Vence hoy{% else %}Pendiente{% endif %}</small></div>
         <div class="installment-value"><strong>{{ money(installment.remaining if not installment.is_paid else installment.amount + installment.late_fee_amount) }}</strong>{% if installment.late_fee_remaining > 0 %}<small class="late-fee-copy">incluye {{ money(installment.late_fee_remaining) }} de interés</small>{% elif installment.paid_amount and installment.paid_amount > 0 and not installment.is_paid %}<small>abonado {{ money(installment.paid_amount) }}</small>{% endif %}</div>
         {% if contract.status == 'active' and not installment.is_paid %}
-        <form method="post" action="{{ url_for('main.contract_pay', contract_id=contract.id) }}" class="quick-pay-form">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="amount" value="{{ installment.remaining }}">
-          <input type="hidden" name="method" value="cash">
-          <button class="btn btn-ghost btn-sm" type="submit">Cobrar</button>
-        </form>
+        <button class="btn btn-ghost btn-sm quick-pay-button" type="button" data-open-payment data-payment-amount="{{ installment.remaining }}">Cobrar</button>
         {% else %}<span class="paid-check">✓</span>{% endif %}
       </div>
       {% else %}<div class="empty-inline">No hay cuotas pendientes.</div>{% endfor %}

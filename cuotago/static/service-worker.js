@@ -1,4 +1,4 @@
-const VERSION = '1.12.1-calendar-v6';
+const VERSION = '1.12.1-payment-modal-v7';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const RUNTIME_CACHE = `cuotago-runtime-${VERSION}`;
 const CORE = [

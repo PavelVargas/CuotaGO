@@ -794,6 +794,49 @@
     dialog.addEventListener('cancel', () => setExpanded(false));
   };
 
+  const setupPaymentDialog = () => {
+    const dialog = document.getElementById('paymentDialog');
+    if (!dialog) return;
+
+    const amountInput = dialog.querySelector('input[name="amount"]');
+    const defaultAmount = dialog.dataset.defaultAmount || amountInput?.value || '';
+    const openers = document.querySelectorAll('[data-open-payment]');
+    const closeButtons = dialog.querySelectorAll('[data-payment-close]');
+
+    const isOpen = () => dialog.open || dialog.hasAttribute('open');
+    const openDialog = (amount = defaultAmount) => {
+      if (amountInput && amount) amountInput.value = amount;
+      if (!isOpen()) {
+        if (typeof dialog.showModal === 'function') dialog.showModal();
+        else dialog.setAttribute('open', '');
+      }
+      document.body.classList.add('payment-dialog-open');
+    };
+    const closeDialog = () => {
+      if (!isOpen()) return;
+      if (typeof dialog.close === 'function') dialog.close();
+      else dialog.removeAttribute('open');
+      document.body.classList.remove('payment-dialog-open');
+    };
+
+    openers.forEach((button) => {
+      button.addEventListener('click', () => openDialog(button.dataset.paymentAmount || defaultAmount));
+    });
+    closeButtons.forEach((button) => button.addEventListener('click', closeDialog));
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) closeDialog();
+    });
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      closeDialog();
+    });
+    dialog.addEventListener('close', () => document.body.classList.remove('payment-dialog-open'));
+
+    if (window.location.hash === '#pay') {
+      window.setTimeout(() => openDialog(defaultAmount), 80);
+    }
+  };
+
   const setupPullToRefresh = () => {
     const indicator = document.getElementById('pullRefreshIndicator');
     if (!indicator || !document.body.classList.contains('app-authenticated')) return;
@@ -1114,6 +1157,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     setupRememberedLaunchGate();
     setupProfileMenu();
+    setupPaymentDialog();
     setupPullToRefresh();
     setupPaymentCalendar();
     applyTheme(document.body.classList.contains('auth-shell') ? 'light' : readTheme(), false);
