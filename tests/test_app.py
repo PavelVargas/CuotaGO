@@ -430,10 +430,23 @@ def test_installment_count_uses_inventory_price_and_exact_schedule(client, app):
         assert sum((item.amount for item in contract.installments), Decimal('0.00')) == Decimal('50000.00')
 
 
-def test_launcher_v111_layout_source_is_two_by_four_on_mobile():
+def test_launcher_v3_is_four_by_two_without_outer_module_cards():
     from pathlib import Path
     css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
-    assert 'PWA/mobile: 8 modules = exactly 2 columns x 4 rows.' in css
-    assert 'grid-template-columns:repeat(2,minmax(0,1fr))' in css
     html = Path('cuotago/templates/dashboard.html').read_text(encoding='utf-8')
+    assert 'dashboard-launcher-v3' in html
+    assert '.dashboard-launcher-v3 .module-grid' in css
+    assert 'grid-template-columns:repeat(4,minmax(0,1fr))' in css
+    assert '.dashboard-launcher-v3 .module-card::after{display:none!important}' in css
     assert html.index('class="module-grid"') < html.index('class="home-status"')
+
+
+def test_remembered_authenticated_session_can_open_modules_without_resume_redirect(client):
+    register(client)
+    with client.session_transaction() as session:
+        session['_fresh'] = False
+
+    for path in ['/contracts', '/collections', '/notifications', '/clients', '/assets', '/calendar', '/reports', '/settings']:
+        response = client.get(path, follow_redirects=False)
+        assert response.status_code == 200, f"{path} redirected unexpectedly to {response.headers.get('Location')}"
+

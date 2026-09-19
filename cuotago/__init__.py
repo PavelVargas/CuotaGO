@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import Flask, jsonify, render_template, send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_login import current_user, login_fresh
 from sqlalchemy import text
 
 from config import Config
@@ -102,20 +101,6 @@ def create_app(test_config=None):
     app.register_blueprint(main_bp)
     app.register_blueprint(push_bp)
     app.register_blueprint(admin_bp)
-
-    @app.before_request
-    def require_resume_for_remembered_session():
-        """A remembered login must be confirmed with the one-tap resume screen."""
-        if not current_user.is_authenticated or login_fresh():
-            return None
-        allowed = {
-            "auth.login", "auth.resume", "auth.logout",
-            "static", "service_worker", "healthz", "offline",
-        }
-        if request.endpoint in allowed:
-            return None
-        next_url = request.full_path if request.query_string else request.path
-        return redirect(url_for("auth.resume", next=next_url))
 
     @app.get("/healthz")
     def healthz():

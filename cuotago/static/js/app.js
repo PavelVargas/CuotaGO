@@ -114,7 +114,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = '1.12.1';
+  const APP_VERSION = '1.12.1-ux3';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -753,22 +753,16 @@
   });
 
   const setupRememberedLaunchGate = () => {
-    if (!document.body.classList.contains('app-authenticated') || !isStandalone()) return;
+    // Flask-Login already decides whether the user is authenticated. The PWA must
+    // never replace an internal module navigation with /resume or /login.
+    if (!document.body.classList.contains('app-authenticated')) return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get('entered') === '1') {
-      try { sessionStorage.setItem('cuotago-launch-unlocked', '1'); } catch (_) {}
-      params.delete('entered');
-      params.delete('source');
-      const cleanQuery = params.toString();
-      history.replaceState({}, '', `${location.pathname}${cleanQuery ? `?${cleanQuery}` : ''}${location.hash}`);
-      return;
-    }
-    let unlocked = false;
-    try { unlocked = sessionStorage.getItem('cuotago-launch-unlocked') === '1'; } catch (_) {}
-    if (!unlocked) {
-      const next = `${location.pathname}${location.search}${location.hash}`;
-      location.replace(`/resume?next=${encodeURIComponent(next)}`);
-    }
+    if (params.get('entered') !== '1' && params.get('source') !== 'pwa') return;
+    try { sessionStorage.setItem('cuotago-launch-unlocked', '1'); } catch (_) {}
+    params.delete('entered');
+    params.delete('source');
+    const cleanQuery = params.toString();
+    history.replaceState({}, '', `${location.pathname}${cleanQuery ? `?${cleanQuery}` : ''}${location.hash}`);
   };
 
   const setupProfileMenu = () => {

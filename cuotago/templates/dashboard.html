@@ -2,45 +2,45 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Inicio · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="launcher-wrap dashboard-launcher-v2">
+<section class="launcher-wrap dashboard-launcher-v3">
   <div class="module-grid">
     <a class="module-card" href="{{ url_for('main.contracts') }}">
-      <span class="module-icon accent-blue">{{ icon('dashboard-agreements', 36) }}</span>
+      <span class="module-icon accent-blue">{{ icon('home-agreements', 36) }}</span>
       <strong>Acuerdos</strong>
       <small>Crear y gestionar · {{ active_count }} activo{{ 's' if active_count != 1 }}</small>
     </a>
     <a class="module-card" href="{{ url_for('main.collections') }}">
-      <span class="module-icon accent-coral">{{ icon('dashboard-payments', 36) }}</span>
+      <span class="module-icon accent-coral">{{ icon('home-payments', 36) }}</span>
       <strong>Cobros</strong>
       {% if overdue_count %}<span class="module-badge badge-danger">{{ overdue_count }} vencido{{ 's' if overdue_count != 1 }}</span>{% elif due_today_count %}<span class="module-badge badge-warning">{{ due_today_count }} hoy</span>{% else %}<small>Todo al día</small>{% endif %}
     </a>
     <a class="module-card" href="{{ url_for('main.notifications') }}">
-      <span class="module-icon accent-red">{{ icon('dashboard-alerts', 36) }}</span>
+      <span class="module-icon accent-red">{{ icon('home-alerts', 36) }}</span>
       <strong>Notificaciones</strong>
       {% if notification_count %}<span class="module-badge badge-danger">{{ notification_count }} pendiente{{ 's' if notification_count != 1 }}</span>{% else %}<small>Todo al día</small>{% endif %}
     </a>
     <a class="module-card" href="{{ url_for('main.clients') }}">
-      <span class="module-icon accent-cyan">{{ icon('dashboard-clients', 36) }}</span>
+      <span class="module-icon accent-cyan">{{ icon('home-clients', 36) }}</span>
       <strong>Clientes</strong>
       <small>Personas y contactos</small>
     </a>
     <a class="module-card" href="{{ url_for('main.assets') }}">
-      <span class="module-icon accent-teal">{{ icon('dashboard-inventory', 36) }}</span>
+      <span class="module-icon accent-teal">{{ icon('home-inventory', 36) }}</span>
       <strong>Inventario</strong>
       <small>Artículos y existencias</small>
     </a>
     <a class="module-card" href="{{ url_for('main.payment_calendar') }}">
-      <span class="module-icon accent-purple">{{ icon('dashboard-calendar', 36) }}</span>
+      <span class="module-icon accent-purple">{{ icon('home-calendar', 36) }}</span>
       <strong>Calendario</strong>
       <small>Fechas de pago</small>
     </a>
     <a class="module-card" href="{{ url_for('main.reports') }}">
-      <span class="module-icon accent-gold">{{ icon('dashboard-reports', 36) }}</span>
+      <span class="module-icon accent-gold">{{ icon('home-reports', 36) }}</span>
       <strong>Reportes</strong>
       <small>Saldo y movimiento</small>
     </a>
     <a class="module-card" href="{{ url_for('main.settings') }}">
-      <span class="module-icon accent-slate">{{ icon('dashboard-settings', 36) }}</span>
+      <span class="module-icon accent-slate">{{ icon('home-settings', 36) }}</span>
       <strong>Ajustes</strong>
       <small>Cuenta y aplicación</small>
     </a>
