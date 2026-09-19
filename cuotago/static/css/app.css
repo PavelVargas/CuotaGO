@@ -537,3 +537,62 @@ html[data-auth-screen="1"] .auth-main{color:#253142}
   .module-card:nth-last-child(2){grid-column:2 / span 2}
   .module-card:last-child{grid-column:4 / span 2}
 }
+
+/* v1.11 · cuotas automáticas + launcher 4 filas + resumen al final */
+.detected-price-card{margin-top:12px;padding:13px;border:1px solid var(--line);border-radius:17px;background:var(--surface-2);display:grid;grid-template-columns:minmax(0,1fr) 118px;align-items:end;gap:12px}
+.detected-price-copy{min-width:0;display:flex;flex-direction:column}
+.detected-price-copy>span{font-size:8px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.detected-price-copy>strong{margin-top:3px;font-size:13px;color:var(--text-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detected-price-copy>small{margin-top:3px;font-size:8.5px;line-height:1.35;color:var(--muted)}
+.price-field{gap:4px}.price-field>span{font-size:9px;color:var(--muted)}.price-field input{min-height:44px;text-align:right;font-weight:700}
+.installment-choice-card{margin-top:10px;padding:13px;border:1px solid var(--line);border-radius:17px;background:var(--surface)}
+.installment-choice-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.installment-choice-head>div{display:flex;flex-direction:column}.installment-choice-head>div span{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.installment-choice-head>div strong{margin-top:2px;font-size:12px;color:var(--text-strong)}
+.installment-count-input{height:44px;min-width:114px;padding:0 10px;border:1px solid var(--line-strong);border-radius:13px;background:var(--surface-2);display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.installment-count-input input{width:52px;border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;min-height:0!important;text-align:right;font-size:17px!important;font-weight:700;color:var(--text-strong);outline:0}
+.installment-count-input span{font-size:8px;color:var(--muted)}
+.installment-presets{margin-top:10px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.installment-presets button{min-height:38px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2);color:var(--muted);font-size:10px;font-weight:700}
+.installment-presets button.is-active{border-color:color-mix(in srgb,var(--primary) 38%,var(--line));background:var(--primary-soft);color:var(--primary-deep)}
+.payment-plan-grid{margin-top:11px;display:grid;grid-template-columns:1fr;gap:11px}.payment-plan-grid .frequency-field{margin-top:0}
+.payment-summary{margin-top:12px;padding:12px 13px;border-radius:15px;background:var(--primary-soft);border:1px solid color-mix(in srgb,var(--primary) 18%,var(--line));display:flex;flex-direction:column;gap:3px}
+.payment-summary>span{font-size:8.5px;color:var(--muted)}.payment-summary>strong{font-size:11px;line-height:1.4;color:var(--text-strong)}
+
+/* Home summary always lives after the complete launcher and reads as a footer panel. */
+.launcher-wrap{display:flex;flex-direction:column}
+.home-status{order:2;width:100%;margin:34px auto 0;padding-top:18px;border-top:1px solid var(--line)}
+.status-kpis{gap:8px;background:transparent;border:0;border-radius:0;overflow:visible;box-shadow:none}
+.status-kpis>div{padding:11px 10px;border:1px solid var(--line)!important;border-radius:14px;background:var(--surface);box-shadow:0 4px 12px rgba(48,58,72,.04)}
+.home-empty{margin-top:9px;padding:12px 13px;border-radius:14px;box-shadow:none}
+
+/* PWA/mobile: 8 modules = exactly 2 columns x 4 rows. */
+@media(max-width:719px){
+  .launcher-wrap{padding-left:max(14px,var(--safe-left));padding-right:max(14px,var(--safe-right));padding-bottom:calc(var(--safe-bottom) + 34px)}
+  .module-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-width:390px;gap:15px 10px}
+  .module-card,.module-card:nth-last-child(2),.module-card:last-child{grid-column:auto}
+  .module-icon{width:min(126px,100%);border-radius:29px}
+  .module-icon:before{width:86%;height:86%;border-radius:26px}
+  .module-icon svg{width:61px;height:61px}
+  .module-card strong{font-size:12.5px}
+  .home-status{max-width:390px;margin-top:32px;padding-top:16px}
+  .status-kpis{gap:6px}.status-kpis>div{padding:10px 8px}.status-kpis span{font-size:8px}.status-kpis strong{font-size:12px}
+}
+
+@media(max-width:380px){
+  .module-grid{gap:13px 8px;max-width:350px}
+  .module-icon{width:min(116px,100%)}.module-icon svg{width:57px;height:57px}
+  .detected-price-card{grid-template-columns:1fr}.price-field input{text-align:left}
+}
+
+/* Desktop: keep four columns, but give every icon much more breathing room horizontally. */
+@media(min-width:720px){
+  .launcher-wrap{max-width:1120px;padding-left:48px;padding-right:48px}
+  .module-grid{grid-template-columns:repeat(4,minmax(0,1fr));max-width:900px;column-gap:44px;row-gap:28px}
+  .module-icon{width:112px}.module-icon svg{width:62px;height:62px}
+  .home-status{max-width:900px;margin-top:42px;padding-top:24px}
+  .payment-plan-grid{grid-template-columns:.85fr 1.15fr;align-items:end}
+}
+@media(min-width:1040px){
+  .module-grid{max-width:980px;column-gap:68px;row-gap:32px}
+  .launcher-wrap{padding-left:72px;padding-right:72px}
+}

@@ -72,12 +72,40 @@ def advance_due(day, frequency):
     return add_months(day, 1)
 
 
-def generate_installments(contract):
-    remaining = money_decimal(contract.total_amount) - money_decimal(contract.down_payment)
-    installment_value = money_decimal(contract.installment_amount)
-    due = contract.first_due_date
-    sequence = 1
+def generate_installments(contract, installment_count=None):
+    """Generate the payment schedule.
 
+    When the user chooses a number of installments we split the financed amount
+    into exactly that many payments, down to the cent. Older callers that only
+    provide an installment amount keep the legacy behavior.
+    """
+    remaining = money_decimal(contract.total_amount) - money_decimal(contract.down_payment)
+    due = contract.first_due_date
+
+    if remaining <= Decimal("0.009"):
+        return
+
+    if installment_count:
+        count = int(installment_count)
+        if count < 1 or count > 500:
+            raise ValueError("Selecciona entre 1 y 500 cuotas.")
+
+        total_cents = int((remaining * 100).to_integral_value(rounding=ROUND_HALF_UP))
+        if count > total_cents:
+            raise ValueError("Hay demasiadas cuotas para ese monto.")
+
+        base_cents, extra_cents = divmod(total_cents, count)
+        for sequence in range(1, count + 1):
+            cents = base_cents + (1 if sequence <= extra_cents else 0)
+            amount = Decimal(cents) / Decimal("100")
+            contract.installments.append(
+                Installment(sequence=sequence, due_date=due, amount=amount, paid_amount=Decimal("0.00"))
+            )
+            due = advance_due(due, contract.frequency)
+        return
+
+    installment_value = money_decimal(contract.installment_amount)
+    sequence = 1
     while remaining > Decimal("0.009"):
         if sequence > 500:
             raise ValueError("El plan generaría demasiadas cuotas.")
@@ -598,9 +626,27 @@ def contract_new():
         asset_stock_quantity = parse_int(request.form.get("asset_stock_quantity"), 1, minimum=1) or 1
 
         deal_type = request.form.get("deal_type", "credit_sale")
-        total = parse_money(request.form.get("total_amount"))
         down = parse_money(request.form.get("down_payment"), Decimal("0.00"))
+        unit_price = parse_money(request.form.get("unit_price"))
+        if unit_price is None and asset is not None and money_decimal(asset.estimated_value) > 0:
+            unit_price = money_decimal(asset.estimated_value)
+        installment_count = parse_int(request.form.get("installment_count"), None, minimum=1)
+
+        # v1.11: the common flow is product price -> number of installments.
+        # Keep the old hidden fields as a compatibility fallback for older forms/tests.
+        total = parse_money(request.form.get("total_amount"))
+        if unit_price is not None:
+            total = money_decimal(unit_price * quantity)
+
         installment = parse_money(request.form.get("installment_amount"))
+        financed = None
+        if total is not None and down is not None:
+            financed = money_decimal(total - down)
+        if installment_count and financed is not None and financed > Decimal("0.009"):
+            installment = money_decimal(financed / Decimal(installment_count))
+        elif installment_count and financed is not None:
+            installment = Decimal("0.00")
+
         daily_late_interest = parse_money(request.form.get("daily_late_interest"), Decimal("0.00"))
         frequency = request.form.get("frequency", "monthly")
         start = parse_date(request.form.get("start_date")) or today_value
@@ -617,14 +663,22 @@ def contract_new():
             errors.append("Selecciona un tipo de acuerdo válido.")
         if asset_kind not in {"car", "phone", "motorcycle", "appliance", "computer", "other"}:
             asset_kind = "other"
+        if unit_price is not None and unit_price <= 0:
+            errors.append("El precio por unidad debe ser mayor que cero.")
         if total is None or total <= 0:
-            errors.append("El total debe ser mayor que cero.")
+            errors.append("El precio del acuerdo debe ser mayor que cero.")
         if down is None or down < 0:
             errors.append("El inicial no puede ser negativo.")
         if total is not None and down is not None and down > total:
             errors.append("El inicial no puede ser mayor al total.")
-        if installment is None or installment <= 0:
-            errors.append("La cuota debe ser mayor que cero.")
+        if installment_count is not None and installment_count > 500:
+            errors.append("Selecciona 500 cuotas o menos.")
+        if installment_count is None and (installment is None or installment <= 0):
+            errors.append("Selecciona cuántas cuotas tendrá el acuerdo.")
+        if installment_count is not None and financed is not None and financed > Decimal("0.009"):
+            financed_cents = int((financed * 100).to_integral_value(rounding=ROUND_HALF_UP))
+            if installment_count > financed_cents:
+                errors.append("Hay demasiadas cuotas para ese monto.")
         if daily_late_interest is None or daily_late_interest < 0:
             errors.append("El interés diario no puede ser negativo.")
         if quantity < 1:
@@ -667,7 +721,7 @@ def contract_new():
                 kind=asset_kind,
                 name=asset_name,
                 identifier=asset_identifier,
-                estimated_value=(money_decimal(total / quantity) if total and quantity else Decimal("0.00")),
+                estimated_value=(money_decimal(unit_price) if unit_price is not None else (money_decimal(total / quantity) if total and quantity else Decimal("0.00"))),
                 quantity_total=asset_stock_quantity,
                 status="available",
             )
@@ -694,7 +748,9 @@ def contract_new():
         db.session.flush()
         contract.code = f"CG-{start.year}-{contract.id:05d}"
         try:
-            generate_installments(contract)
+            generate_installments(contract, installment_count=installment_count)
+            if installment_count and contract.installments:
+                contract.installment_amount = contract.installments[0].amount
         except ValueError as exc:
             db.session.rollback()
             flash(str(exc), "error")

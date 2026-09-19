@@ -25,9 +25,10 @@
       <label class="field"><span>Nombre del bien *</span><input name="name" required value="{{ asset.name if asset else request.form.get('name','') }}" placeholder="Ej. Toyota Corolla 2020"></label>
       <label class="field"><span>Placa / IMEI / código</span><input name="identifier" value="{{ asset.identifier if asset else request.form.get('identifier','') }}" placeholder="Opcional pero recomendado"></label>
       <label class="field"><span>Existencia total *</span><input type="number" min="1" step="1" name="quantity_total" required value="{{ asset.quantity_total if asset else request.form.get('quantity_total','1') }}" inputmode="numeric"><small>{% if asset %}{{ asset.committed_quantity }} comprometida{{ 's' if asset.committed_quantity != 1 }} · {{ asset.available_quantity }} disponible{{ 's' if asset.available_quantity != 1 }}{% else %}¿Cuántas unidades iguales tienes?{% endif %}</small></label>
+      <label class="field"><span>Precio / valor por unidad</span><input type="number" step="0.01" min="0" name="estimated_value" value="{{ asset.estimated_value if asset else request.form.get('estimated_value','') }}" placeholder="Ej. 60000" inputmode="decimal"><small>CuotaGo usa este valor para calcular las cuotas automáticamente.</small></label>
     </div>
 
-    {% set has_more = asset and (asset.brand or asset.model or asset.serial_number or asset.estimated_value or asset.notes or asset.status == 'maintenance') %}
+    {% set has_more = asset and (asset.brand or asset.model or asset.serial_number or asset.notes or asset.status == 'maintenance') %}
     <details class="advanced-options" {% if has_more %}open{% endif %}>
       <summary>Más datos</summary>
       <div class="advanced-options-body">
@@ -35,7 +36,6 @@
           <label class="field"><span>Marca</span><input name="brand" value="{{ asset.brand if asset else request.form.get('brand','') }}" placeholder="Toyota, Apple..."></label>
           <label class="field"><span>Modelo</span><input name="model" value="{{ asset.model if asset else request.form.get('model','') }}" placeholder="Corolla, 15 Pro..."></label>
           <label class="field"><span>Serial / chasis</span><input name="serial_number" value="{{ asset.serial_number if asset else request.form.get('serial_number','') }}" placeholder="Opcional"></label>
-          <label class="field"><span>Valor de referencia</span><input type="number" step="0.01" min="0" name="estimated_value" value="{{ asset.estimated_value if asset else request.form.get('estimated_value','') }}" placeholder="0"></label>
           {% if asset and asset.committed_quantity == 0 %}<label class="field field-span-2"><span>Estado</span><select name="status"><option value="available" {{ 'selected' if asset.status=='available' }}>Disponible</option><option value="maintenance" {{ 'selected' if asset.status=='maintenance' }}>Mantenimiento</option></select></label>{% endif %}
           <label class="field field-span-2"><span>Notas</span><textarea name="notes" rows="2" placeholder="Color, condición, accesorios...">{{ asset.notes if asset else request.form.get('notes','') }}</textarea></label>
         </div>

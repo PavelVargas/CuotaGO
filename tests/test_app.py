@@ -398,3 +398,42 @@ def test_dashboard_has_single_agreements_entry(client):
     html = response.data.decode('utf-8')
     assert 'Nuevo acuerdo</strong>' not in html
     assert html.count('>Acuerdos</strong>') == 1
+
+
+def test_installment_count_uses_inventory_price_and_exact_schedule(client, app):
+    register(client)
+    client.post('/assets/new', data={
+        'kind': 'phone', 'name': 'iPhone Plan', 'quantity_total': '2', 'estimated_value': '60000'
+    }, follow_redirects=True)
+    with app.app_context():
+        asset_id = Asset.query.filter_by(name='iPhone Plan').one().id
+
+    start = date.today()
+    response = client.post('/contracts/new', data={
+        'client_name': 'Cliente Cuotas',
+        'asset_id': asset_id,
+        'quantity': '1',
+        'deal_type': 'credit_sale',
+        'down_payment': '10000',
+        'installment_count': '5',
+        'frequency': 'monthly',
+        'start_date': start.isoformat(),
+        'first_due_date': (start + timedelta(days=30)).isoformat(),
+        'daily_late_interest': '0',
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    with app.app_context():
+        contract = Contract.query.one()
+        assert contract.total_amount == Decimal('60000.00')
+        assert contract.installment_amount == Decimal('10000.00')
+        assert len(contract.installments) == 5
+        assert sum((item.amount for item in contract.installments), Decimal('0.00')) == Decimal('50000.00')
+
+
+def test_launcher_v111_layout_source_is_two_by_four_on_mobile():
+    from pathlib import Path
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    assert 'PWA/mobile: 8 modules = exactly 2 columns x 4 rows.' in css
+    assert 'grid-template-columns:repeat(2,minmax(0,1fr))' in css
+    html = Path('cuotago/templates/dashboard.html').read_text(encoding='utf-8')
+    assert html.index('class="module-grid"') < html.index('class="home-status"')

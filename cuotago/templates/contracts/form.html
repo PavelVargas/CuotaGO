@@ -6,7 +6,7 @@
   <div class="page-head simple-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.contracts') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><h1>Nuevo acuerdo</h1><p>Cliente, artículo y cuota. Nada más.</p></div>
+      <div><h1>Nuevo acuerdo</h1><p>Elige cliente, artículo y cantidad de cuotas. CuotaGo calcula el resto.</p></div>
     </div>
   </div>
 
@@ -40,15 +40,19 @@
     <section class="surface quick-section">
       <div class="quick-section-head">
         <span class="quick-step">2</span>
-        <div><strong>¿Qué entregas?</strong><small>Carro, celular o cualquier otro bien.</small></div>
+        <div><strong>¿Qué entregas?</strong><small>CuotaGo usa el precio guardado del inventario.</small></div>
       </div>
 
       <label class="field">
-        <span>Bien guardado</span>
+        <span>Artículo guardado</span>
         <select name="asset_id" id="assetSelect">
-          <option value="">+ Bien nuevo</option>
+          <option value="">+ Artículo nuevo</option>
           {% for asset in assets %}
-          <option value="{{ asset.id }}" data-available="{{ asset.available_quantity }}" {{ 'selected' if form.get('asset_id')|string == asset.id|string }}>{{ asset.name }} · {{ asset.available_quantity }} disp.{% if asset.identifier %} · {{ asset.identifier }}{% endif %}</option>
+          <option value="{{ asset.id }}"
+                  data-available="{{ asset.available_quantity }}"
+                  data-price="{{ asset.estimated_value or 0 }}"
+                  data-name="{{ asset.name }}"
+                  {{ 'selected' if form.get('asset_id')|string == asset.id|string }}>{{ asset.name }} · {{ asset.available_quantity }} disp.{% if asset.identifier %} · {{ asset.identifier }}{% endif %}</option>
           {% endfor %}
         </select>
       </label>
@@ -59,7 +63,7 @@
 
       <div class="conditional-fields" id="newAssetFields">
         <div class="form-grid two compact-grid">
-          <label class="field field-span-2"><span>Nombre del bien *</span><input name="asset_name" id="assetName" value="{{ form.get('asset_name','') }}" placeholder="Ej. iPhone 15 / Toyota Corolla"></label>
+          <label class="field field-span-2"><span>Nombre del artículo *</span><input name="asset_name" id="assetName" value="{{ form.get('asset_name','') }}" placeholder="Ej. iPhone 15 / Toyota Corolla"></label>
           <label class="field"><span>Tipo</span><select name="asset_kind">
             {% set kind = form.get('asset_kind','other') %}
             <option value="car" {{ 'selected' if kind=='car' }}>Vehículo</option>
@@ -78,7 +82,7 @@
     <section class="surface quick-section quick-money-section">
       <div class="quick-section-head">
         <span class="quick-step">3</span>
-        <div><strong>¿Cómo te pagará?</strong><small>El calendario se crea automáticamente.</small></div>
+        <div><strong>¿Cómo te pagará?</strong><small>Elige cuántas cuotas. CuotaGo calcula el monto de cada una.</small></div>
       </div>
 
       <div class="segmented deal-segmented">
@@ -86,24 +90,43 @@
         <label><input type="radio" name="deal_type" value="rental" {{ 'checked' if form.get('deal_type')=='rental' }}><span>Préstamo / alquiler</span></label>
       </div>
 
-      <div class="quick-money-grid">
-        <label class="field quick-total"><span>Total *</span><input id="totalAmount" type="number" step="0.01" min="0.01" name="total_amount" required value="{{ form.get('total_amount','') }}" placeholder="60000" inputmode="decimal"></label>
-        <label class="field"><span>Cuota *</span><input id="installmentAmount" type="number" step="0.01" min="0.01" name="installment_amount" required value="{{ form.get('installment_amount','') }}" placeholder="5000" inputmode="decimal"></label>
-        <label class="field"><span>Primer pago *</span><input id="firstDueDate" type="date" name="first_due_date" required value="{{ form.get('first_due_date', default_due) }}"></label>
+      <div class="detected-price-card">
+        <div class="detected-price-copy">
+          <span>Precio por unidad</span>
+          <strong id="detectedAssetName">Selecciona un artículo</strong>
+          <small>Se toma del inventario automáticamente. Puedes ajustarlo para este acuerdo.</small>
+        </div>
+        <label class="field price-field"><span>RD$</span><input id="unitPrice" type="number" step="0.01" min="0.01" name="unit_price" required value="{{ form.get('unit_price','') }}" placeholder="60000" inputmode="decimal"></label>
       </div>
 
-      <div class="field frequency-field">
-        <span>Frecuencia</span>
-        <div class="frequency-pills">
-          {% set freq = form.get('frequency','monthly') %}
-          <label><input type="radio" name="frequency" value="weekly" {{ 'checked' if freq=='weekly' }}><span>Semanal</span></label>
-          <label><input type="radio" name="frequency" value="biweekly" {{ 'checked' if freq=='biweekly' }}><span>Quincenal</span></label>
-          <label><input type="radio" name="frequency" value="monthly" {{ 'checked' if freq=='monthly' }}><span>Mensual</span></label>
+      <div class="installment-choice-card">
+        <div class="installment-choice-head">
+          <div><span>Número de cuotas</span><strong>¿En cuántos pagos?</strong></div>
+          <label class="installment-count-input"><input id="installmentCount" type="number" min="1" max="500" step="1" name="installment_count" value="{{ form.get('installment_count','6') }}" inputmode="numeric"><span>cuotas</span></label>
+        </div>
+        <div class="installment-presets" aria-label="Cuotas rápidas">
+          {% for count in (3, 6, 12, 18) %}<button type="button" data-installment-count="{{ count }}">{{ count }}</button>{% endfor %}
         </div>
       </div>
 
-      <div class="quick-summary" id="schedulePreview">
-        <span>Resumen</span><strong>Escribe total y cuota.</strong>
+      <input id="totalAmount" type="hidden" name="total_amount" value="{{ form.get('total_amount','') }}">
+      <input id="installmentAmount" type="hidden" name="installment_amount" value="{{ form.get('installment_amount','') }}">
+
+      <div class="payment-plan-grid">
+        <label class="field"><span>Primer pago *</span><input id="firstDueDate" type="date" name="first_due_date" required value="{{ form.get('first_due_date', default_due) }}"></label>
+        <div class="field frequency-field">
+          <span>Frecuencia</span>
+          <div class="frequency-pills">
+            {% set freq = form.get('frequency','monthly') %}
+            <label><input type="radio" name="frequency" value="weekly" {{ 'checked' if freq=='weekly' }}><span>Semanal</span></label>
+            <label><input type="radio" name="frequency" value="biweekly" {{ 'checked' if freq=='biweekly' }}><span>Quincenal</span></label>
+            <label><input type="radio" name="frequency" value="monthly" {{ 'checked' if freq=='monthly' }}><span>Mensual</span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="quick-summary payment-summary" id="schedulePreview">
+        <span>Plan calculado</span><strong>Selecciona artículo, precio y cuotas.</strong>
       </div>
 
       <details class="advanced-options">
@@ -137,6 +160,9 @@
   const contractQuantity = document.getElementById('contractQuantity');
   const assetStockQuantity = document.getElementById('assetStockQuantity');
   const stockAvailableHint = document.getElementById('stockAvailableHint');
+  const detectedAssetName = document.getElementById('detectedAssetName');
+  const unitPrice = document.getElementById('unitPrice');
+  const installmentCount = document.getElementById('installmentCount');
   const dailyLateInterest = document.getElementById('dailyLateInterest');
   const total = document.getElementById('totalAmount');
   const down = document.getElementById('downPayment');
@@ -145,17 +171,38 @@
   const firstDue = document.getElementById('firstDueDate');
   const preview = document.getElementById('schedulePreview');
   let dueTouched = {{ 'true' if form.get('first_due_date') else 'false' }};
+  let priceTouched = {{ 'true' if form.get('unit_price') else 'false' }};
+
+  const money = new Intl.NumberFormat('es-DO', {style:'currency', currency:'DOP', minimumFractionDigits:0, maximumFractionDigits:2});
+
+  const currentAsset = () => assetSelect?.selectedOptions?.[0] || null;
+  const isNewAsset = () => !assetSelect?.value;
+
+  const syncAssetPrice = (force = false) => {
+    const option = currentAsset();
+    if (isNewAsset()) {
+      if (detectedAssetName) detectedAssetName.textContent = assetName?.value?.trim() || 'Artículo nuevo';
+      if (force && unitPrice) unitPrice.value = '';
+      return;
+    }
+    const price = Number(option?.dataset?.price || 0);
+    if (detectedAssetName) detectedAssetName.textContent = option?.dataset?.name || option?.textContent || 'Artículo';
+    if (unitPrice && price > 0 && (force || !priceTouched || !unitPrice.value)) {
+      unitPrice.value = String(price);
+      priceTouched = false;
+    }
+  };
 
   const toggleInlineCreation = () => {
     const newClient = !clientSelect?.value;
-    const newAsset = !assetSelect?.value;
+    const newAsset = isNewAsset();
     newClientFields?.classList.toggle('is-hidden', !newClient);
     newAssetFields?.classList.toggle('is-hidden', !newAsset);
     if (clientName) clientName.required = newClient;
     if (assetName) assetName.required = newAsset;
     if (assetStockQuantity) assetStockQuantity.required = newAsset;
-    const selectedOption = assetSelect?.selectedOptions?.[0];
-    const available = newAsset ? Number(assetStockQuantity?.value || 1) : Number(selectedOption?.dataset?.available || 0);
+    const option = currentAsset();
+    const available = newAsset ? Number(assetStockQuantity?.value || 1) : Number(option?.dataset?.available || 0);
     if (contractQuantity) contractQuantity.max = String(Math.max(available, 1));
     if (stockAvailableHint) stockAvailableHint.innerHTML = `<b>${available}</b><span>${available === 1 ? 'disponible' : 'disponibles'}</span>`;
   };
@@ -182,35 +229,62 @@
     firstDue.value = `${y}-${m}-${day}`;
   };
 
+  const updatePresetState = () => {
+    const count = Number(installmentCount?.value || 0);
+    document.querySelectorAll('[data-installment-count]').forEach((btn) => {
+      btn.classList.toggle('is-active', Number(btn.dataset.installmentCount) === count);
+    });
+  };
+
   const updateSummary = () => {
-    const t = Number(total?.value || 0);
-    const d = Number(down?.value || 0);
-    const c = Number(installment?.value || 0);
-    const pending = Math.max(0, t - d);
+    const unit = Math.max(0, Number(unitPrice?.value || 0));
     const qty = Math.max(1, Number(contractQuantity?.value || 1));
+    const gross = unit * qty;
+    const initial = Math.max(0, Number(down?.value || 0));
+    const pending = Math.max(0, gross - initial);
+    const count = Math.max(1, Math.floor(Number(installmentCount?.value || 1)));
+    const perPayment = count ? pending / count : 0;
     const late = Math.max(0, Number(dailyLateInterest?.value || 0));
-    if (!t || !c) {
-      preview.innerHTML = '<span>Resumen</span><strong>Escribe total y cuota.</strong>';
+
+    if (total) total.value = gross > 0 ? gross.toFixed(2) : '';
+    if (installment) installment.value = perPayment > 0 ? perPayment.toFixed(2) : '0.00';
+    updatePresetState();
+
+    if (!unit || !count) {
+      preview.innerHTML = '<span>Plan calculado</span><strong>Selecciona artículo, precio y cuotas.</strong>';
       return;
     }
-    const count = pending > 0 ? Math.ceil(pending / c) : 0;
-    const labels = {weekly:'semanal', biweekly:'quincenal', monthly:'mensual'};
-    const money = new Intl.NumberFormat('es-DO', {style:'currency', currency:'DOP', maximumFractionDigits:0});
+
+    const labels = {weekly:'semanales', biweekly:'quincenales', monthly:'mensuales'};
+    const initialCopy = initial > 0 ? ` · inicial ${money.format(initial)}` : '';
     const lateCopy = late > 0 ? ` · atraso ${money.format(late)}/día` : '';
-    preview.innerHTML = `<span>Resumen</span><strong>${qty} unidad${qty === 1 ? '' : 'es'} · ${count} cuota${count === 1 ? '' : 's'} · ${money.format(pending)} pendiente · ${labels[selectedFrequency()]}${lateCopy}</strong>`;
+    preview.innerHTML = `<span>Total ${money.format(gross)}${initialCopy}</span><strong>${count} cuotas ${labels[selectedFrequency()]} de aprox. ${money.format(perPayment)}${lateCopy}</strong>`;
   };
 
   clientSelect?.addEventListener('change', toggleInlineCreation);
-  assetSelect?.addEventListener('change', () => { toggleInlineCreation(); updateSummary(); });
-  assetStockQuantity?.addEventListener('input', toggleInlineCreation);
+  assetSelect?.addEventListener('change', () => {
+    priceTouched = false;
+    toggleInlineCreation();
+    syncAssetPrice(true);
+    updateSummary();
+  });
+  assetName?.addEventListener('input', () => { syncAssetPrice(false); });
+  assetStockQuantity?.addEventListener('input', () => { toggleInlineCreation(); updateSummary(); });
   contractQuantity?.addEventListener('input', updateSummary);
+  unitPrice?.addEventListener('input', () => { priceTouched = true; updateSummary(); });
+  installmentCount?.addEventListener('input', updateSummary);
   dailyLateInterest?.addEventListener('input', updateSummary);
+  down?.addEventListener('input', updateSummary);
   startDate?.addEventListener('change', () => { dueTouched = false; autoDue(); });
   firstDue?.addEventListener('change', () => { dueTouched = true; });
   document.querySelectorAll('input[name="frequency"]').forEach((el) => el.addEventListener('change', () => { dueTouched = false; autoDue(); updateSummary(); }));
-  [total, down, installment].forEach((el) => el?.addEventListener('input', updateSummary));
+  document.querySelectorAll('[data-installment-count]').forEach((btn) => btn.addEventListener('click', () => {
+    if (installmentCount) installmentCount.value = btn.dataset.installmentCount;
+    updateSummary();
+  }));
 
   toggleInlineCreation();
+  syncAssetPrice(false);
   autoDue();
   updateSummary();
 })();
