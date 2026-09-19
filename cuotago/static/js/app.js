@@ -41,8 +41,11 @@
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
-    document.querySelectorAll('[data-theme-toggle-switch]').forEach((input) => {
-      input.checked = resolvedTheme(choice) === 'dark';
+    const isDark = resolvedTheme(choice) === 'dark';
+    document.querySelectorAll('[data-theme-toggle-switch]').forEach((control) => {
+      if ('checked' in control) control.checked = isDark;
+      control.setAttribute('aria-checked', isDark ? 'true' : 'false');
+      control.classList.toggle('is-checked', isDark);
     });
   };
 
@@ -1296,11 +1299,9 @@
       const audioUnlockPromise = unlockAlertAudio();
 
       showInAppPaymentAlert({
-        type: 'due_today',
-        title: subscription ? 'Notificaciones activadas' : 'Prueba de notificación',
-        client: 'Cliente de ejemplo',
-        amount: 'RD$2,500.00',
-        detail: subscription ? 'CuotaGo ya puede avisarte con la app cerrada' : 'Esta es una notificación de prueba',
+        type: 'overdue',
+        title: 'Pago atrasado',
+        body: 'Pago de Cliente de ejemplo atrasado · RD$2,500.00',
         url: '/notifications',
       }, { forceSound: true });
 
@@ -1346,11 +1347,15 @@
     document.querySelectorAll('[data-theme-choice]').forEach((button) => {
       button.addEventListener('click', () => applyTheme(button.dataset.themeChoice));
     });
-    document.querySelectorAll('[data-theme-toggle-switch]').forEach((input) => {
-      const syncDarkSwitch = () => applyTheme(input.checked ? 'dark' : 'light', true);
-      // `input` reacts immediately on touch; `change` is kept as a browser fallback.
-      input.addEventListener('input', syncDarkSwitch);
-      input.addEventListener('change', syncDarkSwitch);
+    document.querySelectorAll('[data-theme-toggle-switch]').forEach((control) => {
+      if (control.matches('input[type="checkbox"]')) {
+        control.addEventListener('change', () => applyTheme(control.checked ? 'dark' : 'light', true));
+        return;
+      }
+      control.addEventListener('click', () => {
+        const nextTheme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        applyTheme(nextTheme, true);
+      });
     });
     document.querySelectorAll('[data-local-alert-switch]').forEach((input) => {
       input.addEventListener('change', async () => {
@@ -1401,11 +1406,9 @@
       updateLocalAlertStatus();
       await unlockAlertAudio();
       showInAppPaymentAlert({
-        type: 'due_today',
-        title: 'Pago para hoy',
-        client: 'Cliente de ejemplo',
-        amount: 'RD$2,500.00',
-        detail: 'Esta es una notificación de prueba',
+        type: 'overdue',
+        title: 'Pago atrasado',
+        body: 'Pago de Cliente de ejemplo atrasado · RD$2,500.00',
         url: '/notifications',
       }, { forceSound: true });
     }));

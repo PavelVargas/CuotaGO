@@ -411,11 +411,35 @@ def push_test():
     if not _push_ready(current_app):
         return jsonify({"ok": False, "message": "Push no esta configurado."}), 503
 
+    tz = ZoneInfo(current_app.config.get("APP_TIMEZONE", "America/Santo_Domingo"))
+    today_local = datetime.now(tz).date()
+    overdue_candidates = (
+        Installment.query.join(Contract)
+        .filter(
+            Contract.organization_id == current_user.organization_id,
+            Contract.status == "active",
+            Installment.due_date < today_local,
+        )
+        .order_by(Installment.due_date.asc(), Installment.id.asc())
+        .limit(20)
+        .all()
+    )
+    overdue_item = next((item for item in overdue_candidates if item.remaining > Decimal("0.009")), None)
+    currency = getattr(current_user.organization, "currency", None) or "DOP"
+    if overdue_item is not None:
+        demo_client = overdue_item.contract.client.full_name
+        demo_amount = _money(overdue_item.remaining, currency)
+        demo_url = f"/contracts/{overdue_item.contract.id}#pay"
+    else:
+        demo_client = "Cliente de ejemplo"
+        demo_amount = _money(Decimal("2500.00"), currency)
+        demo_url = "/notifications"
+
     payload = {
         "type": "test",
-        "title": "CuotaGo esta listo",
-        "body": "Las alertas de cobro estan activas. Cuando un cliente se atrase, te avisaremos aqui.",
-        "url": "/notifications",
+        "title": "Pago atrasado",
+        "body": f"Pago de {demo_client} atrasado · {demo_amount}",
+        "url": demo_url,
         "tag": f"cuotago-test-{current_user.id}-{int(time.time() * 1000)}",
     }
     data = request.get_json(silent=True) or {}
@@ -429,7 +453,12 @@ def push_test():
 
     sent = sum(1 for sub in subscriptions if send_payload_to_subscription(current_app, sub, payload))
     if sent:
-        return jsonify({"ok": True, "sent": sent, "message": "Notificacion de prueba enviada a este telefono."})
+        return jsonify({
+            "ok": True,
+            "sent": sent,
+            "message": "Notificacion de prueba enviada a este telefono.",
+            "preview": {"title": payload["title"], "body": payload["body"], "url": payload["url"]},
+        })
     return jsonify({"ok": False, "sent": 0, "message": "El servicio Push no pudo entregar la prueba a este telefono."}), 502
 
 

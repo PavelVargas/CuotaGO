@@ -16,11 +16,11 @@
       <small>Los cambios se aplican en este dispositivo.</small>
     </div>
 
-    <label class="settings-switch-row">
+    <div class="settings-switch-row">
       <span class="settings-row-icon">{{ icon('moon', 20) }}</span>
       <span class="settings-row-copy"><strong>Modo oscuro</strong><small>Activa una interfaz oscura.</small></span>
-      <span class="ios-switch"><input type="checkbox" data-theme-toggle-switch aria-label="Modo oscuro"><i></i></span>
-    </label>
+      <button class="ios-switch theme-toggle-switch" type="button" role="switch" aria-checked="false" data-theme-toggle-switch aria-label="Modo oscuro"><i></i></button>
+    </div>
 
     <label class="settings-switch-row">
       <span class="settings-row-icon">{{ icon('bell', 20) }}</span>
