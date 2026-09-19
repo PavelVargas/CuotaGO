@@ -833,18 +833,26 @@
     if (!dialog) return;
 
     const amountInput = dialog.querySelector('input[name="amount"]');
+    const kindInput = dialog.querySelector('[data-payment-kind-input]');
+    const eyebrow = dialog.querySelector('[data-payment-dialog-eyebrow]');
+    const submitButton = dialog.querySelector('[data-payment-submit]');
     const defaultAmount = dialog.dataset.defaultAmount || amountInput?.value || '';
     const openers = document.querySelectorAll('[data-open-payment]');
     const closeButtons = dialog.querySelectorAll('[data-payment-close]');
 
     const isOpen = () => dialog.open || dialog.hasAttribute('open');
-    const openDialog = (amount = defaultAmount) => {
-      if (amountInput && amount) amountInput.value = amount;
+    const openDialog = (amount = defaultAmount, kind = 'payment') => {
+      const isAdvance = kind === 'advance';
+      if (kindInput) kindInput.value = isAdvance ? 'advance' : 'payment';
+      if (eyebrow) eyebrow.textContent = isAdvance ? 'REGISTRAR ABONO' : 'REGISTRAR PAGO';
+      if (submitButton) submitButton.textContent = isAdvance ? 'Guardar abono' : 'Registrar pago';
+      if (amountInput) amountInput.value = isAdvance ? (amount || '') : (amount || defaultAmount);
       if (!isOpen()) {
         if (typeof dialog.showModal === 'function') dialog.showModal();
         else dialog.setAttribute('open', '');
       }
       document.body.classList.add('payment-dialog-open');
+      window.setTimeout(() => amountInput?.focus({ preventScroll: true }), 60);
     };
     const closeDialog = () => {
       if (!isOpen()) return;
@@ -854,7 +862,10 @@
     };
 
     openers.forEach((button) => {
-      button.addEventListener('click', () => openDialog(button.dataset.paymentAmount || defaultAmount));
+      button.addEventListener('click', () => openDialog(
+        button.dataset.paymentAmount ?? defaultAmount,
+        button.dataset.paymentKind || 'payment',
+      ));
     });
     closeButtons.forEach((button) => button.addEventListener('click', closeDialog));
     dialog.addEventListener('click', (event) => {
@@ -867,7 +878,7 @@
     dialog.addEventListener('close', () => document.body.classList.remove('payment-dialog-open'));
 
     if (window.location.hash === '#pay') {
-      window.setTimeout(() => openDialog(defaultAmount), 80);
+      window.setTimeout(() => openDialog(defaultAmount, 'payment'), 80);
     }
   };
 

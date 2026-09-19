@@ -113,7 +113,7 @@
     <section class="wizard-panel" data-wizard-step="3" hidden>
       <div class="wizard-panel-head">
         <span class="wizard-panel-icon">{{ icon('cash-stack', 25) }}</span>
-        <div><span>Paso 3 de 4</span><h2>&iquest;Como te pagara?</h2><p>CuotaGo toma el precio del articulo y calcula las cuotas.</p></div>
+        <div><span>Paso 3 de 4</span><h2>&iquest;Como te pagara?</h2><p>Define cuotas y tu ganancia. CuotaGo hace el calculo.</p></div>
       </div>
 
       <div class="wizard-label">Tipo de acuerdo</div>
@@ -124,13 +124,19 @@
 
       <div class="wizard-price-row">
         <div><span>Precio detectado</span><strong id="detectedAssetName">Selecciona un articulo</strong><small>Se toma del inventario. Puedes cambiarlo solo para este acuerdo.</small></div>
-        <label class="field compact-price"><span>Precio por unidad</span><input id="unitPrice" type="number" step="0.01" min="0.01" name="unit_price" required value="{{ form.get('unit_price','') }}" placeholder="60000" inputmode="decimal"></label>
+        <label class="field compact-price"><span>Precio base</span><input id="unitPrice" type="number" step="0.01" min="0.01" name="unit_price" required value="{{ form.get('unit_price','') }}" placeholder="50000" inputmode="decimal"></label>
       </div>
 
       <div class="wizard-label wizard-label-spaced">Numero de cuotas</div>
       <div class="quick-pick-row" aria-label="Cuotas rapidas">
         {% for count in (3, 6, 12, 18) %}<button type="button" data-installment-count="{{ count }}">{{ count }}</button>{% endfor %}
         <label class="custom-count"><input id="installmentCount" type="number" min="1" max="500" step="1" name="installment_count" value="{{ form.get('installment_count','6') }}" inputmode="numeric"><span>cuotas</span></label>
+      </div>
+
+      <div class="profit-margin-line">
+        <div class="profit-margin-copy"><strong>Tu ganancia</strong><span>Porcentaje sobre el precio base de este acuerdo.</span></div>
+        <label class="profit-margin-input" aria-label="Margen de ganancia"><input id="profitMarginPercent" type="number" min="0" max="1000" step="0.01" name="profit_margin_percent" value="{{ form.get('profit_margin_percent','0') }}" inputmode="decimal"><b>%</b></label>
+        <strong class="profit-margin-money" id="profitAmountPreview">+RD$0</strong>
       </div>
 
       <div class="wizard-label wizard-label-spaced">Frecuencia</div>
@@ -201,6 +207,8 @@
   const detectedAssetName = document.getElementById('detectedAssetName');
   const unitPrice = document.getElementById('unitPrice');
   const installmentCount = document.getElementById('installmentCount');
+  const profitMarginPercent = document.getElementById('profitMarginPercent');
+  const profitAmountPreview = document.getElementById('profitAmountPreview');
   const dailyLateInterest = document.getElementById('dailyLateInterest');
   const total = document.getElementById('totalAmount');
   const down = document.getElementById('downPayment');
@@ -302,18 +310,22 @@
   const calculation = () => {
     const unit = Math.max(0, Number(unitPrice?.value || 0));
     const qty = Math.max(1, Number(contractQuantity?.value || 1));
-    const gross = unit * qty;
+    const base = unit * qty;
+    const marginPercent = Math.max(0, Number(profitMarginPercent?.value || 0));
+    const profit = base * (marginPercent / 100);
+    const gross = base + profit;
     const initial = Math.max(0, Number(down?.value || 0));
     const pending = Math.max(0, gross - initial);
     const count = Math.max(0, Math.floor(Number(installmentCount?.value || 0)));
     const perPayment = count ? pending / count : 0;
-    return {unit, qty, gross, initial, pending, count, perPayment};
+    return {unit, qty, base, marginPercent, profit, gross, initial, pending, count, perPayment};
   };
 
   const updateSummary = () => {
     const calc = calculation();
     const late = Math.max(0, Number(dailyLateInterest?.value || 0));
     if (total) total.value = calc.gross > 0 ? calc.gross.toFixed(2) : '';
+    if (profitAmountPreview) profitAmountPreview.textContent = `+${money.format(calc.profit || 0)}`;
     if (installment) installment.value = calc.perPayment > 0 ? calc.perPayment.toFixed(2) : '0.00';
     updatePresetState();
 
@@ -322,8 +334,9 @@
     } else {
       const labels = {weekly:'semanales', biweekly:'quincenales', monthly:'mensuales'};
       const initialCopy = calc.initial > 0 ? ` &middot; inicial ${money.format(calc.initial)}` : '';
+      const marginCopy = calc.marginPercent > 0 ? ` &middot; ganancia ${calc.marginPercent.toLocaleString('es-DO', {maximumFractionDigits:2})}%` : '';
       const lateCopy = late > 0 ? ` &middot; atraso ${money.format(late)}/dia` : '';
-      preview.innerHTML = `<span>Total ${money.format(calc.gross)}${initialCopy}</span><strong>${calc.count} cuotas ${labels[selectedFrequency()]} de aprox. ${money.format(calc.perPayment)}${lateCopy}</strong>`;
+      preview.innerHTML = `<span>Base ${money.format(calc.base)}${marginCopy}${initialCopy}</span><strong>Total ${money.format(calc.gross)} &middot; ${calc.count} cuotas ${labels[selectedFrequency()]} de aprox. ${money.format(calc.perPayment)}${lateCopy}</strong>`;
     }
     updateReview();
   };
@@ -356,6 +369,7 @@
     if (reviewTotal) reviewTotal.textContent = money.format(calc.gross || 0);
     if (reviewExtra) {
       const parts = [];
+      if (calc.marginPercent > 0) parts.push(`Ganancia ${calc.marginPercent.toLocaleString('es-DO', {maximumFractionDigits:2})}% (+${money.format(calc.profit)})`);
       if (calc.initial > 0) parts.push(`Inicial ${money.format(calc.initial)}`);
       const late = Math.max(0, Number(dailyLateInterest?.value || 0));
       if (late > 0) parts.push(`Interes por atraso ${money.format(late)}/dia`);
@@ -389,7 +403,8 @@
     if (step === 3) {
       const calc = calculation();
       const late = Number(dailyLateInterest?.value || 0);
-      if (calc.unit <= 0) message = 'Indica el precio del articulo.';
+      if (calc.unit <= 0) message = 'Indica el precio base del articulo.';
+      else if (calc.marginPercent < 0 || calc.marginPercent > 1000) message = 'Revisa el margen de ganancia.';
       else if (calc.count < 1 || calc.count > 500) message = 'Elige entre 1 y 500 cuotas.';
       else if (calc.initial < 0 || calc.initial > calc.gross) message = 'Revisa el monto inicial.';
       else if (!firstDue?.value) message = 'Selecciona la fecha del primer pago.';
@@ -462,6 +477,7 @@
   contractQuantity?.addEventListener('input', refreshWizardState);
   unitPrice?.addEventListener('input', () => { priceTouched = true; refreshWizardState(); });
   installmentCount?.addEventListener('input', refreshWizardState);
+  profitMarginPercent?.addEventListener('input', refreshWizardState);
   dailyLateInterest?.addEventListener('input', refreshWizardState);
   down?.addEventListener('input', refreshWizardState);
   startDate?.addEventListener('change', () => { dueTouched = false; autoDue(); refreshWizardState(); });

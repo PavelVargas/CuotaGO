@@ -19,6 +19,8 @@ def _ensure_feature_schema(app):
         "ALTER TABLE assets ADD COLUMN IF NOT EXISTS image_mime VARCHAR(80)",
         "ALTER TABLE assets ADD COLUMN IF NOT EXISTS image_data BYTEA",
         "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS quantity INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS base_amount NUMERIC(12,2) NOT NULL DEFAULT 0",
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS profit_margin_percent NUMERIC(7,2) NOT NULL DEFAULT 0",
         "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS daily_late_interest NUMERIC(12,2) NOT NULL DEFAULT 0",
         "ALTER TABLE installments ADD COLUMN IF NOT EXISTS late_fee_amount NUMERIC(12,2) NOT NULL DEFAULT 0",
         "ALTER TABLE installments ADD COLUMN IF NOT EXISTS late_fee_paid NUMERIC(12,2) NOT NULL DEFAULT 0",

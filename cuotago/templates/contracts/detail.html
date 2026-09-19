@@ -25,9 +25,14 @@
   {% if contract.status == 'active' %}
   {% set suggested_payment = contract.next_installment.remaining if contract.next_installment else contract.balance %}
   <div class="contract-payment-launch" id="pay">
-    <button class="btn btn-primary btn-lg contract-payment-button" type="button" data-open-payment data-payment-amount="{{ suggested_payment }}">
-      {{ icon('wallet', 18) }}<span>Registrar pago</span>
-    </button>
+    <div class="contract-payment-primary-actions">
+      <button class="btn btn-primary contract-payment-button" type="button" data-open-payment data-payment-kind="payment" data-payment-amount="{{ suggested_payment }}">
+        {{ icon('wallet', 18) }}<span>Registrar pago</span>
+      </button>
+      <button class="btn btn-secondary contract-advance-button" type="button" data-open-payment data-payment-kind="advance" data-payment-amount="">
+        {{ icon('cash-stack', 18) }}<span>Abonar</span>
+      </button>
+    </div>
     {% if contract.client.phone and contract.next_installment and wa_link(contract.client, contract, contract.next_installment) %}
     <a class="btn btn-whatsapp contract-reminder-button" target="_blank" rel="noopener" href="{{ wa_link(contract.client, contract, contract.next_installment) }}">{{ icon('whatsapp', 18) }}<span>Recordar por WhatsApp</span></a>
     {% endif %}
@@ -38,7 +43,7 @@
       <div class="payment-dialog-handle" aria-hidden="true"></div>
       <div class="payment-dialog-head">
         <div>
-          <span class="eyebrow">REGISTRAR PAGO</span>
+          <span class="eyebrow" data-payment-dialog-eyebrow>REGISTRAR PAGO</span>
           <h2 id="paymentDialogTitle">{{ contract.client.full_name }}</h2>
           <p>Saldo pendiente <strong>{{ money(contract.balance) }}</strong>{% if contract.next_installment %} · Próxima cuota {{ money(contract.next_installment.remaining) }}{% endif %}</p>
         </div>
@@ -47,9 +52,10 @@
 
       <form method="post" action="{{ url_for('main.contract_pay', contract_id=contract.id) }}" class="form-stack quick-payment-form payment-dialog-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="payment_kind" value="payment" data-payment-kind-input>
         <label class="field payment-amount-field">
           <span>Monto recibido</span>
-          <input class="payment-amount-input" type="number" name="amount" step="0.01" min="0.01" max="{{ contract.balance }}" required value="{{ suggested_payment }}" inputmode="decimal">
+          <input class="payment-amount-input" type="number" name="amount" step="0.01" min="0.01" max="{{ contract.balance }}" required value="{{ suggested_payment }}" placeholder="0.00" inputmode="decimal">
         </label>
         <div class="payment-method-pills payment-dialog-methods" aria-label="Método de pago">
           <label><input type="radio" name="method" value="cash" checked><span>Efectivo</span></label>
@@ -62,7 +68,7 @@
         </details>
         <div class="payment-dialog-actions">
           <button class="btn btn-secondary" type="button" data-payment-close>Cancelar</button>
-          <button class="btn btn-primary" type="submit">Registrar pago</button>
+          <button class="btn btn-primary" type="submit" data-payment-submit>Registrar pago</button>
         </div>
       </form>
     </div>
@@ -78,7 +84,7 @@
         <div class="installment-date"><strong>{{ installment.due_date.strftime('%d/%m/%Y') }}</strong><small>{% if installment.is_paid %}Pagada{% elif installment.due_date < today %}Vencida{% elif installment.due_date == today %}Vence hoy{% else %}Pendiente{% endif %}</small></div>
         <div class="installment-value"><strong>{{ money(installment.remaining if not installment.is_paid else installment.amount + installment.late_fee_amount) }}</strong>{% if installment.late_fee_remaining > 0 %}<small class="late-fee-copy">incluye {{ money(installment.late_fee_remaining) }} de interés</small>{% elif installment.paid_amount and installment.paid_amount > 0 and not installment.is_paid %}<small>abonado {{ money(installment.paid_amount) }}</small>{% endif %}</div>
         {% if contract.status == 'active' and not installment.is_paid %}
-        <button class="btn btn-ghost btn-sm quick-pay-button" type="button" data-open-payment data-payment-amount="{{ installment.remaining }}">Cobrar</button>
+        <button class="btn btn-ghost btn-sm quick-pay-button" type="button" data-open-payment data-payment-kind="payment" data-payment-amount="{{ installment.remaining }}">Cobrar</button>
         {% else %}<span class="paid-check">✓</span>{% endif %}
       </div>
       {% else %}<div class="empty-inline">No hay cuotas pendientes.</div>{% endfor %}
@@ -97,6 +103,10 @@
         <div><dt>Identificador</dt><dd>{{ contract.asset.identifier or contract.asset.serial_number or '—' }}</dd></div>
         <div><dt>Inicio</dt><dd>{{ contract.start_date.strftime('%d/%m/%Y') }}</dd></div>
         <div><dt>Inicial</dt><dd>{{ money(contract.down_payment) }}</dd></div>
+        {% if contract.profit_margin_percent and contract.profit_margin_percent > 0 %}
+        <div><dt>Precio base</dt><dd>{{ money(contract.base_amount) }}</dd></div>
+        <div><dt>Ganancia</dt><dd>{{ '%.2f'|format(contract.profit_margin_percent)|replace('.00','') }}% · {{ money(contract.profit_amount) }}</dd></div>
+        {% endif %}
         <div><dt>Frecuencia</dt><dd>{{ frequency_label(contract.frequency) }}</dd></div>
         <div><dt>Interés por atraso</dt><dd>{{ money(contract.daily_late_interest) }}/día</dd></div>
       </dl>
@@ -107,7 +117,7 @@
   {% if contract.payments %}
   <details class="surface advanced-options detail-more">
     <summary>Historial de pagos ({{ contract.payments|length }})</summary>
-    <div class="advanced-options-body payment-history">{% for payment in contract.payments[:12] %}<div><span><strong>{{ money(payment.amount) }}</strong><small>{{ payment.method|capitalize }}{% if payment.late_fee_amount > 0 %} · {{ money(payment.late_fee_amount) }} interés{% endif %}</small></span><time>{{ payment.paid_at.strftime('%d/%m/%Y') }}</time></div>{% endfor %}</div>
+    <div class="advanced-options-body payment-history">{% for payment in contract.payments[:12] %}<div><span><strong>{{ money(payment.amount) }}</strong><small>{{ payment.method|capitalize }}{% if payment.note %} · {{ payment.note }}{% endif %}{% if payment.late_fee_amount > 0 %} · {{ money(payment.late_fee_amount) }} interés{% endif %}</small></span><time>{{ payment.paid_at.strftime('%d/%m/%Y') }}</time></div>{% endfor %}</div>
   </details>
   {% endif %}
 </section>

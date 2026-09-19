@@ -498,3 +498,48 @@ def test_remembered_authenticated_session_can_open_modules_without_resume_redire
         response = client.get(path, follow_redirects=False)
         assert response.status_code == 200, f"{path} redirected unexpectedly to {response.headers.get('Location')}"
 
+
+
+def test_agreement_profit_margin_and_advance_controls_are_present():
+    from pathlib import Path
+    form_html = Path('cuotago/templates/contracts/form.html').read_text(encoding='utf-8')
+    detail_html = Path('cuotago/templates/contracts/detail.html').read_text(encoding='utf-8')
+    app_js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
+    assert 'name="profit_margin_percent"' in form_html
+    assert 'id="profitAmountPreview"' in form_html
+    assert 'data-payment-kind="advance"' in detail_html
+    assert '>Abonar</span>' in detail_html
+    assert "REGISTRAR ABONO" in app_js
+
+
+def test_profit_margin_is_applied_before_installments(client, app):
+    register(client)
+    client.post('/assets/new', data={
+        'kind': 'phone', 'name': 'iPhone 15 Margen', 'quantity_total': '1', 'estimated_value': '50000'
+    }, follow_redirects=True)
+    with app.app_context():
+        asset_id = Asset.query.filter_by(name='iPhone 15 Margen').one().id
+
+    start = date.today()
+    response = client.post('/contracts/new', data={
+        'client_name': 'Cliente Margen',
+        'asset_id': asset_id,
+        'quantity': '1',
+        'deal_type': 'credit_sale',
+        'profit_margin_percent': '20',
+        'down_payment': '0',
+        'installment_count': '6',
+        'frequency': 'monthly',
+        'start_date': start.isoformat(),
+        'first_due_date': (start + timedelta(days=30)).isoformat(),
+        'daily_late_interest': '0',
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    with app.app_context():
+        contract = Contract.query.one()
+        assert contract.base_amount == Decimal('50000.00')
+        assert contract.profit_margin_percent == Decimal('20.00')
+        assert contract.profit_amount == Decimal('10000.00')
+        assert contract.total_amount == Decimal('60000.00')
+        assert contract.installment_amount == Decimal('10000.00')
+        assert len(contract.installments) == 6

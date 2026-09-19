@@ -690,13 +690,19 @@ def contract_new():
         unit_price = parse_money(request.form.get("unit_price"))
         if unit_price is None and asset is not None and money_decimal(asset.estimated_value) > 0:
             unit_price = money_decimal(asset.estimated_value)
+        profit_margin_percent = parse_money(request.form.get("profit_margin_percent"), Decimal("0.00"))
         installment_count = parse_int(request.form.get("installment_count"), None, minimum=1)
 
-        # v1.11: the common flow is product price -> number of installments.
-        # Keep the old hidden fields as a compatibility fallback for older forms/tests.
+        # The product price is the base. The seller chooses a margin for this
+        # specific agreement, then CuotaGo distributes the financed total into
+        # the selected number of installments. Keep the hidden total as a
+        # compatibility fallback for older forms/tests.
         total = parse_money(request.form.get("total_amount"))
+        base_amount = total
         if unit_price is not None:
-            total = money_decimal(unit_price * quantity)
+            base_amount = money_decimal(unit_price * quantity)
+            margin_rate = (profit_margin_percent or Decimal("0.00")) / Decimal("100")
+            total = money_decimal(base_amount * (Decimal("1.00") + margin_rate))
 
         installment = parse_money(request.form.get("installment_amount"))
         financed = None
@@ -725,6 +731,10 @@ def contract_new():
             asset_kind = "other"
         if unit_price is not None and unit_price <= 0:
             errors.append("El precio por unidad debe ser mayor que cero.")
+        if profit_margin_percent is None or profit_margin_percent < 0:
+            errors.append("El margen de ganancia no puede ser negativo.")
+        elif profit_margin_percent > Decimal("1000.00"):
+            errors.append("El margen de ganancia no puede superar 1000%.")
         if total is None or total <= 0:
             errors.append("El precio del acuerdo debe ser mayor que cero.")
         if down is None or down < 0:
@@ -794,6 +804,8 @@ def contract_new():
             asset=asset,
             deal_type=deal_type,
             total_amount=total,
+            base_amount=money_decimal(base_amount if base_amount is not None else total),
+            profit_margin_percent=profit_margin_percent or Decimal("0.00"),
             down_payment=down,
             installment_amount=installment,
             quantity=quantity,
@@ -827,7 +839,7 @@ def contract_new():
             contract.status = "completed"
         refresh_asset_status(asset)
         db.session.commit()
-        flash("Listo. Acuerdo creado y fechas calculadas.", "success")
+        flash("Listo. Acuerdo creado, ganancia y cuotas calculadas.", "success")
         return redirect(url_for("main.contract_detail", contract_id=contract.id))
 
     return render_template(
@@ -898,12 +910,19 @@ def contract_pay(contract_id):
         if installment.remaining <= Decimal("0.009"):
             installment.paid_at = now_value
 
+    payment_kind = request.form.get("payment_kind", "payment")
+    if payment_kind not in {"payment", "advance"}:
+        payment_kind = "payment"
+    payment_note = request.form.get("note", "").strip()
+    if payment_kind == "advance" and not payment_note:
+        payment_note = "Abono"
+
     payment = Payment(
         contract=contract,
         amount=amount,
         late_fee_amount=money_decimal(interest_applied_total),
         method=method,
-        note=request.form.get("note", "").strip(),
+        note=payment_note,
         paid_at=now_value,
     )
     db.session.add(payment)
@@ -914,7 +933,8 @@ def contract_pay(contract_id):
     refresh_asset_status(contract.asset)
 
     db.session.commit()
-    flash(f"Pago de {format_money(amount)} registrado.", "success")
+    action_label = "Abono" if payment_kind == "advance" else "Pago"
+    flash(f"{action_label} de {format_money(amount)} registrado.", "success")
     next_url = request.form.get("next", "").strip()
     if next_url.startswith("/") and not next_url.startswith("//"):
         return redirect(next_url)

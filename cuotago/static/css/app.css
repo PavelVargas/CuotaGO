@@ -2377,3 +2377,56 @@ body.app-authenticated .page-shell>*{
 @media(prefers-reduced-motion:reduce){
   ::view-transition-old(root),::view-transition-new(root){animation:none!important}
 }
+
+/* --------------------------------------------------------------------------
+   CuotaGo UI v12 · margen por acuerdo + abonos sin recargar la vista.
+   -------------------------------------------------------------------------- */
+.profit-margin-line{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 86px auto;
+  align-items:center;
+  gap:9px;
+  margin-top:10px;
+  padding:10px 0;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+.profit-margin-copy{min-width:0;display:flex;flex-direction:column;gap:2px}
+.profit-margin-copy strong{font-size:10px;color:var(--text-strong);font-weight:800}
+.profit-margin-copy span{font-size:8px;color:var(--muted);line-height:1.35}
+.profit-margin-input{
+  min-height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:4px;
+  padding:0 10px;
+  border:1px solid var(--line-strong);
+  border-radius:11px;
+  background:var(--surface);
+}
+.profit-margin-input:focus-within{border-color:color-mix(in srgb,var(--primary) 55%,var(--line));box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 9%,transparent)}
+.profit-margin-input input{width:48px;min-height:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;outline:0;text-align:right;font-size:16px!important;font-weight:800;color:var(--text-strong)}
+.profit-margin-input b{font-size:10px;color:var(--muted)}
+.profit-margin-money{white-space:nowrap;font-size:10px;color:var(--primary);font-weight:850}
+
+.contract-payment-primary-actions{display:flex;align-items:center;gap:7px}
+.contract-payment-primary-actions .btn{min-height:42px}
+.contract-advance-button{
+  border-color:color-mix(in srgb,var(--primary) 36%,var(--line));
+  background:color-mix(in srgb,var(--primary-soft) 58%,var(--surface));
+  color:var(--primary-deep);
+  font-weight:800;
+}
+.contract-advance-button:hover{border-color:color-mix(in srgb,var(--primary) 55%,var(--line));background:var(--primary-soft)}
+
+@media(max-width:520px){
+  .contract-payment-primary-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%}
+  .contract-payment-primary-actions .btn{width:100%;min-width:0;padding-left:8px;padding-right:8px}
+  .contract-payment-launch{gap:7px}
+}
+
+@media(max-width:390px){
+  .profit-margin-line{grid-template-columns:minmax(0,1fr) 78px}
+  .profit-margin-money{grid-column:1/-1;justify-self:end;margin-top:-2px}
+}

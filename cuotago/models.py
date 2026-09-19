@@ -112,6 +112,8 @@ class Contract(db.Model):
     code = db.Column(db.String(40), unique=True, index=True)
     deal_type = db.Column(db.String(30), nullable=False, default="credit_sale")
     total_amount = db.Column(db.Numeric(12, 2), nullable=False)
+    base_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    profit_margin_percent = db.Column(db.Numeric(7, 2), nullable=False, default=0)
     down_payment = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     installment_amount = db.Column(db.Numeric(12, 2), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=1)
@@ -137,6 +139,12 @@ class Contract(db.Model):
         cascade="all, delete-orphan",
         order_by="Payment.paid_at.desc()",
     )
+
+    @property
+    def profit_amount(self):
+        base = Decimal(str(self.base_amount or 0))
+        total = Decimal(str(self.total_amount or 0))
+        return max(total - base, Decimal("0.00"))
 
     @property
     def payments_total(self):
