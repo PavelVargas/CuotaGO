@@ -1008,7 +1008,7 @@ html[data-auth-screen="1"] .auth-main{color:#253142}
   place-items:center;
   flex:0 0 auto;
   aspect-ratio:1;
-  border:0;
+  border:1px solid #333;
   background:color-mix(in srgb,var(--accent,var(--primary)) 11%,var(--surface));
   color:var(--accent,var(--primary));
   box-shadow:none;
