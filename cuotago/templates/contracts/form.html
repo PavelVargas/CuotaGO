@@ -5,7 +5,7 @@
 <section class="content-page narrow-page quick-agreement-page">
   <div class="page-head simple-page-head">
     <div class="page-head-left">
-      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <a class="icon-btn" href="{{ url_for('main.contracts') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
       <div><h1>Nuevo acuerdo</h1><p>Cliente, artículo y cuota. Nada más.</p></div>
     </div>
   </div>
@@ -48,10 +48,14 @@
         <select name="asset_id" id="assetSelect">
           <option value="">+ Bien nuevo</option>
           {% for asset in assets %}
-          <option value="{{ asset.id }}" {{ 'selected' if form.get('asset_id')|string == asset.id|string }}>{{ asset.name }}{% if asset.identifier %} · {{ asset.identifier }}{% endif %}</option>
+          <option value="{{ asset.id }}" data-available="{{ asset.available_quantity }}" {{ 'selected' if form.get('asset_id')|string == asset.id|string }}>{{ asset.name }} · {{ asset.available_quantity }} disp.{% if asset.identifier %} · {{ asset.identifier }}{% endif %}</option>
           {% endfor %}
         </select>
       </label>
+      <div class="stock-pick-row">
+        <label class="field"><span>Cantidad a entregar</span><input id="contractQuantity" type="number" min="1" step="1" name="quantity" value="{{ form.get('quantity','1') }}" inputmode="numeric" required></label>
+        <div class="stock-available-hint" id="stockAvailableHint"><b>1</b><span>disponible</span></div>
+      </div>
 
       <div class="conditional-fields" id="newAssetFields">
         <div class="form-grid two compact-grid">
@@ -66,6 +70,7 @@
             <option value="other" {{ 'selected' if kind=='other' }}>Otro</option>
           </select></label>
           <label class="field"><span>Placa / IMEI</span><input name="asset_identifier" value="{{ form.get('asset_identifier','') }}" placeholder="Opcional"></label>
+          <label class="field field-span-2"><span>Existencia de este artículo</span><input id="assetStockQuantity" type="number" min="1" step="1" name="asset_stock_quantity" value="{{ form.get('asset_stock_quantity','1') }}" inputmode="numeric"><small>Ej.: si tienes 3 iPhone iguales, escribe 3.</small></label>
         </div>
       </div>
     </section>
@@ -107,6 +112,7 @@
           <div class="form-grid two compact-grid">
             <label class="field"><span>Inicial</span><input id="downPayment" type="number" step="0.01" min="0" name="down_payment" value="{{ form.get('down_payment','0') }}" placeholder="0" inputmode="decimal"></label>
             <label class="field"><span>Fecha de entrega</span><input id="startDate" type="date" name="start_date" value="{{ form.get('start_date', default_start) }}"></label>
+            <label class="field"><span>Interés por día de atraso</span><input id="dailyLateInterest" type="number" step="0.01" min="0" name="daily_late_interest" value="{{ form.get('daily_late_interest','0') }}" placeholder="0" inputmode="decimal"><small>RD$ que se suman por cada día vencido. Pon 0 para no cobrar interés.</small></label>
             <label class="field field-span-2"><span>Nota</span><textarea name="notes" rows="2" placeholder="Opcional">{{ form.get('notes','') }}</textarea></label>
           </div>
         </div>
@@ -128,6 +134,10 @@
   const newAssetFields = document.getElementById('newAssetFields');
   const clientName = document.getElementById('clientName');
   const assetName = document.getElementById('assetName');
+  const contractQuantity = document.getElementById('contractQuantity');
+  const assetStockQuantity = document.getElementById('assetStockQuantity');
+  const stockAvailableHint = document.getElementById('stockAvailableHint');
+  const dailyLateInterest = document.getElementById('dailyLateInterest');
   const total = document.getElementById('totalAmount');
   const down = document.getElementById('downPayment');
   const installment = document.getElementById('installmentAmount');
@@ -143,6 +153,11 @@
     newAssetFields?.classList.toggle('is-hidden', !newAsset);
     if (clientName) clientName.required = newClient;
     if (assetName) assetName.required = newAsset;
+    if (assetStockQuantity) assetStockQuantity.required = newAsset;
+    const selectedOption = assetSelect?.selectedOptions?.[0];
+    const available = newAsset ? Number(assetStockQuantity?.value || 1) : Number(selectedOption?.dataset?.available || 0);
+    if (contractQuantity) contractQuantity.max = String(Math.max(available, 1));
+    if (stockAvailableHint) stockAvailableHint.innerHTML = `<b>${available}</b><span>${available === 1 ? 'disponible' : 'disponibles'}</span>`;
   };
 
   const selectedFrequency = () => document.querySelector('input[name="frequency"]:checked')?.value || 'monthly';
@@ -154,7 +169,13 @@
     const freq = selectedFrequency();
     if (freq === 'weekly') d.setDate(d.getDate() + 7);
     else if (freq === 'biweekly') d.setDate(d.getDate() + 14);
-    else d.setMonth(d.getMonth() + 1);
+    else {
+      const originalDay = d.getDate();
+      d.setDate(1);
+      d.setMonth(d.getMonth() + 1);
+      const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      d.setDate(Math.min(originalDay, lastDay));
+    }
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -166,6 +187,8 @@
     const d = Number(down?.value || 0);
     const c = Number(installment?.value || 0);
     const pending = Math.max(0, t - d);
+    const qty = Math.max(1, Number(contractQuantity?.value || 1));
+    const late = Math.max(0, Number(dailyLateInterest?.value || 0));
     if (!t || !c) {
       preview.innerHTML = '<span>Resumen</span><strong>Escribe total y cuota.</strong>';
       return;
@@ -173,11 +196,15 @@
     const count = pending > 0 ? Math.ceil(pending / c) : 0;
     const labels = {weekly:'semanal', biweekly:'quincenal', monthly:'mensual'};
     const money = new Intl.NumberFormat('es-DO', {style:'currency', currency:'DOP', maximumFractionDigits:0});
-    preview.innerHTML = `<span>Resumen</span><strong>${count} cuota${count === 1 ? '' : 's'} · ${money.format(pending)} pendiente · ${labels[selectedFrequency()]}</strong>`;
+    const lateCopy = late > 0 ? ` · atraso ${money.format(late)}/día` : '';
+    preview.innerHTML = `<span>Resumen</span><strong>${qty} unidad${qty === 1 ? '' : 'es'} · ${count} cuota${count === 1 ? '' : 's'} · ${money.format(pending)} pendiente · ${labels[selectedFrequency()]}${lateCopy}</strong>`;
   };
 
   clientSelect?.addEventListener('change', toggleInlineCreation);
-  assetSelect?.addEventListener('change', toggleInlineCreation);
+  assetSelect?.addEventListener('change', () => { toggleInlineCreation(); updateSummary(); });
+  assetStockQuantity?.addEventListener('input', toggleInlineCreation);
+  contractQuantity?.addEventListener('input', updateSummary);
+  dailyLateInterest?.addEventListener('input', updateSummary);
   startDate?.addEventListener('change', () => { dueTouched = false; autoDue(); });
   firstDue?.addEventListener('change', () => { dueTouched = true; });
   document.querySelectorAll('input[name="frequency"]').forEach((el) => el.addEventListener('change', () => { dueTouched = false; autoDue(); updateSummary(); }));

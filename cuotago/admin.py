@@ -63,11 +63,26 @@ def _clear_collections(organization_id):
             db.session.delete(payment)
         for installment in contract.installments:
             installment.paid_amount = Decimal("0.00")
+            installment.late_fee_amount = Decimal("0.00")
+            installment.late_fee_paid = Decimal("0.00")
+            installment.principal_paid_at = None
             installment.paid_at = None
         if Decimal(str(contract.total_amount or 0)) > Decimal(str(contract.down_payment or 0)):
             contract.status = "active"
-            if contract.asset:
-                contract.asset.status = "on_loan"
+        else:
+            contract.status = "completed"
+    db.session.flush()
+    for asset in Asset.query.filter_by(organization_id=organization_id).all():
+        if asset.status == "maintenance" and asset.committed_quantity == 0:
+            continue
+        if asset.available_quantity > 0:
+            asset.status = "available"
+        elif any(c.status == "active" for c in asset.contracts):
+            asset.status = "on_loan"
+        elif any(c.status == "completed" and c.deal_type == "credit_sale" for c in asset.contracts):
+            asset.status = "sold"
+        else:
+            asset.status = "available"
     db.session.flush()
 
 

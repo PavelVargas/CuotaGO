@@ -26,11 +26,12 @@
   {% for contract in contracts %}
     <a class="contract-card" href="{{ url_for('main.contract_detail', contract_id=contract.id) }}">
       <div class="contract-card-top">
-        <div><span class="contract-code">{{ contract.code }}</span><h3>{{ contract.client.full_name }}</h3><p>{{ contract.asset.name }}</p></div>
+        <div><span class="contract-code">{{ contract.code }}</span><h3>{{ contract.client.full_name }}</h3><p>{{ contract.asset.name }}{% if contract.quantity > 1 %} · {{ contract.quantity }} unidades{% endif %}</p></div>
         <span class="status-pill status-{{ contract.status }}">{{ contract_status_label(contract.status) }}</span>
       </div>
       <div class="progress-track"><span style="width: {{ contract.progress_percent }}%"></span></div>
       <div class="contract-numbers"><div><small>Pagado</small><strong>{{ money(contract.paid_total) }}</strong></div><div><small>Pendiente</small><strong>{{ money(contract.balance) }}</strong></div></div>
+      {% if contract.late_fee_balance > 0 or contract.daily_late_interest > 0 %}<div class="contract-late-note"><span>Interés atraso</span><strong>{{ money(contract.daily_late_interest) }}/día{% if contract.late_fee_balance > 0 %} · {{ money(contract.late_fee_balance) }} acumulado{% endif %}</strong></div>{% endif %}
       <div class="contract-footer"><span>{{ deal_type_label(contract.deal_type) }}</span><strong>{% if contract.next_installment %}Próximo: {{ contract.next_installment.due_date.strftime('%d/%m/%Y') }}{% else %}Sin pagos pendientes{% endif %}</strong></div>
     </a>
   {% else %}

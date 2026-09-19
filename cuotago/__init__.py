@@ -9,6 +9,28 @@ from config import Config
 from .extensions import csrf, db, login_manager
 
 
+def _ensure_feature_schema(app):
+    """Small forward-only PostgreSQL upgrade for installs already running on Railway.
+
+    db.create_all() does not add columns to existing tables, so these additions
+    are applied explicitly and safely with IF NOT EXISTS.
+    """
+    statements = [
+        "ALTER TABLE assets ADD COLUMN IF NOT EXISTS quantity_total INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS quantity INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS daily_late_interest NUMERIC(12,2) NOT NULL DEFAULT 0",
+        "ALTER TABLE installments ADD COLUMN IF NOT EXISTS late_fee_amount NUMERIC(12,2) NOT NULL DEFAULT 0",
+        "ALTER TABLE installments ADD COLUMN IF NOT EXISTS late_fee_paid NUMERIC(12,2) NOT NULL DEFAULT 0",
+        "ALTER TABLE installments ADD COLUMN IF NOT EXISTS principal_paid_at TIMESTAMP NULL",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS late_fee_amount NUMERIC(12,2) NOT NULL DEFAULT 0",
+    ]
+    if db.engine.dialect.name != "postgresql":
+        return
+    with db.engine.begin() as connection:
+        for statement in statements:
+            connection.execute(text(statement))
+
+
 def _ensure_superadmin(app):
     """Create or refresh the configured superadmin without hard-coded production credentials."""
     email = (app.config.get("SUPERADMIN_EMAIL") or "").strip().lower()
@@ -141,6 +163,7 @@ def create_app(test_config=None):
     if app.config.get("AUTO_CREATE_DB", True):
         with app.app_context():
             db.create_all()
+            _ensure_feature_schema(app)
             _ensure_superadmin(app)
 
     from .push import scan_overdue_and_notify, start_push_scheduler

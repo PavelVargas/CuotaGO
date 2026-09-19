@@ -35,7 +35,25 @@ def main() -> int:
         row = db.session.execute(
             text("SELECT current_database() AS db_name, current_user AS db_user")
         ).mappings().one()
+        required = {
+            "assets": {"quantity_total"},
+            "contracts": {"quantity", "daily_late_interest"},
+            "installments": {"late_fee_amount", "late_fee_paid", "principal_paid_at"},
+            "payments": {"late_fee_amount"},
+        }
+        missing = []
+        for table_name, expected in required.items():
+            rows = db.session.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_schema='public' AND table_name=:table_name"
+            ), {"table_name": table_name}).scalars().all()
+            present = set(rows)
+            for column in sorted(expected - present):
+                missing.append(f"{table_name}.{column}")
         db.session.commit()
+        if missing:
+            print("[ERROR] Faltan columnas v1.10.0: " + ", ".join(missing))
+            return 1
 
     try:
         import pywebpush  # noqa: F401
@@ -61,6 +79,7 @@ def main() -> int:
     print(f"[OK] PostgreSQL conectado: {masked_db}")
     print(f"[OK] Base: {row['db_name']} | Usuario: {row['db_user']}")
     print(f"[OK] App: {app.config.get('APP_NAME')} v{app.config.get('APP_VERSION')}")
+    print("[OK] Esquema v1.10.0: inventario + intereses OK")
     print("[OK] Web Push: VAPID + scheduler configurados")
     print("[OK] CuotaGo esta listo para iniciar.")
     return 0

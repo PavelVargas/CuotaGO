@@ -78,11 +78,25 @@ class Asset(db.Model):
     identifier = db.Column(db.String(120))
     serial_number = db.Column(db.String(120))
     estimated_value = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    quantity_total = db.Column(db.Integer, nullable=False, default=1)
     status = db.Column(db.String(30), nullable=False, default="available")
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
 
     contracts = db.relationship("Contract", back_populates="asset")
+
+    @property
+    def committed_quantity(self):
+        total = 0
+        for contract in self.contracts:
+            qty = max(int(contract.quantity or 1), 1)
+            if contract.status == "active" or (contract.status == "completed" and contract.deal_type == "credit_sale"):
+                total += qty
+        return total
+
+    @property
+    def available_quantity(self):
+        return max(int(self.quantity_total or 1) - self.committed_quantity, 0)
 
 
 class Contract(db.Model):
@@ -97,6 +111,8 @@ class Contract(db.Model):
     total_amount = db.Column(db.Numeric(12, 2), nullable=False)
     down_payment = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     installment_amount = db.Column(db.Numeric(12, 2), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    daily_late_interest = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     frequency = db.Column(db.String(20), nullable=False, default="monthly")
     start_date = db.Column(db.Date, nullable=False)
     first_due_date = db.Column(db.Date, nullable=False)
@@ -124,20 +140,41 @@ class Contract(db.Model):
         return sum((Decimal(str(p.amount or 0)) for p in self.payments), Decimal("0.00"))
 
     @property
+    def interest_paid_total(self):
+        return sum((Decimal(str(p.late_fee_amount or 0)) for p in self.payments), Decimal("0.00"))
+
+    @property
+    def principal_payments_total(self):
+        return max(self.payments_total - self.interest_paid_total, Decimal("0.00"))
+
+    @property
+    def principal_paid_total(self):
+        return Decimal(str(self.down_payment or 0)) + self.principal_payments_total
+
+    @property
     def paid_total(self):
+        # Dinero realmente recibido, incluyendo recargos por atraso.
         return Decimal(str(self.down_payment or 0)) + self.payments_total
 
     @property
-    def balance(self):
-        value = Decimal(str(self.total_amount or 0)) - self.paid_total
+    def principal_balance(self):
+        value = Decimal(str(self.total_amount or 0)) - self.principal_paid_total
         return max(value, Decimal("0.00"))
+
+    @property
+    def late_fee_balance(self):
+        return sum((i.late_fee_remaining for i in self.installments), Decimal("0.00"))
+
+    @property
+    def balance(self):
+        return self.principal_balance + self.late_fee_balance
 
     @property
     def progress_percent(self):
         total = Decimal(str(self.total_amount or 0))
         if total <= 0:
             return 100
-        value = (self.paid_total / total) * Decimal("100")
+        value = (self.principal_paid_total / total) * Decimal("100")
         return float(min(max(value, 0), 100))
 
     @property
@@ -157,20 +194,38 @@ class Installment(db.Model):
     due_date = db.Column(db.Date, nullable=False, index=True)
     amount = db.Column(db.Numeric(12, 2), nullable=False)
     paid_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    late_fee_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    late_fee_paid = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    principal_paid_at = db.Column(db.DateTime)
     paid_at = db.Column(db.DateTime)
 
     contract = db.relationship("Contract", back_populates="installments")
 
     @property
-    def remaining(self):
+    def principal_remaining(self):
         return max(
             Decimal(str(self.amount or 0)) - Decimal(str(self.paid_amount or 0)),
             Decimal("0.00"),
         )
 
     @property
+    def late_fee_remaining(self):
+        return max(
+            Decimal(str(self.late_fee_amount or 0)) - Decimal(str(self.late_fee_paid or 0)),
+            Decimal("0.00"),
+        )
+
+    @property
+    def remaining(self):
+        return self.principal_remaining + self.late_fee_remaining
+
+    @property
     def is_paid(self):
         return self.remaining <= Decimal("0.009")
+
+    @property
+    def principal_is_paid(self):
+        return self.principal_remaining <= Decimal("0.009")
 
 
 class Payment(db.Model):
@@ -179,6 +234,7 @@ class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     contract_id = db.Column(db.Integer, db.ForeignKey("contracts.id"), nullable=False, index=True)
     amount = db.Column(db.Numeric(12, 2), nullable=False)
+    late_fee_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     method = db.Column(db.String(30), nullable=False, default="cash")
     note = db.Column(db.String(240))
     paid_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)

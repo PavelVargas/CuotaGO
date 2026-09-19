@@ -2,22 +2,32 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Calendario · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page">
-  <div class="page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back', 22) }}</a><div><span class="eyebrow">CALENDARIO</span><h1>Próximos 60 días</h1><p>Una agenda simple para saber quién paga y cuándo.</p></div></div></div>
+<section class="content-page calendar-page">
+  <div class="page-head">
+    <div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back', 22) }}</a><div><span class="eyebrow">CALENDARIO</span><h1>Agenda de pagos</h1><p>Todas las cuotas pendientes, desde las vencidas hasta las próximas.</p></div></div>
+  </div>
+
+  <div class="calendar-summary surface">
+    <span class="calendar-summary-icon">{{ icon('calendar-pay', 28) }}</span>
+    <div><small>Pendientes</small><strong>{{ pending_count }}</strong></div>
+    <div><small>Próximo pago</small><strong>{{ next_due.strftime('%d/%m/%Y') if next_due else '—' }}</strong></div>
+  </div>
+
   <div class="timeline">
     {% for day, installments in grouped.items() %}
-    <section class="timeline-day">
-      <div class="timeline-date"><strong>{{ day.strftime('%d') }}</strong><span>{{ day.strftime('%b') }}</span><small>{{ day.strftime('%Y') }}</small></div>
+    <section class="timeline-day {{ 'is-overdue' if day < today_value else 'is-today' if day == today_value else '' }}">
+      <div class="timeline-date"><strong>{{ day.strftime('%d') }}</strong><span>{{ day.strftime('%b') }}</span><small>{{ 'Vencido' if day < today_value else 'Hoy' if day == today_value else day.strftime('%Y') }}</small></div>
       <div class="timeline-items">
         {% for installment in installments %}
-        <a class="timeline-item" href="{{ url_for('main.contract_detail', contract_id=installment.contract.id) }}">
-          <div><strong>{{ installment.contract.client.full_name }}</strong><span>{{ installment.contract.asset.name }} · {{ installment.contract.code }}</span></div><strong>{{ money(installment.remaining) }}</strong>
+        <a class="timeline-item" href="{{ url_for('main.contract_detail', contract_id=installment.contract.id, _anchor='pay') }}">
+          <div><strong>{{ installment.contract.client.full_name }}</strong><span>{{ installment.contract.asset.name }}{% if installment.contract.quantity > 1 %} · {{ installment.contract.quantity }} uds.{% endif %} · cuota {{ installment.sequence }}</span>{% if installment.late_fee_remaining > 0 %}<small class="late-fee-copy">+ {{ money(installment.late_fee_remaining) }} interés por atraso</small>{% endif %}</div>
+          <strong>{{ money(installment.remaining) }}</strong>
         </a>
         {% endfor %}
       </div>
     </section>
     {% else %}
-    <div class="surface empty-state"><span class="empty-icon">{{ icon('calendar', 34) }}</span><h3>No hay pagos en los próximos 60 días</h3><p>Los acuerdos activos aparecerán aquí automáticamente.</p></div>
+    <div class="surface empty-state"><span class="empty-icon">{{ icon('calendar-pay', 36) }}</span><h3>No hay pagos pendientes</h3><p>Cuando crees un acuerdo, todas sus fechas aparecerán aquí automáticamente.</p><a class="btn btn-primary" href="{{ url_for('main.contract_new') }}">Crear acuerdo</a></div>
     {% endfor %}
   </div>
 </section>

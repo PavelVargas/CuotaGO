@@ -50,6 +50,24 @@ def _money(amount, currency):
     return f"{prefix}{value:,.2f}"
 
 
+def _sync_installment_late_fee(installment, today_value):
+    contract = installment.contract
+    rate = Decimal(str(contract.daily_late_interest or 0)).quantize(Decimal("0.01"))
+    if rate <= 0 or installment.due_date >= today_value or installment.is_paid:
+        return False
+    end_day = today_value
+    principal_paid_at = installment.principal_paid_at or (installment.paid_at if installment.principal_is_paid else None)
+    if principal_paid_at:
+        end_day = min(today_value, principal_paid_at.date())
+    days_late = max((end_day - installment.due_date).days, 0)
+    target = (rate * days_late).quantize(Decimal("0.01"))
+    current = Decimal(str(installment.late_fee_amount or 0)).quantize(Decimal("0.01"))
+    if target > current:
+        installment.late_fee_amount = target
+        return True
+    return False
+
+
 def _subscription_info(subscription):
     return {
         "endpoint": subscription.endpoint,
@@ -171,7 +189,9 @@ def scan_overdue_and_notify(app):
             .all()
         )
         sent_events = 0
+        fees_changed = False
         for installment in candidates:
+            fees_changed = _sync_installment_late_fee(installment, today_local) or fees_changed
             if installment.remaining <= Decimal("0.009"):
                 continue
             exists = PushNotificationLog.query.filter_by(
@@ -199,6 +219,11 @@ def scan_overdue_and_notify(app):
                     sent_events += 1
                 except IntegrityError:
                     db.session.rollback()
+        if fees_changed:
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
         return sent_events
 
 
@@ -311,6 +336,11 @@ def push_pending_alerts():
         .limit(20)
         .all()
     )
+    changed = False
+    for item in candidates:
+        changed = _sync_installment_late_fee(item, today_local) or changed
+    if changed:
+        db.session.commit()
     items = [overdue_payload(item) for item in candidates if item.remaining > Decimal("0.009")]
     return jsonify({"ok": True, "count": len(items), "items": items})
 

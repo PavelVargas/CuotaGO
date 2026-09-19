@@ -39,6 +39,16 @@ def parse_money(value, default=None):
         return default
 
 
+def parse_int(value, default=None, minimum=None):
+    try:
+        parsed = int(str(value).strip())
+    except (TypeError, ValueError):
+        return default
+    if minimum is not None and parsed < minimum:
+        return default
+    return parsed
+
+
 def parse_date(value):
     try:
         return date.fromisoformat((value or "").strip())
@@ -80,6 +90,62 @@ def generate_installments(contract):
         due = advance_due(due, contract.frequency)
 
 
+def sync_contract_late_fees(contract, today_value=None, commit=False):
+    """Persist the daily late charge for every overdue installment.
+
+    The charge belongs to the agreement, not to the asset. Once principal is
+    fully paid, the charge stops growing on that date.
+    """
+    rate = money_decimal(getattr(contract, "daily_late_interest", 0))
+    if rate <= 0 or contract.status != "active":
+        return False
+    today_value = today_value or local_today()
+    changed = False
+    for installment in contract.installments:
+        if installment.due_date >= today_value or installment.is_paid:
+            continue
+        end_day = today_value
+        principal_paid_at = installment.principal_paid_at or (installment.paid_at if installment.principal_is_paid else None)
+        if principal_paid_at:
+            end_day = min(today_value, principal_paid_at.date())
+        days_late = max((end_day - installment.due_date).days, 0)
+        target = money_decimal(rate * days_late)
+        current = money_decimal(installment.late_fee_amount)
+        if target > current:
+            installment.late_fee_amount = target
+            changed = True
+    if changed and commit:
+        db.session.commit()
+    return changed
+
+
+def sync_org_late_fees(commit=True):
+    contracts = Contract.query.filter_by(organization_id=current_user.organization_id, status="active").all()
+    changed = False
+    today_value = local_today()
+    for contract in contracts:
+        changed = sync_contract_late_fees(contract, today_value=today_value, commit=False) or changed
+    if changed and commit:
+        db.session.commit()
+    return changed
+
+
+def refresh_asset_status(asset):
+    """Keep the legacy status field useful while stock is quantity based."""
+    if asset.status == "maintenance" and asset.committed_quantity == 0:
+        return
+    if asset.available_quantity > 0:
+        asset.status = "available"
+        return
+    if any(c.status == "active" for c in asset.contracts):
+        asset.status = "on_loan"
+        return
+    if any(c.status == "completed" and c.deal_type == "credit_sale" for c in asset.contracts):
+        asset.status = "sold"
+    else:
+        asset.status = "available"
+
+
 def scoped_client(client_id):
     return Client.query.filter_by(id=client_id, organization_id=current_user.organization_id).first_or_404()
 
@@ -89,10 +155,13 @@ def scoped_asset(asset_id):
 
 
 def scoped_contract(contract_id):
-    return Contract.query.filter_by(id=contract_id, organization_id=current_user.organization_id).first_or_404()
+    contract = Contract.query.filter_by(id=contract_id, organization_id=current_user.organization_id).first_or_404()
+    sync_contract_late_fees(contract, commit=True)
+    return contract
 
 
 def tenant_installments(active_only=True):
+    sync_org_late_fees(commit=True)
     query = Installment.query.join(Contract).filter(Contract.organization_id == current_user.organization_id)
     if active_only:
         query = query.filter(Contract.status == "active")
@@ -171,7 +240,10 @@ def urgent_payment_alert_count():
                 Contract.organization_id == current_user.organization_id,
                 Contract.status == "active",
                 Installment.due_date <= local_today(),
-                Installment.paid_amount < Installment.amount,
+                or_(
+                    Installment.paid_amount < Installment.amount,
+                    Installment.late_fee_paid < Installment.late_fee_amount,
+                ),
             )
             .count()
         )
@@ -386,9 +458,16 @@ def assets():
                 Asset.serial_number.ilike(pattern),
             )
         )
-    if status:
-        query = query.filter_by(status=status)
     items = query.order_by(Asset.created_at.desc()).all()
+    changed = False
+    for item in items:
+        before = item.status
+        refresh_asset_status(item)
+        changed = changed or before != item.status
+    if changed:
+        db.session.commit()
+    if status:
+        items = [item for item in items if item.status == status]
     return render_template("assets/list.html", assets=items, q=q, status=status)
 
 
@@ -398,6 +477,7 @@ def asset_new():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         value = parse_money(request.form.get("estimated_value"), Decimal("0.00"))
+        quantity_total = parse_int(request.form.get("quantity_total"), 1, minimum=1) or 1
         kind = request.form.get("kind", "other")
         if len(name) < 2:
             flash("Escribe un nombre para el bien.", "error")
@@ -414,6 +494,7 @@ def asset_new():
             identifier=request.form.get("identifier", "").strip(),
             serial_number=request.form.get("serial_number", "").strip(),
             estimated_value=value or Decimal("0.00"),
+            quantity_total=quantity_total,
             status="available",
             notes=request.form.get("notes", "").strip(),
         )
@@ -441,10 +522,19 @@ def asset_edit(asset_id):
         asset.identifier = request.form.get("identifier", "").strip()
         asset.serial_number = request.form.get("serial_number", "").strip()
         asset.estimated_value = parse_money(request.form.get("estimated_value"), Decimal("0.00"))
+        requested_quantity = parse_int(request.form.get("quantity_total"), int(asset.quantity_total or 1), minimum=1)
+        if requested_quantity is None or requested_quantity < asset.committed_quantity:
+            flash(f"No puedes bajar la existencia por debajo de {asset.committed_quantity}; esa cantidad ya está entregada o vendida.", "error")
+            return render_template("assets/form.html", asset=asset)
+        asset.quantity_total = requested_quantity
         asset.notes = request.form.get("notes", "").strip()
-        if asset.status not in {"on_loan", "sold"}:
-            requested_status = request.form.get("status", "available")
-            asset.status = requested_status if requested_status in {"available", "maintenance"} else "available"
+        requested_status = request.form.get("status", "available")
+        if requested_status == "maintenance" and asset.committed_quantity == 0:
+            asset.status = "maintenance"
+        else:
+            if asset.status == "maintenance":
+                asset.status = "available"
+            refresh_asset_status(asset)
         db.session.commit()
         flash("Bien actualizado.", "success")
         return redirect(url_for("main.assets"))
@@ -454,6 +544,7 @@ def asset_edit(asset_id):
 @main_bp.get("/contracts")
 @login_required
 def contracts():
+    sync_org_late_fees(commit=True)
     status = request.args.get("status", "").strip()
     query = Contract.query.filter_by(organization_id=current_user.organization_id)
     if status:
@@ -472,10 +563,10 @@ def contract_new():
     still accepted for backwards compatibility and faster repeat business.
     """
     clients_list = Client.query.filter_by(organization_id=current_user.organization_id).order_by(Client.full_name.asc()).all()
-    assets_list = Asset.query.filter_by(
-        organization_id=current_user.organization_id,
-        status="available",
-    ).order_by(Asset.name.asc()).all()
+    all_assets = Asset.query.filter_by(organization_id=current_user.organization_id).order_by(Asset.name.asc()).all()
+    for item in all_assets:
+        refresh_asset_status(item)
+    assets_list = [item for item in all_assets if item.status != "maintenance" and item.available_quantity > 0]
 
     today_value = local_today()
     default_start = today_value.isoformat()
@@ -496,7 +587,6 @@ def contract_new():
             asset = Asset.query.filter_by(
                 id=asset_id,
                 organization_id=current_user.organization_id,
-                status="available",
             ).first()
 
         client_name = request.form.get("client_name", "").strip()
@@ -504,11 +594,14 @@ def contract_new():
         asset_name = request.form.get("asset_name", "").strip()
         asset_kind = request.form.get("asset_kind", "other").strip()
         asset_identifier = request.form.get("asset_identifier", "").strip()
+        quantity = parse_int(request.form.get("quantity"), 1, minimum=1) or 1
+        asset_stock_quantity = parse_int(request.form.get("asset_stock_quantity"), 1, minimum=1) or 1
 
         deal_type = request.form.get("deal_type", "credit_sale")
         total = parse_money(request.form.get("total_amount"))
         down = parse_money(request.form.get("down_payment"), Decimal("0.00"))
         installment = parse_money(request.form.get("installment_amount"))
+        daily_late_interest = parse_money(request.form.get("daily_late_interest"), Decimal("0.00"))
         frequency = request.form.get("frequency", "monthly")
         start = parse_date(request.form.get("start_date")) or today_value
         if frequency not in {"weekly", "biweekly", "monthly"}:
@@ -532,6 +625,18 @@ def contract_new():
             errors.append("El inicial no puede ser mayor al total.")
         if installment is None or installment <= 0:
             errors.append("La cuota debe ser mayor que cero.")
+        if daily_late_interest is None or daily_late_interest < 0:
+            errors.append("El interés diario no puede ser negativo.")
+        if quantity < 1:
+            errors.append("La cantidad a entregar debe ser al menos 1.")
+        if asset is not None:
+            refresh_asset_status(asset)
+            if asset.status == "maintenance":
+                errors.append("Ese bien está en mantenimiento.")
+            elif quantity > asset.available_quantity:
+                errors.append(f"Solo quedan {asset.available_quantity} unidad(es) disponibles de {asset.name}.")
+        elif quantity > asset_stock_quantity:
+            errors.append("La cantidad a entregar no puede superar la existencia del bien nuevo.")
         if first_due < start:
             errors.append("El primer pago no puede ser antes de la entrega.")
 
@@ -562,7 +667,8 @@ def contract_new():
                 kind=asset_kind,
                 name=asset_name,
                 identifier=asset_identifier,
-                estimated_value=total or Decimal("0.00"),
+                estimated_value=(money_decimal(total / quantity) if total and quantity else Decimal("0.00")),
+                quantity_total=asset_stock_quantity,
                 status="available",
             )
             db.session.add(asset)
@@ -576,6 +682,8 @@ def contract_new():
             total_amount=total,
             down_payment=down,
             installment_amount=installment,
+            quantity=quantity,
+            daily_late_interest=daily_late_interest or Decimal("0.00"),
             frequency=frequency,
             start_date=start,
             first_due_date=first_due,
@@ -599,10 +707,9 @@ def contract_new():
                 default_due=default_due,
             )
 
-        asset.status = "on_loan"
         if total - down <= Decimal("0.009"):
             contract.status = "completed"
-            asset.status = "sold" if deal_type == "credit_sale" else "available"
+        refresh_asset_status(asset)
         db.session.commit()
         flash("Listo. Acuerdo creado y fechas calculadas.", "success")
         return redirect(url_for("main.contract_detail", contract_id=contract.id))
@@ -645,32 +752,50 @@ def contract_pay(contract_id):
     if method not in {"cash", "transfer", "card", "other"}:
         method = "other"
 
-    payment = Payment(
-        contract=contract,
-        amount=amount,
-        method=method,
-        note=request.form.get("note", "").strip(),
-        paid_at=datetime.utcnow(),
-    )
-    db.session.add(payment)
-
+    now_value = datetime.utcnow()
+    try:
+        business_now = datetime.now(ZoneInfo(current_app.config.get("APP_TIMEZONE", "America/Santo_Domingo"))).replace(tzinfo=None)
+    except Exception:
+        business_now = now_value
     to_allocate = amount
+    interest_applied_total = Decimal("0.00")
     for installment in contract.installments:
         if to_allocate <= Decimal("0.009"):
             break
-        due_remaining = installment.remaining
-        if due_remaining <= Decimal("0.009"):
-            continue
-        applied = min(due_remaining, to_allocate)
-        installment.paid_amount = money_decimal(installment.paid_amount) + applied
         if installment.remaining <= Decimal("0.009"):
-            installment.paid_at = datetime.utcnow()
-        to_allocate -= applied
+            continue
+
+        fee_due = installment.late_fee_remaining
+        if fee_due > Decimal("0.009"):
+            applied_fee = min(fee_due, to_allocate)
+            installment.late_fee_paid = money_decimal(installment.late_fee_paid) + applied_fee
+            interest_applied_total += applied_fee
+            to_allocate -= applied_fee
+
+        if to_allocate > Decimal("0.009") and installment.principal_remaining > Decimal("0.009"):
+            applied_principal = min(installment.principal_remaining, to_allocate)
+            installment.paid_amount = money_decimal(installment.paid_amount) + applied_principal
+            to_allocate -= applied_principal
+            if installment.principal_is_paid and not installment.principal_paid_at:
+                installment.principal_paid_at = business_now
+
+        if installment.remaining <= Decimal("0.009"):
+            installment.paid_at = now_value
+
+    payment = Payment(
+        contract=contract,
+        amount=amount,
+        late_fee_amount=money_decimal(interest_applied_total),
+        method=method,
+        note=request.form.get("note", "").strip(),
+        paid_at=now_value,
+    )
+    db.session.add(payment)
 
     projected_balance = balance_before - amount
     if projected_balance <= Decimal("0.009"):
         contract.status = "completed"
-        contract.asset.status = "sold" if contract.deal_type == "credit_sale" else "available"
+    refresh_asset_status(contract.asset)
 
     db.session.commit()
     flash(f"Pago de {format_money(amount)} registrado.", "success")
@@ -701,17 +826,21 @@ def collections():
 @main_bp.get("/calendar")
 @login_required
 def payment_calendar():
-    start = local_today()
-    end = start + timedelta(days=60)
-    items = [
-        i
-        for i in tenant_installments(active_only=True)
-        if i.remaining > Decimal("0.009") and start <= i.due_date <= end
-    ]
+    """Complete payment agenda: overdue, today and every future unpaid date."""
+    today_value = local_today()
+    items = [i for i in tenant_installments(active_only=True) if i.remaining > Decimal("0.009")]
     grouped = {}
     for installment in items:
         grouped.setdefault(installment.due_date, []).append(installment)
-    return render_template("calendar/list.html", grouped=grouped, start=start, end=end)
+    future_items = [i for i in items if i.due_date >= today_value]
+    next_due = future_items[0].due_date if future_items else None
+    return render_template(
+        "calendar/list.html",
+        grouped=grouped,
+        today_value=today_value,
+        pending_count=len(items),
+        next_due=next_due,
+    )
 
 
 @main_bp.get("/reports")
@@ -731,8 +860,8 @@ def reports():
         .all()
     )
     month_collected = sum((money_decimal(p.amount) for p in monthly_payments), Decimal("0.00"))
-    receivable = sum((c.balance for c in active), Decimal("0.00"))
     installments = tenant_installments(active_only=True)
+    receivable = sum((c.balance for c in active), Decimal("0.00"))
     overdue = [i for i in installments if i.remaining > Decimal("0.009") and i.due_date < local_today()]
     overdue_total = sum((i.remaining for i in overdue), Decimal("0.00"))
 

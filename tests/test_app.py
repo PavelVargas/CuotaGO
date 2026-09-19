@@ -55,7 +55,7 @@ def register(client):
 def test_register_login_and_dashboard(client, app):
     response = register(client)
     assert response.status_code == 200
-    assert b"Nuevo acuerdo" in response.data
+    assert b"Acuerdos" in response.data
     with app.app_context():
         assert User.query.count() == 1
 
@@ -269,3 +269,132 @@ def test_delayed_push_route_exists_in_source():
     js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
     assert 'data-push-test-background' in js
     assert 'setupPullToRefresh' in js
+
+
+def test_calendar_lists_new_agreement_dates(client, app):
+    register(client)
+    start = date.today()
+    due = start + timedelta(days=90)
+    response = client.post(
+        "/contracts/new",
+        data={
+            "client_name": "Cliente Calendario",
+            "asset_name": "Equipo Calendario",
+            "asset_kind": "phone",
+            "asset_stock_quantity": "2",
+            "quantity": "1",
+            "deal_type": "credit_sale",
+            "total_amount": "20000",
+            "down_payment": "0",
+            "installment_amount": "5000",
+            "frequency": "monthly",
+            "start_date": start.isoformat(),
+            "first_due_date": due.isoformat(),
+            "daily_late_interest": "0",
+        },
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    calendar = client.get('/calendar')
+    assert calendar.status_code == 200
+    assert b'Cliente Calendario' in calendar.data
+    assert due.strftime('%d/%m/%Y').encode() in calendar.data
+
+
+def test_inventory_quantity_allows_multiple_agreements(client, app):
+    register(client)
+    client.post('/assets/new', data={
+        'kind': 'phone', 'name': 'iPhone 15 Pro Max', 'quantity_total': '3', 'estimated_value': '60000'
+    }, follow_redirects=True)
+    with app.app_context():
+        asset_id = Asset.query.filter_by(name='iPhone 15 Pro Max').one().id
+
+    start = date.today()
+    for idx, person in enumerate(['Hermano', 'Tia'], start=1):
+        response = client.post('/contracts/new', data={
+            'client_name': person,
+            'asset_id': asset_id,
+            'quantity': '1',
+            'deal_type': 'credit_sale',
+            'total_amount': '60000',
+            'down_payment': '10000',
+            'installment_amount': '10000',
+            'frequency': 'monthly',
+            'start_date': start.isoformat(),
+            'first_due_date': (start + timedelta(days=30)).isoformat(),
+            'daily_late_interest': '0',
+        }, follow_redirects=True)
+        assert response.status_code == 200
+
+    with app.app_context():
+        asset = db.session.get(Asset, asset_id)
+        assert asset.quantity_total == 3
+        assert asset.committed_quantity == 2
+        assert asset.available_quantity == 1
+        assert asset.status == 'available'
+
+    response = client.post('/contracts/new', data={
+        'client_name': 'Cliente sin stock',
+        'asset_id': asset_id,
+        'quantity': '2',
+        'deal_type': 'credit_sale',
+        'total_amount': '120000',
+        'down_payment': '0',
+        'installment_amount': '10000',
+        'frequency': 'monthly',
+        'start_date': start.isoformat(),
+        'first_due_date': (start + timedelta(days=30)).isoformat(),
+        'daily_late_interest': '0',
+    }, follow_redirects=True)
+    assert b'Solo quedan 1 unidad' in response.data
+
+
+def test_daily_late_interest_is_added_and_paid(client, app):
+    register(client)
+    start = date.today() - timedelta(days=10)
+    due = date.today() - timedelta(days=3)
+    response = client.post('/contracts/new', data={
+        'client_name': 'Cliente Interes',
+        'asset_name': 'Telefono con interes',
+        'asset_kind': 'phone',
+        'asset_stock_quantity': '1',
+        'quantity': '1',
+        'deal_type': 'credit_sale',
+        'total_amount': '10000',
+        'down_payment': '0',
+        'installment_amount': '5000',
+        'frequency': 'monthly',
+        'start_date': start.isoformat(),
+        'first_due_date': due.isoformat(),
+        'daily_late_interest': '100',
+    }, follow_redirects=True)
+    assert response.status_code == 200
+
+    with app.app_context():
+        contract = Contract.query.filter_by().one()
+        contract_id = contract.id
+
+    detail = client.get(f'/contracts/{contract_id}')
+    assert detail.status_code == 200
+    with app.app_context():
+        contract = db.session.get(Contract, contract_id)
+        first = contract.installments[0]
+        assert first.late_fee_amount == Decimal('300.00')
+        assert contract.balance == Decimal('10300.00')
+
+    client.post(f'/contracts/{contract_id}/pay', data={
+        'amount': '300', 'method': 'cash'
+    }, follow_redirects=True)
+    with app.app_context():
+        contract = db.session.get(Contract, contract_id)
+        first = contract.installments[0]
+        assert first.late_fee_paid == Decimal('300.00')
+        assert first.paid_amount == Decimal('0.00')
+        assert contract.payments[0].late_fee_amount == Decimal('300.00')
+
+
+def test_dashboard_has_single_agreements_entry(client):
+    response = register(client)
+    html = response.data.decode('utf-8')
+    assert 'Nuevo acuerdo</strong>' not in html
+    assert html.count('>Acuerdos</strong>') == 1

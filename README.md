@@ -1,22 +1,19 @@
-# CuotaGo MOBILE PWA v1.9.1 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.10.0 · PostgreSQL + Railway
 
 Esta version mantiene las mejoras de v1.9 y corrige el menu de perfil para que se comporte como una interfaz movil real: bottom sheet en telefono/PWA y popover limpio en escritorio.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
 
-## Cambios v1.9.1
+## Cambios v1.10.0
 
-- Menu de perfil redisenado: en movil/PWA abre desde abajo como bottom sheet y ya no queda pegado o recortado por la barra superior de Safari.
-- Fondo modal, boton de cerrar, cuenta visible y zonas tactiles mas grandes.
-- En escritorio conserva un popover compacto bajo el area del perfil.
-
-- Superadmin por variables `SUPERADMIN_*` con panel `/superadmin`.
-- Puede limpiar Cobros, Acuerdos, Bienes, Clientes, historial de alertas y dispositivos Push por empresa.
-- Puede vaciar todos los datos operativos de una empresa sin borrar sus usuarios o eliminar la empresa completa.
-- Login/registro/reentrada siempre arrancan en modo claro, aunque el telefono este en oscuro.
-- Si se eligio **Mantener sesion iniciada**, al reabrir la PWA se muestra el logo, la cuenta recordada y un unico boton **Entrar**.
-- Pull-to-refresh: desde arriba, arrastra hacia abajo y suelta para recargar.
-- En Railway/HTTPS, **Simular con app cerrada** agenda una notificacion Web Push real 10 segundos despues para que puedas salir de la PWA y verla llegar desde el sistema.
+- **Calendario corregido y ampliado:** muestra inmediatamente las cuotas de cada acuerdo nuevo y conserva todas las fechas pendientes, no solo una ventana de 60 días.
+- **Acuerdos unificados:** se retiró el acceso duplicado “Nuevo acuerdo” del inicio. Todo vive en **Acuerdos**, donde está el botón para crear uno nuevo.
+- **Inventario por cantidad:** cada artículo tiene existencia total, unidades comprometidas y unidades disponibles. Un mismo modelo puede entregarse a varias personas hasta agotar el stock.
+- **Cantidad por acuerdo:** puedes entregar 1, 2 o más unidades en un solo acuerdo, siempre respetando la existencia disponible.
+- **Interés diario por atraso:** cada acuerdo puede definir un monto fijo de interés por día vencido, independiente del artículo. Se acumula por cuota vencida y se cobra antes del principal.
+- **Iconos de inicio rediseñados:** Acuerdos, Cobros, Notificaciones, Clientes, Inventario, Calendario, Reportes y Ajustes ahora usan símbolos más directos y grandes.
+- Actualización automática del esquema PostgreSQL existente en Railway sin borrar datos (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
+- Se mantienen el superadmin, reentrada de sesión, pull-to-refresh, PWA móvil y Web Push de la v1.9.
 
 ## PostgreSQL local configurado
 
@@ -44,7 +41,7 @@ Primero ejecuta `COMPROBAR_POSTGRES.bat`. Si muestra PostgreSQL OK, inicia norma
 - Pagos parciales o completos y aplicación automática a las cuotas más antiguas.
 - Estado del acuerdo y estado del bien actualizados al completar el saldo.
 - Cobros vencidos, de hoy y próximos.
-- Calendario de los próximos 60 días.
+- Calendario completo de cuotas pendientes, incluyendo vencidas, hoy y todas las fechas futuras.
 - Botón de WhatsApp con mensaje de cobro prellenado.
 - Reportes de saldo por cobrar, vencido y cobrado en el mes.
 - PWA instalable con manifest, service worker, iconos y pantalla offline.
@@ -62,7 +59,7 @@ Primero ejecuta `COMPROBAR_POSTGRES.bat`. Si muestra PostgreSQL OK, inicia norma
 Esta es la forma más rápida para comenzar.
 
 1. Descomprime el ZIP.
-2. Entra a la carpeta de CuotaGo v1.9.1.
+2. Entra a la carpeta de CuotaGo v1.10.0.
 3. Haz doble clic en `INICIAR_WINDOWS.bat`.
 4. El script crea `venv`, instala dependencias, comprueba `.env` y la base de datos, y arranca la aplicación.
 5. Abre `http://127.0.0.1:5000`.
@@ -142,7 +139,7 @@ El `Dockerfile` arranca con Gunicorn y escucha el puerto entregado en `PORT`. Pa
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.9.1
+APP_VERSION=1.10.0
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -175,7 +172,7 @@ Debe terminar mostrando:
 ```text
 [OK] .env cargado
 [OK] Base de datos accesible: ...
-[OK] App: CuotaGo v1.9.1
+[OK] App: CuotaGo v1.10.0
 [OK] CuotaGo esta listo para iniciar.
 ```
 
@@ -282,7 +279,7 @@ flask --app app notify-overdue
 - Launcher rediseñado a 3 columnas en teléfono: tarjetas/iconos más grandes, iconos de 46 px y espacios más compactos.
 - Web Push permanece separado en Ajustes y se activa cuando CuotaGo disponga de HTTPS; no interrumpe una demo local.
 
-## Cambios v1.9.1
+## Cambios v1.10.0
 
 - Menu de perfil redisenado: en movil/PWA abre desde abajo como bottom sheet y ya no queda pegado o recortado por la barra superior de Safari.
 - Fondo modal, boton de cerrar, cuenta visible y zonas tactiles mas grandes.
