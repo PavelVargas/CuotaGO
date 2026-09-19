@@ -52,7 +52,7 @@
     root.dataset.themeChoice = safeChoice;
     root.dataset.theme = resolved;
     const booting = root.classList.contains('show-boot');
-    document.getElementById('themeColorMeta')?.setAttribute('content', booting ? '#fffaf6' : (resolved === 'dark' ? '#0b0f14' : '#f4f7fb'));
+    document.getElementById('themeColorMeta')?.setAttribute('content', booting ? '#fffaf6' : (resolved === 'dark' ? '#101216' : '#f4f7fb'));
     document.getElementById('appleStatusMeta')?.setAttribute('content', booting ? 'default' : (resolved === 'dark' ? 'black-translucent' : 'default'));
     syncThemeControls(safeChoice);
     if (persist) {
@@ -1312,25 +1312,36 @@
     document.querySelectorAll('[data-push-disable]').forEach((button) => button.addEventListener('click', () => disablePush(button)));
     document.querySelectorAll('[data-push-test]').forEach((button) => button.addEventListener('click', () => testPush(button)));
     document.querySelectorAll('[data-push-test-background]').forEach((button) => button.addEventListener('click', () => testPushOutside(button)));
-    document.querySelectorAll('[data-inapp-alert-test],[data-local-alert-test]').forEach((button) => button.addEventListener('click', async () => {
+    document.querySelectorAll('[data-notification-demo],[data-inapp-alert-test],[data-local-alert-test]').forEach((button) => button.addEventListener('click', async () => {
+      if (button.dataset.demoBusy === '1') return;
+      button.dataset.demoBusy = '1';
       button.disabled = true;
+      const originalLabel = button.textContent.trim();
+      button.textContent = 'Enviando…';
       try {
+        setLocalAlertsEnabled(true);
+        updateLocalAlertStatus();
         await unlockAlertAudio();
         showInAppPaymentAlert({
-          type: 'overdue',
-          title: 'Pago atrasado',
-          client: 'Cliente de prueba',
+          type: 'due_today',
+          title: 'Pago para hoy',
+          client: 'Cliente de ejemplo',
           amount: 'RD$2,500.00',
-          detail: 'Toca para ir al cobro',
+          detail: 'Esta es una notificación de prueba',
           url: '/notifications',
         }, { forceSound: true });
+        button.textContent = 'Enviada ✓';
         document.querySelectorAll('[data-local-alert-copy]').forEach((el) => {
           el.textContent = alertAudioUnlocked
-            ? 'Prueba enviada: debes ver la alerta y escuchar tres tonos.'
-            : 'La alerta visual funciona. Toca de nuevo para habilitar el sonido en este iPhone.';
+            ? 'Listo: alerta visual y sonido comprobados.'
+            : 'La alerta visual funciona; vuelve a tocar si iOS todavía no habilitó el sonido.';
         });
       } finally {
-        window.setTimeout(() => { button.disabled = false; }, 650);
+        window.setTimeout(() => {
+          button.disabled = false;
+          button.dataset.demoBusy = '0';
+          button.textContent = originalLabel || 'Probar';
+        }, 1250);
       }
     }));
     updateLocalAlertStatus();

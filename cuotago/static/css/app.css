@@ -35,30 +35,31 @@
 }
 
 html[data-theme="dark"]{
-  --bg:#0b0f14;
-  --surface:#141a22;
-  --surface-2:#11171e;
-  --surface-3:#1b232d;
-  --line:#26303c;
-  --line-strong:#33404e;
-  --text:#d7dee8;
-  --text-strong:#f6f8fb;
-  --muted:#9aa6b5;
-  --muted-2:#758294;
-  --primary:#ff7137;
-  --primary-deep:#ff824d;
-  --primary-soft:#392016;
-  --success:#39c28f;
-  --success-soft:#113127;
-  --danger:#f06b6b;
-  --danger-soft:#3a1b1d;
-  --warning:#e6a13e;
-  --warning-soft:#352817;
-  --blue:#7da7ea;
-  --purple:#ab8ada;
-  --shadow:0 16px 42px rgba(0,0,0,.34);
-  --shadow-soft:0 8px 24px rgba(0,0,0,.22);
-  --shadow-float:0 22px 54px rgba(0,0,0,.44);
+  color-scheme:dark;
+  --bg:#101216;
+  --surface:#181b20;
+  --surface-2:#1d2127;
+  --surface-3:#252a31;
+  --line:#2b3139;
+  --line-strong:#3a424c;
+  --text:#d7dce3;
+  --text-strong:#f4f6f8;
+  --muted:#9ca5b0;
+  --muted-2:#747f8c;
+  --primary:#ff7438;
+  --primary-deep:#ff8a57;
+  --primary-soft:#312018;
+  --success:#42c997;
+  --success-soft:#183128;
+  --danger:#f07171;
+  --danger-soft:#321d1f;
+  --warning:#e7a74c;
+  --warning-soft:#30271a;
+  --blue:#82a9e8;
+  --purple:#a997d2;
+  --shadow:0 16px 42px rgba(0,0,0,.30);
+  --shadow-soft:0 8px 24px rgba(0,0,0,.18);
+  --shadow-float:0 22px 54px rgba(0,0,0,.40);
 }
 
 *{box-sizing:border-box}
@@ -2182,4 +2183,197 @@ body.payment-dialog-open{overflow:hidden}
   .inventory-row-side>small{font-size:6.3px}
   .asset-photo-editor{grid-template-columns:70px minmax(0,1fr);gap:10px;padding-bottom:11px;margin-bottom:11px}
   .asset-photo-picker{width:70px;height:70px;border-radius:16px}
+}
+
+/* --------------------------------------------------------------------------
+   CuotaGo UI v11 · calmer dark mode, native calendar and fast motion system.
+   Motion stays transform/opacity based so it feels fluid without slowing pages.
+   -------------------------------------------------------------------------- */
+
+/* Dark mode: neutral charcoal surfaces; no purple cast in the app chrome. */
+html[data-theme="dark"] body,
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] .page-shell{background-color:var(--bg)}
+html[data-theme="dark"] .topbar{
+  background:color-mix(in srgb,var(--bg) 94%,transparent);
+  border-bottom-color:#272c33;
+}
+html[data-theme="dark"] .surface,
+html[data-theme="dark"] .search-box,
+html[data-theme="dark"] .field input,
+html[data-theme="dark"] .field select,
+html[data-theme="dark"] .field textarea,
+html[data-theme="dark"] .calendar-search{
+  box-shadow:none;
+}
+html[data-theme="dark"] .module-icon{
+  border-color:#353b43!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.20);
+}
+html[data-theme="dark"] .theme-segment button.is-active{
+  box-shadow:0 2px 8px rgba(0,0,0,.22);
+}
+
+/* Settings: there is one, and only one, notification example action. */
+.settings-test-row{
+  min-height:58px;
+  padding:8px 12px;
+  border-top:1px solid var(--line);
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+}
+.settings-test-icon{color:var(--primary);background:var(--primary-soft)}
+.settings-test-button{
+  min-height:34px;
+  padding:7px 12px;
+  border:1px solid color-mix(in srgb,var(--primary) 32%,var(--line));
+  border-radius:10px;
+  background:var(--primary-soft);
+  color:var(--primary-deep);
+  font-size:9px;
+  font-weight:850;
+}
+.settings-test-button:active{transform:scale(.96)}
+.settings-test-button:disabled{opacity:.72;cursor:default}
+
+/* Calendar: closer to the simple native reference while preserving CuotaGo. */
+.calendar-native{max-width:1020px}
+.calendar-native .calendar-filterbar{margin-bottom:11px}
+.calendar-native .calendar-search{
+  min-height:42px;
+  border-color:color-mix(in srgb,var(--line) 92%,transparent);
+  box-shadow:0 3px 12px rgba(28,39,51,.035);
+}
+.calendar-native .real-calendar{
+  padding:15px 17px 10px;
+  border-color:color-mix(in srgb,var(--line) 88%,transparent);
+}
+.calendar-native .real-calendar-head{margin-bottom:13px}
+.calendar-native .real-calendar-head h2{font-size:15.5px;font-weight:820}
+.calendar-native .calendar-nav-btn,
+.calendar-native .calendar-today-btn{
+  transition:transform .14s cubic-bezier(.2,.8,.2,1),background-color .16s ease,border-color .16s ease;
+}
+.calendar-native .real-calendar-weekdays span{font-size:8.3px;color:var(--muted);font-weight:730}
+.calendar-native .real-calendar-grid{row-gap:4px}
+.calendar-native .real-calendar-day{
+  min-height:57px;
+  transition:transform .13s cubic-bezier(.2,.8,.2,1),background-color .15s ease;
+}
+.calendar-native .real-calendar-day:active{transform:scale(.91)}
+.calendar-native .real-calendar-day-number{
+  width:34px;
+  height:34px;
+  font-size:11px;
+  font-weight:730;
+  transition:transform .15s cubic-bezier(.2,.9,.2,1),background-color .16s ease,color .16s ease,box-shadow .16s ease;
+}
+.calendar-native .real-calendar-day.is-today:not(.is-selected) .real-calendar-day-number{
+  box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--primary) 68%,transparent);
+}
+.calendar-native .real-calendar-day.is-selected .real-calendar-day-number,
+.calendar-native .real-calendar-day.has-payment.is-selected .real-calendar-day-number{
+  background:var(--primary);
+  color:#fff;
+  box-shadow:0 5px 13px color-mix(in srgb,var(--primary) 28%,transparent);
+  transform:scale(1.04);
+}
+.calendar-native .real-calendar-due{height:7px;min-height:7px}
+.calendar-native .real-calendar-due i{
+  width:5.5px;
+  height:5.5px;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 10%,transparent);
+}
+.calendar-native .real-calendar-legend{margin-top:8px;padding-top:4px}
+.calendar-native .real-calendar-legend small{display:flex;align-items:center;justify-content:flex-end;gap:0;white-space:nowrap}
+.calendar-swipe-hint{display:none;color:var(--muted-2)}
+.calendar-native .calendar-day-panel{
+  border-color:color-mix(in srgb,var(--line) 90%,transparent);
+  overflow:hidden;
+}
+.calendar-native .calendar-payment-item{
+  animation:cuotago-list-in .18s cubic-bezier(.2,.8,.2,1) both;
+}
+.calendar-native .calendar-payment-item:hover{transform:translateX(2px)}
+.calendar-native .calendar-day-empty{animation:cuotago-fade-in .18s ease-out both}
+
+@media(max-width:719px){
+  .calendar-native{padding-top:10px}
+  .calendar-native .calendar-filterbar{margin-bottom:7px}
+  .calendar-native .calendar-search{height:39px;min-height:39px;border-radius:13px}
+  .calendar-native .real-calendar{padding:7px 3px 4px}
+  .calendar-native .real-calendar-head{margin-bottom:8px;padding:0 4px}
+  .calendar-native .real-calendar-head h2{font-size:13.5px}
+  .calendar-native .real-calendar-weekdays span{font-size:7.5px;padding-bottom:6px}
+  .calendar-native .real-calendar-grid{row-gap:3px}
+  .calendar-native .real-calendar-day{min-height:44px;gap:1px}
+  .calendar-native .real-calendar-day-number{width:31px;height:31px;font-size:9.8px}
+  .calendar-native .real-calendar-due i{width:5px;height:5px}
+  .calendar-native .real-calendar-legend{margin-top:4px;padding:4px 4px 0}
+  .calendar-native .real-calendar-legend>span{display:none}
+  .calendar-native .real-calendar-legend small{width:100%;justify-content:center;font-size:7.2px}
+  .calendar-swipe-hint{display:inline}
+  .calendar-native .calendar-day-panel{margin-top:1px;border-radius:14px;padding:10px 11px}
+}
+
+/* Fast motion system: native-feeling feedback without layout-heavy animation. */
+@keyframes cuotago-page-in{
+  from{opacity:0;transform:translateY(7px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes cuotago-list-in{
+  from{opacity:0;transform:translateY(5px) scale(.995)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes cuotago-fade-in{from{opacity:0}to{opacity:1}}
+
+body.app-authenticated .page-shell>*{
+  animation:cuotago-page-in .20s cubic-bezier(.2,.8,.2,1) both;
+}
+.btn,.icon-btn,.profile-trigger,.module-card,.inventory-row,.contract-card,
+.payment-notification-row,.calendar-payment-item,.settings-switch-row,.settings-test-button,
+.asset-card,.client-card,.report-card,.kpi-card{
+  transition-property:transform,background-color,border-color,box-shadow,opacity;
+  transition-duration:.14s;
+  transition-timing-function:cubic-bezier(.2,.8,.2,1);
+}
+.btn:active,.icon-btn:active,.module-card:active,.inventory-row:active,.contract-card:active,
+.payment-notification-row:active,.settings-switch-row:active,.asset-card:active{
+  transform:scale(.985);
+}
+.ios-switch i{transition:background-color .17s ease,opacity .17s ease}
+.ios-switch i::after{transition:transform .2s cubic-bezier(.2,.9,.25,1.25),box-shadow .17s ease}
+.field input:focus,.field select:focus,.field textarea:focus,.search-box:focus-within,.calendar-search:focus-within{
+  transition:border-color .14s ease,box-shadow .14s ease,background-color .14s ease;
+}
+
+/* Long lists render progressively where the browser supports it. */
+@supports(content-visibility:auto){
+  .inventory-row,.contract-card,.payment-notification-row{
+    content-visibility:auto;
+    contain-intrinsic-size:auto 72px;
+  }
+}
+
+@media(hover:hover) and (pointer:fine){
+  .module-card:hover{transform:translateY(-2px)}
+  .btn:hover,.icon-btn:hover{transform:translateY(-1px)}
+  .inventory-row:hover,.contract-card:hover,.asset-card:hover{transform:translateY(-1px)}
+}
+
+@media(prefers-reduced-motion:reduce){
+  body.app-authenticated .page-shell>*,
+  .calendar-native .calendar-payment-item,
+  .calendar-native .calendar-day-empty{animation:none!important}
+}
+
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:cuotago-view-out .10s ease-in both}
+::view-transition-new(root){animation:cuotago-view-in .18s cubic-bezier(.2,.8,.2,1) both}
+@keyframes cuotago-view-out{to{opacity:.86;transform:scale(.997)}}
+@keyframes cuotago-view-in{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){
+  ::view-transition-old(root),::view-transition-new(root){animation:none!important}
 }

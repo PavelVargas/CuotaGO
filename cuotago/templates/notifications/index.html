@@ -31,9 +31,9 @@
   <section class="surface notification-overview">
     <div class="notification-overview-copy">
       <span class="notification-overview-icon">{{ icon('bell', 25) }}</span>
-      <div><strong>Alertas dentro de CuotaGo</strong><p data-local-alert-copy>Funcionan también en tu Wi‑Fi local. Toca “Probar” una vez para confirmar el sonido en este teléfono.</p></div>
+      <div><strong>Alertas dentro de CuotaGo</strong><p>Los pagos próximos, de hoy y vencidos aparecen aquí automáticamente.</p></div>
     </div>
-    <div class="notification-overview-actions"><span class="push-status" data-local-alert-status>Se activa al tocar</span><button class="btn btn-secondary btn-sm" type="button" data-local-alert-test>Probar alerta y sonido</button></div>
+    <div class="notification-overview-actions"><span class="push-status" data-local-alert-status>Activadas</span><a class="btn btn-secondary btn-sm" href="{{ url_for('main.settings') }}">Configurar</a></div>
   </section>
 
   <div class="notification-mini-kpis">
