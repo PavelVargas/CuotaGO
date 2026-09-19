@@ -1,164 +1,202 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
-{% block title %}Nuevo acuerdo · {{ app_name }}{% endblock %}
+{% block title %}Nuevo acuerdo &middot; {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page narrow-page quick-agreement-page">
-  <div class="page-head simple-page-head">
+{% set client_mode = 'existing' if form.get('client_id') else ('new' if form.get('client_name') else ('existing' if clients else 'new')) %}
+{% set asset_mode = 'existing' if form.get('asset_id') else ('new' if form.get('asset_name') else ('existing' if assets else 'new')) %}
+<section class="content-page narrow-page agreement-wizard-page">
+  <div class="page-head simple-page-head wizard-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.contracts') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><h1>Nuevo acuerdo</h1><p>Elige cliente, artículo y cantidad de cuotas. CuotaGo calcula el resto.</p></div>
+      <div><h1>Nuevo acuerdo</h1><p>Un paso a la vez. CuotaGo no te deja avanzar hasta que lo necesario este listo.</p></div>
     </div>
   </div>
 
-  <form method="post" class="quick-agreement-form" id="contractForm">
+  <nav class="wizard-progress" aria-label="Progreso del acuerdo">
+    <button type="button" class="wizard-progress-step is-active" data-step-target="1"><b>1</b><span>Cliente</span></button>
+    <i></i>
+    <button type="button" class="wizard-progress-step" data-step-target="2" disabled><b>2</b><span>Articulo</span></button>
+    <i></i>
+    <button type="button" class="wizard-progress-step" data-step-target="3" disabled><b>3</b><span>Pago</span></button>
+    <i></i>
+    <button type="button" class="wizard-progress-step" data-step-target="4" disabled><b>4</b><span>Revisar</span></button>
+  </nav>
+
+  <form method="post" class="agreement-wizard" id="contractForm" data-client-mode="{{ client_mode }}" data-asset-mode="{{ asset_mode }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <section class="surface quick-section">
-      <div class="quick-section-head">
-        <span class="quick-step">1</span>
-        <div><strong>Cliente</strong><small>Usa uno guardado o créalo aquí mismo.</small></div>
+    <section class="wizard-panel is-active" data-wizard-step="1">
+      <div class="wizard-panel-head">
+        <span class="wizard-panel-icon">{{ icon('person-card', 25) }}</span>
+        <div><span>Paso 1 de 4</span><h2>&iquest;Quien recibira?</h2><p>Selecciona un cliente o crealo sin salir de aqui.</p></div>
       </div>
 
-      <label class="field">
-        <span>Cliente guardado</span>
-        <select name="client_id" id="clientSelect">
-          <option value="">+ Cliente nuevo</option>
-          {% for client in clients %}
-          <option value="{{ client.id }}" {{ 'selected' if form.get('client_id')|string == client.id|string }}>{{ client.full_name }}{% if client.phone %} · {{ client.phone }}{% endif %}</option>
-          {% endfor %}
-        </select>
-      </label>
-
-      <div class="conditional-fields" id="newClientFields">
-        <div class="form-grid two compact-grid">
-          <label class="field field-span-2"><span>Nombre *</span><input name="client_name" id="clientName" value="{{ form.get('client_name','') }}" placeholder="Ej. Juan Pérez" autocomplete="name"></label>
-          <label class="field field-span-2"><span>Teléfono</span><input name="client_phone" value="{{ form.get('client_phone','') }}" placeholder="809-000-0000" inputmode="tel" autocomplete="tel"></label>
-        </div>
+      <div class="choice-buttons two" role="group" aria-label="Tipo de cliente">
+        <button type="button" data-client-mode="existing" {{ 'disabled' if not clients }}>Cliente guardado</button>
+        <button type="button" data-client-mode="new">+ Cliente nuevo</button>
       </div>
+
+      <div class="wizard-fields" data-client-fields="existing">
+        <label class="field">
+          <span>Selecciona el cliente *</span>
+          <select name="client_id" id="clientSelect">
+            <option value="">Seleccionar...</option>
+            {% for client in clients %}
+            <option value="{{ client.id }}" {{ 'selected' if form.get('client_id')|string == client.id|string }}>{{ client.full_name }}{% if client.phone %} &middot; {{ client.phone }}{% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+
+      <div class="wizard-fields" data-client-fields="new">
+        <label class="field"><span>Nombre *</span><input name="client_name" id="clientName" value="{{ form.get('client_name','') }}" placeholder="Ej. Juan Perez" autocomplete="name"></label>
+        <label class="field"><span>Telefono</span><input name="client_phone" id="clientPhone" value="{{ form.get('client_phone','') }}" placeholder="809-000-0000" inputmode="tel" autocomplete="tel"></label>
+      </div>
+
+      <p class="wizard-inline-error" data-step-error="1" hidden></p>
+      <div class="wizard-actions wizard-actions-end"><button class="btn btn-primary wizard-next" type="button" data-next-step="2">Continuar</button></div>
     </section>
 
-    <section class="surface quick-section">
-      <div class="quick-section-head">
-        <span class="quick-step">2</span>
-        <div><strong>¿Qué entregas?</strong><small>CuotaGo usa el precio guardado del inventario.</small></div>
+    <section class="wizard-panel" data-wizard-step="2" hidden>
+      <div class="wizard-panel-head">
+        <span class="wizard-panel-icon">{{ icon('inventory', 25) }}</span>
+        <div><span>Paso 2 de 4</span><h2>&iquest;Que vas a entregar?</h2><p>Elige algo del inventario o registra un articulo nuevo.</p></div>
       </div>
 
-      <label class="field">
-        <span>Artículo guardado</span>
-        <select name="asset_id" id="assetSelect">
-          <option value="">+ Artículo nuevo</option>
-          {% for asset in assets %}
-          <option value="{{ asset.id }}"
-                  data-available="{{ asset.available_quantity }}"
-                  data-price="{{ asset.estimated_value or 0 }}"
-                  data-name="{{ asset.name }}"
-                  {{ 'selected' if form.get('asset_id')|string == asset.id|string }}>{{ asset.name }} · {{ asset.available_quantity }} disp.{% if asset.identifier %} · {{ asset.identifier }}{% endif %}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <div class="stock-pick-row">
-        <label class="field"><span>Cantidad a entregar</span><input id="contractQuantity" type="number" min="1" step="1" name="quantity" value="{{ form.get('quantity','1') }}" inputmode="numeric" required></label>
-        <div class="stock-available-hint" id="stockAvailableHint"><b>1</b><span>disponible</span></div>
+      <div class="choice-buttons two" role="group" aria-label="Tipo de articulo">
+        <button type="button" data-asset-mode="existing" {{ 'disabled' if not assets }}>Del inventario</button>
+        <button type="button" data-asset-mode="new">+ Articulo nuevo</button>
       </div>
 
-      <div class="conditional-fields" id="newAssetFields">
+      <div class="wizard-fields" data-asset-fields="existing">
+        <label class="field">
+          <span>Articulo *</span>
+          <select name="asset_id" id="assetSelect">
+            <option value="">Seleccionar...</option>
+            {% for asset in assets %}
+            <option value="{{ asset.id }}"
+                    data-available="{{ asset.available_quantity }}"
+                    data-price="{{ asset.estimated_value or 0 }}"
+                    data-name="{{ asset.name }}"
+                    {{ 'selected' if form.get('asset_id')|string == asset.id|string }}>{{ asset.name }} &middot; {{ asset.available_quantity }} disp.{% if asset.identifier %} &middot; {{ asset.identifier }}{% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+
+      <div class="wizard-fields" data-asset-fields="new">
+        <label class="field"><span>Nombre del articulo *</span><input name="asset_name" id="assetName" value="{{ form.get('asset_name','') }}" placeholder="Ej. iPhone 15 Pro Max"></label>
         <div class="form-grid two compact-grid">
-          <label class="field field-span-2"><span>Nombre del artículo *</span><input name="asset_name" id="assetName" value="{{ form.get('asset_name','') }}" placeholder="Ej. iPhone 15 / Toyota Corolla"></label>
-          <label class="field"><span>Tipo</span><select name="asset_kind">
+          <label class="field"><span>Tipo</span><select name="asset_kind" id="assetKind">
             {% set kind = form.get('asset_kind','other') %}
-            <option value="car" {{ 'selected' if kind=='car' }}>Vehículo</option>
+            <option value="car" {{ 'selected' if kind=='car' }}>Vehiculo</option>
             <option value="phone" {{ 'selected' if kind=='phone' }}>Celular</option>
             <option value="motorcycle" {{ 'selected' if kind=='motorcycle' }}>Motor</option>
             <option value="computer" {{ 'selected' if kind=='computer' }}>Computadora</option>
-            <option value="appliance" {{ 'selected' if kind=='appliance' }}>Electrodoméstico</option>
+            <option value="appliance" {{ 'selected' if kind=='appliance' }}>Electrodomestico</option>
             <option value="other" {{ 'selected' if kind=='other' }}>Otro</option>
           </select></label>
-          <label class="field"><span>Placa / IMEI</span><input name="asset_identifier" value="{{ form.get('asset_identifier','') }}" placeholder="Opcional"></label>
-          <label class="field field-span-2"><span>Existencia de este artículo</span><input id="assetStockQuantity" type="number" min="1" step="1" name="asset_stock_quantity" value="{{ form.get('asset_stock_quantity','1') }}" inputmode="numeric"><small>Ej.: si tienes 3 iPhone iguales, escribe 3.</small></label>
+          <label class="field"><span>Placa / IMEI</span><input name="asset_identifier" id="assetIdentifier" value="{{ form.get('asset_identifier','') }}" placeholder="Opcional"></label>
         </div>
+        <label class="field"><span>Existencia total *</span><input id="assetStockQuantity" type="number" min="1" step="1" name="asset_stock_quantity" value="{{ form.get('asset_stock_quantity','1') }}" inputmode="numeric"><small>Ej.: si tienes 3 iPhone iguales, escribe 3.</small></label>
       </div>
+
+      <div class="quantity-line">
+        <label class="field"><span>Cantidad a entregar *</span><input id="contractQuantity" type="number" min="1" step="1" name="quantity" value="{{ form.get('quantity','1') }}" inputmode="numeric" required></label>
+        <div class="stock-available-hint" id="stockAvailableHint"><b>0</b><span>disponibles</span></div>
+      </div>
+
+      <p class="wizard-inline-error" data-step-error="2" hidden></p>
+      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="1">Atras</button><button class="btn btn-primary wizard-next" type="button" data-next-step="3">Continuar</button></div>
     </section>
 
-    <section class="surface quick-section quick-money-section">
-      <div class="quick-section-head">
-        <span class="quick-step">3</span>
-        <div><strong>¿Cómo te pagará?</strong><small>Elige cuántas cuotas. CuotaGo calcula el monto de cada una.</small></div>
+    <section class="wizard-panel" data-wizard-step="3" hidden>
+      <div class="wizard-panel-head">
+        <span class="wizard-panel-icon">{{ icon('cash-stack', 25) }}</span>
+        <div><span>Paso 3 de 4</span><h2>&iquest;Como te pagara?</h2><p>CuotaGo toma el precio del articulo y calcula las cuotas.</p></div>
       </div>
 
-      <div class="segmented deal-segmented">
-        <label><input type="radio" name="deal_type" value="credit_sale" {{ 'checked' if form.get('deal_type','credit_sale')=='credit_sale' }}><span>Venta a crédito</span></label>
-        <label><input type="radio" name="deal_type" value="rental" {{ 'checked' if form.get('deal_type')=='rental' }}><span>Préstamo / alquiler</span></label>
+      <div class="wizard-label">Tipo de acuerdo</div>
+      <div class="choice-buttons two radio-buttons deal-segmented">
+        <label><input type="radio" name="deal_type" value="credit_sale" {{ 'checked' if form.get('deal_type','credit_sale')=='credit_sale' }}><span>Venta a credito</span></label>
+        <label><input type="radio" name="deal_type" value="rental" {{ 'checked' if form.get('deal_type')=='rental' }}><span>Prestamo / alquiler</span></label>
       </div>
 
-      <div class="detected-price-card">
-        <div class="detected-price-copy">
-          <span>Precio por unidad</span>
-          <strong id="detectedAssetName">Selecciona un artículo</strong>
-          <small>Se toma del inventario automáticamente. Puedes ajustarlo para este acuerdo.</small>
-        </div>
-        <label class="field price-field"><span>RD$</span><input id="unitPrice" type="number" step="0.01" min="0.01" name="unit_price" required value="{{ form.get('unit_price','') }}" placeholder="60000" inputmode="decimal"></label>
+      <div class="wizard-price-row">
+        <div><span>Precio detectado</span><strong id="detectedAssetName">Selecciona un articulo</strong><small>Se toma del inventario. Puedes cambiarlo solo para este acuerdo.</small></div>
+        <label class="field compact-price"><span>Precio por unidad</span><input id="unitPrice" type="number" step="0.01" min="0.01" name="unit_price" required value="{{ form.get('unit_price','') }}" placeholder="60000" inputmode="decimal"></label>
       </div>
 
-      <div class="installment-choice-card">
-        <div class="installment-choice-head">
-          <div><span>Número de cuotas</span><strong>¿En cuántos pagos?</strong></div>
-          <label class="installment-count-input"><input id="installmentCount" type="number" min="1" max="500" step="1" name="installment_count" value="{{ form.get('installment_count','6') }}" inputmode="numeric"><span>cuotas</span></label>
-        </div>
-        <div class="installment-presets" aria-label="Cuotas rápidas">
-          {% for count in (3, 6, 12, 18) %}<button type="button" data-installment-count="{{ count }}">{{ count }}</button>{% endfor %}
-        </div>
+      <div class="wizard-label wizard-label-spaced">Numero de cuotas</div>
+      <div class="quick-pick-row" aria-label="Cuotas rapidas">
+        {% for count in (3, 6, 12, 18) %}<button type="button" data-installment-count="{{ count }}">{{ count }}</button>{% endfor %}
+        <label class="custom-count"><input id="installmentCount" type="number" min="1" max="500" step="1" name="installment_count" value="{{ form.get('installment_count','6') }}" inputmode="numeric"><span>cuotas</span></label>
       </div>
+
+      <div class="wizard-label wizard-label-spaced">Frecuencia</div>
+      <div class="choice-buttons three radio-buttons frequency-pills">
+        {% set freq = form.get('frequency','monthly') %}
+        <label><input type="radio" name="frequency" value="weekly" {{ 'checked' if freq=='weekly' }}><span>Semanal</span></label>
+        <label><input type="radio" name="frequency" value="biweekly" {{ 'checked' if freq=='biweekly' }}><span>Quincenal</span></label>
+        <label><input type="radio" name="frequency" value="monthly" {{ 'checked' if freq=='monthly' }}><span>Mensual</span></label>
+      </div>
+
+      <label class="field wizard-date-field"><span>Primer pago *</span><input id="firstDueDate" type="date" name="first_due_date" required value="{{ form.get('first_due_date', default_due) }}"></label>
 
       <input id="totalAmount" type="hidden" name="total_amount" value="{{ form.get('total_amount','') }}">
       <input id="installmentAmount" type="hidden" name="installment_amount" value="{{ form.get('installment_amount','') }}">
 
-      <div class="payment-plan-grid">
-        <label class="field"><span>Primer pago *</span><input id="firstDueDate" type="date" name="first_due_date" required value="{{ form.get('first_due_date', default_due) }}"></label>
-        <div class="field frequency-field">
-          <span>Frecuencia</span>
-          <div class="frequency-pills">
-            {% set freq = form.get('frequency','monthly') %}
-            <label><input type="radio" name="frequency" value="weekly" {{ 'checked' if freq=='weekly' }}><span>Semanal</span></label>
-            <label><input type="radio" name="frequency" value="biweekly" {{ 'checked' if freq=='biweekly' }}><span>Quincenal</span></label>
-            <label><input type="radio" name="frequency" value="monthly" {{ 'checked' if freq=='monthly' }}><span>Mensual</span></label>
-          </div>
-        </div>
-      </div>
+      <div class="payment-summary simple-summary" id="schedulePreview"><span>Plan calculado</span><strong>Selecciona articulo, precio y cuotas.</strong></div>
 
-      <div class="quick-summary payment-summary" id="schedulePreview">
-        <span>Plan calculado</span><strong>Selecciona artículo, precio y cuotas.</strong>
-      </div>
-
-      <details class="advanced-options">
-        <summary>Más opciones</summary>
-        <div class="advanced-options-body">
+      <details class="wizard-more-options">
+        <summary>Mas opciones</summary>
+        <div class="wizard-more-body">
           <div class="form-grid two compact-grid">
             <label class="field"><span>Inicial</span><input id="downPayment" type="number" step="0.01" min="0" name="down_payment" value="{{ form.get('down_payment','0') }}" placeholder="0" inputmode="decimal"></label>
             <label class="field"><span>Fecha de entrega</span><input id="startDate" type="date" name="start_date" value="{{ form.get('start_date', default_start) }}"></label>
-            <label class="field"><span>Interés por día de atraso</span><input id="dailyLateInterest" type="number" step="0.01" min="0" name="daily_late_interest" value="{{ form.get('daily_late_interest','0') }}" placeholder="0" inputmode="decimal"><small>RD$ que se suman por cada día vencido. Pon 0 para no cobrar interés.</small></label>
-            <label class="field field-span-2"><span>Nota</span><textarea name="notes" rows="2" placeholder="Opcional">{{ form.get('notes','') }}</textarea></label>
+            <label class="field"><span>Interes por dia de atraso</span><input id="dailyLateInterest" type="number" step="0.01" min="0" name="daily_late_interest" value="{{ form.get('daily_late_interest','0') }}" placeholder="0" inputmode="decimal"><small>RD$ que se suman por cada dia vencido.</small></label>
+            <label class="field field-span-2"><span>Nota</span><textarea name="notes" id="contractNotes" rows="2" placeholder="Opcional">{{ form.get('notes','') }}</textarea></label>
           </div>
         </div>
       </details>
+
+      <p class="wizard-inline-error" data-step-error="3" hidden></p>
+      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="2">Atras</button><button class="btn btn-primary wizard-next" type="button" data-next-step="4">Revisar acuerdo</button></div>
     </section>
 
-    <div class="quick-create-actions">
-      <button class="btn btn-primary btn-lg btn-block" type="submit">Crear acuerdo</button>
-    </div>
+    <section class="wizard-panel" data-wizard-step="4" hidden>
+      <div class="wizard-panel-head">
+        <span class="wizard-panel-icon">{{ icon('contract', 25) }}</span>
+        <div><span>Paso 4 de 4</span><h2>Revisa y crea</h2><p>Solo lo importante antes de guardar.</p></div>
+      </div>
+
+      <div class="review-list">
+        <div class="review-row"><span>Cliente</span><strong id="reviewClient">-</strong><button type="button" data-edit-step="1">Cambiar</button></div>
+        <div class="review-row"><span>Articulo</span><strong id="reviewAsset">-</strong><button type="button" data-edit-step="2">Cambiar</button></div>
+        <div class="review-row"><span>Plan</span><strong id="reviewPlan">-</strong><button type="button" data-edit-step="3">Cambiar</button></div>
+        <div class="review-row"><span>Primer pago</span><strong id="reviewDue">-</strong><button type="button" data-edit-step="3">Cambiar</button></div>
+      </div>
+
+      <div class="final-total"><span>Total del acuerdo</span><strong id="reviewTotal">RD$0</strong><small id="reviewExtra"></small></div>
+      <p class="wizard-inline-error" data-step-error="4" hidden></p>
+      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="3">Atras</button><button class="btn btn-primary btn-lg" type="submit" id="createContractButton">Crear acuerdo</button></div>
+    </section>
   </form>
 </section>
 {% endblock %}
 {% block scripts %}
 <script>
 (() => {
+  const form = document.getElementById('contractForm');
+  if (!form) return;
+
   const clientSelect = document.getElementById('clientSelect');
-  const assetSelect = document.getElementById('assetSelect');
-  const newClientFields = document.getElementById('newClientFields');
-  const newAssetFields = document.getElementById('newAssetFields');
   const clientName = document.getElementById('clientName');
+  const clientPhone = document.getElementById('clientPhone');
+  const assetSelect = document.getElementById('assetSelect');
   const assetName = document.getElementById('assetName');
-  const contractQuantity = document.getElementById('contractQuantity');
   const assetStockQuantity = document.getElementById('assetStockQuantity');
+  const contractQuantity = document.getElementById('contractQuantity');
   const stockAvailableHint = document.getElementById('stockAvailableHint');
   const detectedAssetName = document.getElementById('detectedAssetName');
   const unitPrice = document.getElementById('unitPrice');
@@ -170,44 +208,69 @@
   const startDate = document.getElementById('startDate');
   const firstDue = document.getElementById('firstDueDate');
   const preview = document.getElementById('schedulePreview');
+  const money = new Intl.NumberFormat('es-DO', {style:'currency', currency:'DOP', minimumFractionDigits:0, maximumFractionDigits:2});
+
+  let currentStep = 1;
+  let clientMode = form.dataset.clientMode || (clientSelect?.options?.length > 1 ? 'existing' : 'new');
+  let assetMode = form.dataset.assetMode || (assetSelect?.options?.length > 1 ? 'existing' : 'new');
   let dueTouched = {{ 'true' if form.get('first_due_date') else 'false' }};
   let priceTouched = {{ 'true' if form.get('unit_price') else 'false' }};
 
-  const money = new Intl.NumberFormat('es-DO', {style:'currency', currency:'DOP', minimumFractionDigits:0, maximumFractionDigits:2});
-
   const currentAsset = () => assetSelect?.selectedOptions?.[0] || null;
-  const isNewAsset = () => !assetSelect?.value;
+  const selectedFrequency = () => document.querySelector('input[name="frequency"]:checked')?.value || 'monthly';
+  const selectedDealType = () => document.querySelector('input[name="deal_type"]:checked')?.value || 'credit_sale';
+
+  const setClientMode = (mode) => {
+    clientMode = mode;
+    document.querySelectorAll('button[data-client-mode]').forEach((button) => {
+      button.classList.toggle('is-active', button.dataset.clientMode === mode);
+      button.setAttribute('aria-pressed', button.dataset.clientMode === mode ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-client-fields]').forEach((box) => { box.hidden = box.dataset.clientFields !== mode; });
+    if (clientName) clientName.required = mode === 'new';
+    if (clientSelect) clientSelect.required = mode === 'existing';
+    refreshWizardState();
+  };
+
+  const availableQuantity = () => assetMode === 'new'
+    ? Math.max(0, Number(assetStockQuantity?.value || 0))
+    : Math.max(0, Number(currentAsset()?.dataset?.available || 0));
+
+  const setAssetMode = (mode) => {
+    assetMode = mode;
+    document.querySelectorAll('button[data-asset-mode]').forEach((button) => {
+      button.classList.toggle('is-active', button.dataset.assetMode === mode);
+      button.setAttribute('aria-pressed', button.dataset.assetMode === mode ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-asset-fields]').forEach((box) => { box.hidden = box.dataset.assetFields !== mode; });
+    if (assetName) assetName.required = mode === 'new';
+    if (assetStockQuantity) assetStockQuantity.required = mode === 'new';
+    if (assetSelect) assetSelect.required = mode === 'existing';
+    if (mode === 'existing') syncAssetPrice(true);
+    syncStock();
+    refreshWizardState();
+  };
+
+  const syncStock = () => {
+    const available = availableQuantity();
+    if (contractQuantity) contractQuantity.max = String(Math.max(available, 1));
+    if (stockAvailableHint) stockAvailableHint.innerHTML = `<b>${available}</b><span>${available === 1 ? 'disponible' : 'disponibles'}</span>`;
+  };
 
   const syncAssetPrice = (force = false) => {
-    const option = currentAsset();
-    if (isNewAsset()) {
-      if (detectedAssetName) detectedAssetName.textContent = assetName?.value?.trim() || 'Artículo nuevo';
-      if (force && unitPrice) unitPrice.value = '';
+    if (assetMode === 'new') {
+      if (detectedAssetName) detectedAssetName.textContent = assetName?.value?.trim() || 'Articulo nuevo';
       return;
     }
+    const option = currentAsset();
     const price = Number(option?.dataset?.price || 0);
-    if (detectedAssetName) detectedAssetName.textContent = option?.dataset?.name || option?.textContent || 'Artículo';
+    if (detectedAssetName) detectedAssetName.textContent = option?.dataset?.name || 'Selecciona un articulo';
     if (unitPrice && price > 0 && (force || !priceTouched || !unitPrice.value)) {
       unitPrice.value = String(price);
       priceTouched = false;
     }
   };
 
-  const toggleInlineCreation = () => {
-    const newClient = !clientSelect?.value;
-    const newAsset = isNewAsset();
-    newClientFields?.classList.toggle('is-hidden', !newClient);
-    newAssetFields?.classList.toggle('is-hidden', !newAsset);
-    if (clientName) clientName.required = newClient;
-    if (assetName) assetName.required = newAsset;
-    if (assetStockQuantity) assetStockQuantity.required = newAsset;
-    const option = currentAsset();
-    const available = newAsset ? Number(assetStockQuantity?.value || 1) : Number(option?.dataset?.available || 0);
-    if (contractQuantity) contractQuantity.max = String(Math.max(available, 1));
-    if (stockAvailableHint) stockAvailableHint.innerHTML = `<b>${available}</b><span>${available === 1 ? 'disponible' : 'disponibles'}</span>`;
-  };
-
-  const selectedFrequency = () => document.querySelector('input[name="frequency"]:checked')?.value || 'monthly';
   const autoDue = () => {
     if (dueTouched || !startDate?.value || !firstDue) return;
     const parts = startDate.value.split('-').map(Number);
@@ -231,62 +294,226 @@
 
   const updatePresetState = () => {
     const count = Number(installmentCount?.value || 0);
-    document.querySelectorAll('[data-installment-count]').forEach((btn) => {
-      btn.classList.toggle('is-active', Number(btn.dataset.installmentCount) === count);
+    document.querySelectorAll('[data-installment-count]').forEach((button) => {
+      button.classList.toggle('is-active', Number(button.dataset.installmentCount) === count);
     });
   };
 
-  const updateSummary = () => {
+  const calculation = () => {
     const unit = Math.max(0, Number(unitPrice?.value || 0));
     const qty = Math.max(1, Number(contractQuantity?.value || 1));
     const gross = unit * qty;
     const initial = Math.max(0, Number(down?.value || 0));
     const pending = Math.max(0, gross - initial);
-    const count = Math.max(1, Math.floor(Number(installmentCount?.value || 1)));
+    const count = Math.max(0, Math.floor(Number(installmentCount?.value || 0)));
     const perPayment = count ? pending / count : 0;
-    const late = Math.max(0, Number(dailyLateInterest?.value || 0));
-
-    if (total) total.value = gross > 0 ? gross.toFixed(2) : '';
-    if (installment) installment.value = perPayment > 0 ? perPayment.toFixed(2) : '0.00';
-    updatePresetState();
-
-    if (!unit || !count) {
-      preview.innerHTML = '<span>Plan calculado</span><strong>Selecciona artículo, precio y cuotas.</strong>';
-      return;
-    }
-
-    const labels = {weekly:'semanales', biweekly:'quincenales', monthly:'mensuales'};
-    const initialCopy = initial > 0 ? ` · inicial ${money.format(initial)}` : '';
-    const lateCopy = late > 0 ? ` · atraso ${money.format(late)}/día` : '';
-    preview.innerHTML = `<span>Total ${money.format(gross)}${initialCopy}</span><strong>${count} cuotas ${labels[selectedFrequency()]} de aprox. ${money.format(perPayment)}${lateCopy}</strong>`;
+    return {unit, qty, gross, initial, pending, count, perPayment};
   };
 
-  clientSelect?.addEventListener('change', toggleInlineCreation);
-  assetSelect?.addEventListener('change', () => {
-    priceTouched = false;
-    toggleInlineCreation();
-    syncAssetPrice(true);
+  const updateSummary = () => {
+    const calc = calculation();
+    const late = Math.max(0, Number(dailyLateInterest?.value || 0));
+    if (total) total.value = calc.gross > 0 ? calc.gross.toFixed(2) : '';
+    if (installment) installment.value = calc.perPayment > 0 ? calc.perPayment.toFixed(2) : '0.00';
+    updatePresetState();
+
+    if (!calc.unit || !calc.count) {
+      preview.innerHTML = '<span>Plan calculado</span><strong>Completa precio y cuotas.</strong>';
+    } else {
+      const labels = {weekly:'semanales', biweekly:'quincenales', monthly:'mensuales'};
+      const initialCopy = calc.initial > 0 ? ` &middot; inicial ${money.format(calc.initial)}` : '';
+      const lateCopy = late > 0 ? ` &middot; atraso ${money.format(late)}/dia` : '';
+      preview.innerHTML = `<span>Total ${money.format(calc.gross)}${initialCopy}</span><strong>${calc.count} cuotas ${labels[selectedFrequency()]} de aprox. ${money.format(calc.perPayment)}${lateCopy}</strong>`;
+    }
+    updateReview();
+  };
+
+  const clientDisplay = () => clientMode === 'existing'
+    ? (clientSelect?.selectedOptions?.[0]?.textContent?.trim() || 'Sin cliente')
+    : (clientName?.value?.trim() || 'Cliente nuevo');
+
+  const assetDisplay = () => {
+    const qty = Math.max(1, Number(contractQuantity?.value || 1));
+    const name = assetMode === 'existing'
+      ? (currentAsset()?.dataset?.name || currentAsset()?.textContent?.split(' \u00b7 ')[0] || 'Sin articulo')
+      : (assetName?.value?.trim() || 'Articulo nuevo');
+    return `${qty} x ${name}`;
+  };
+
+  const updateReview = () => {
+    const calc = calculation();
+    const labels = {weekly:'semanales', biweekly:'quincenales', monthly:'mensuales'};
+    const reviewClient = document.getElementById('reviewClient');
+    const reviewAsset = document.getElementById('reviewAsset');
+    const reviewPlan = document.getElementById('reviewPlan');
+    const reviewDue = document.getElementById('reviewDue');
+    const reviewTotal = document.getElementById('reviewTotal');
+    const reviewExtra = document.getElementById('reviewExtra');
+    if (reviewClient) reviewClient.textContent = clientDisplay();
+    if (reviewAsset) reviewAsset.textContent = assetDisplay();
+    if (reviewPlan) reviewPlan.textContent = calc.count ? `${calc.count} cuotas ${labels[selectedFrequency()]} de ${money.format(calc.perPayment)}` : '-';
+    if (reviewDue) reviewDue.textContent = firstDue?.value || '-';
+    if (reviewTotal) reviewTotal.textContent = money.format(calc.gross || 0);
+    if (reviewExtra) {
+      const parts = [];
+      if (calc.initial > 0) parts.push(`Inicial ${money.format(calc.initial)}`);
+      const late = Math.max(0, Number(dailyLateInterest?.value || 0));
+      if (late > 0) parts.push(`Interes por atraso ${money.format(late)}/dia`);
+      parts.push(selectedDealType() === 'rental' ? 'Prestamo / alquiler' : 'Venta a credito');
+      reviewExtra.textContent = parts.join(' \u00b7 ');
+    }
+  };
+
+  const stepError = (step, message = '') => {
+    const box = document.querySelector(`[data-step-error="${step}"]`);
+    if (!box) return;
+    box.textContent = message;
+    box.hidden = !message;
+  };
+
+  const validateStep = (step, showError = false) => {
+    let message = '';
+    if (step === 1) {
+      if (clientMode === 'existing' && !clientSelect?.value) message = 'Selecciona un cliente para continuar.';
+      if (clientMode === 'new' && (clientName?.value?.trim()?.length || 0) < 2) message = 'Escribe el nombre del cliente.';
+    }
+    if (step === 2) {
+      const qty = Math.max(0, Number(contractQuantity?.value || 0));
+      const available = availableQuantity();
+      if (assetMode === 'existing' && !assetSelect?.value) message = 'Selecciona un articulo del inventario.';
+      else if (assetMode === 'new' && (assetName?.value?.trim()?.length || 0) < 2) message = 'Escribe el nombre del articulo.';
+      else if (assetMode === 'new' && available < 1) message = 'Indica cuantas unidades tienes.';
+      else if (qty < 1) message = 'Indica la cantidad a entregar.';
+      else if (qty > available) message = `Solo hay ${available} unidad(es) disponibles.`;
+    }
+    if (step === 3) {
+      const calc = calculation();
+      const late = Number(dailyLateInterest?.value || 0);
+      if (calc.unit <= 0) message = 'Indica el precio del articulo.';
+      else if (calc.count < 1 || calc.count > 500) message = 'Elige entre 1 y 500 cuotas.';
+      else if (calc.initial < 0 || calc.initial > calc.gross) message = 'Revisa el monto inicial.';
+      else if (!firstDue?.value) message = 'Selecciona la fecha del primer pago.';
+      else if (startDate?.value && firstDue.value < startDate.value) message = 'El primer pago no puede ser antes de la entrega.';
+      else if (late < 0) message = 'El interes diario no puede ser negativo.';
+    }
+    if (showError) stepError(step, message);
+    return !message;
+  };
+
+  const canReachStep = (target) => {
+    for (let step = 1; step < target; step += 1) if (!validateStep(step, false)) return false;
+    return true;
+  };
+
+  const updateProgress = () => {
+    document.querySelectorAll('[data-step-target]').forEach((button) => {
+      const step = Number(button.dataset.stepTarget);
+      button.classList.toggle('is-active', step === currentStep);
+      button.classList.toggle('is-complete', step < currentStep && validateStep(step, false));
+      button.disabled = step > currentStep && !canReachStep(step);
+    });
+  };
+
+  const refreshWizardState = () => {
     updateSummary();
-  });
-  assetName?.addEventListener('input', () => { syncAssetPrice(false); });
-  assetStockQuantity?.addEventListener('input', () => { toggleInlineCreation(); updateSummary(); });
-  contractQuantity?.addEventListener('input', updateSummary);
-  unitPrice?.addEventListener('input', () => { priceTouched = true; updateSummary(); });
-  installmentCount?.addEventListener('input', updateSummary);
-  dailyLateInterest?.addEventListener('input', updateSummary);
-  down?.addEventListener('input', updateSummary);
-  startDate?.addEventListener('change', () => { dueTouched = false; autoDue(); });
-  firstDue?.addEventListener('change', () => { dueTouched = true; });
-  document.querySelectorAll('input[name="frequency"]').forEach((el) => el.addEventListener('change', () => { dueTouched = false; autoDue(); updateSummary(); }));
-  document.querySelectorAll('[data-installment-count]').forEach((btn) => btn.addEventListener('click', () => {
-    if (installmentCount) installmentCount.value = btn.dataset.installmentCount;
+    syncStock();
+    const next = document.querySelector(`[data-wizard-step="${currentStep}"] [data-next-step]`);
+    if (next) next.disabled = !validateStep(currentStep, false);
+    if (validateStep(currentStep, false)) stepError(currentStep, '');
+    updateProgress();
+  };
+
+  const setStep = (step) => {
+    if (step > currentStep && !canReachStep(step)) {
+      for (let index = 1; index < step; index += 1) {
+        if (!validateStep(index, false)) {
+          currentStep = index;
+          validateStep(index, true);
+          break;
+        }
+      }
+    } else {
+      currentStep = step;
+    }
+    document.querySelectorAll('[data-wizard-step]').forEach((panel) => {
+      const active = Number(panel.dataset.wizardStep) === currentStep;
+      panel.hidden = !active;
+      panel.classList.toggle('is-active', active);
+    });
+    if (currentStep === 3) {
+      syncAssetPrice(false);
+      autoDue();
+    }
     updateSummary();
+    refreshWizardState();
+    const pageTop = document.querySelector('.wizard-progress')?.getBoundingClientRect().top || 0;
+    if (pageTop < 0) window.scrollTo({top: Math.max(0, window.scrollY + pageTop - 74), behavior:'smooth'});
+  };
+
+  document.querySelectorAll('button[data-client-mode]').forEach((button) => button.addEventListener('click', () => setClientMode(button.dataset.clientMode)));
+  document.querySelectorAll('button[data-asset-mode]').forEach((button) => button.addEventListener('click', () => setAssetMode(button.dataset.assetMode)));
+
+  clientSelect?.addEventListener('change', refreshWizardState);
+  clientName?.addEventListener('input', refreshWizardState);
+  clientPhone?.addEventListener('input', updateReview);
+  assetSelect?.addEventListener('change', () => { priceTouched = false; syncAssetPrice(true); syncStock(); refreshWizardState(); });
+  assetName?.addEventListener('input', () => { syncAssetPrice(false); refreshWizardState(); });
+  assetStockQuantity?.addEventListener('input', refreshWizardState);
+  contractQuantity?.addEventListener('input', refreshWizardState);
+  unitPrice?.addEventListener('input', () => { priceTouched = true; refreshWizardState(); });
+  installmentCount?.addEventListener('input', refreshWizardState);
+  dailyLateInterest?.addEventListener('input', refreshWizardState);
+  down?.addEventListener('input', refreshWizardState);
+  startDate?.addEventListener('change', () => { dueTouched = false; autoDue(); refreshWizardState(); });
+  firstDue?.addEventListener('change', () => { dueTouched = true; refreshWizardState(); });
+
+  document.querySelectorAll('input[name="frequency"], input[name="deal_type"]').forEach((el) => el.addEventListener('change', () => {
+    if (el.name === 'frequency') { dueTouched = false; autoDue(); }
+    refreshWizardState();
   }));
 
-  toggleInlineCreation();
+  document.querySelectorAll('[data-installment-count]').forEach((button) => button.addEventListener('click', () => {
+    if (installmentCount) installmentCount.value = button.dataset.installmentCount;
+    refreshWizardState();
+  }));
+
+  document.querySelectorAll('[data-next-step]').forEach((button) => button.addEventListener('click', () => {
+    const next = Number(button.dataset.nextStep);
+    if (!validateStep(currentStep, true)) return;
+    setStep(next);
+  }));
+
+  document.querySelectorAll('[data-prev-step]').forEach((button) => button.addEventListener('click', () => setStep(Number(button.dataset.prevStep))));
+  document.querySelectorAll('[data-edit-step]').forEach((button) => button.addEventListener('click', () => setStep(Number(button.dataset.editStep))));
+  document.querySelectorAll('[data-step-target]').forEach((button) => button.addEventListener('click', () => {
+    const target = Number(button.dataset.stepTarget);
+    if (target <= currentStep || canReachStep(target)) setStep(target);
+  }));
+
+  form.addEventListener('submit', (event) => {
+    for (let step = 1; step <= 3; step += 1) {
+      if (!validateStep(step, false)) {
+        event.preventDefault();
+        setStep(step);
+        validateStep(step, true);
+        return;
+      }
+    }
+    if (currentStep !== 4) {
+      event.preventDefault();
+      setStep(4);
+      return;
+    }
+    const createButton = document.getElementById('createContractButton');
+    if (createButton) { createButton.disabled = true; createButton.textContent = 'Creando...'; }
+  });
+
+  setClientMode(clientMode);
+  setAssetMode(assetMode);
   syncAssetPrice(false);
   autoDue();
   updateSummary();
+  setStep(1);
 })();
 </script>
 {% endblock %}

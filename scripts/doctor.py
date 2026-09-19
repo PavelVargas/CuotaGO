@@ -52,7 +52,7 @@ def main() -> int:
                 missing.append(f"{table_name}.{column}")
         db.session.commit()
         if missing:
-            print("[ERROR] Faltan columnas v1.11.0: " + ", ".join(missing))
+            print("[ERROR] Faltan columnas v1.12.0: " + ", ".join(missing))
             return 1
 
     try:
@@ -79,7 +79,7 @@ def main() -> int:
     print(f"[OK] PostgreSQL conectado: {masked_db}")
     print(f"[OK] Base: {row['db_name']} | Usuario: {row['db_user']}")
     print(f"[OK] App: {app.config.get('APP_NAME')} v{app.config.get('APP_VERSION')}")
-    print("[OK] Esquema v1.11.0: inventario + intereses OK")
+    print("[OK] Esquema v1.12.0: inventario + intereses OK")
     print("[OK] Web Push: VAPID + scheduler configurados")
     print("[OK] CuotaGo esta listo para iniciar.")
     return 0
