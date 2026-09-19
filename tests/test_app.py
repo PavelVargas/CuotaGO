@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from decimal import Decimal
+from io import BytesIO
 import os
 
 import pytest
@@ -125,6 +126,39 @@ def test_create_contract_and_register_payment(client, app):
         contract = db.session.get(Contract, contract_id)
         assert contract.balance == Decimal("40000.00")
         assert contract.installments[0].is_paid
+
+
+def test_asset_photo_upload_and_private_delivery(client, app):
+    register(client)
+    tiny_png = (
+        b"\x89PNG\r\n\x1a\n"
+        b"\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+        b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+    )
+    response = client.post(
+        "/assets/new",
+        data={
+            "kind": "phone",
+            "name": "Telefono con foto",
+            "quantity_total": "2",
+            "estimated_value": "12000",
+            "image": (BytesIO(tiny_png), "producto.png"),
+        },
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+
+    with app.app_context():
+        asset = Asset.query.filter_by(name="Telefono con foto").one()
+        asset_id = asset.id
+        assert asset.image_mime == "image/png"
+
+    image = client.get(f"/assets/{asset_id}/image")
+    assert image.status_code == 200
+    assert image.mimetype == "image/png"
+    assert image.data.startswith(b"\x89PNG")
+    assert image.headers["Cache-Control"] == "private, no-store"
 
 
 def test_quick_contract_creates_client_and_asset_inline(client, app):

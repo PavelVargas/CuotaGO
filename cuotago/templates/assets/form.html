@@ -2,16 +2,39 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}{{ 'Editar' if asset else 'Nuevo' }} bien · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page narrow-page simple-form-page">
+<section class="content-page narrow-page simple-form-page inventory-editor-page">
   <div class="page-head simple-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.assets') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><h1>{{ 'Editar bien' if asset else 'Nuevo bien' }}</h1><p>Identifícalo rápido. Los detalles extra pueden esperar.</p></div>
+      <div><h1>{{ 'Editar producto' if asset else 'Nuevo producto' }}</h1><p>Lo esencial primero. Puedes completar los detalles cuando quieras.</p></div>
     </div>
   </div>
 
-  <form method="post" class="surface form-surface simple-form-card">
+  <form method="post" enctype="multipart/form-data" class="surface form-surface simple-form-card inventory-editor-card">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="asset-photo-editor">
+      <label class="asset-photo-picker" for="assetPhotoInput" aria-label="Elegir foto del producto">
+        <img
+          data-asset-photo-preview
+          {% if not (asset and asset.image_mime) %}hidden{% endif %}
+          {% if asset and asset.image_mime %}src="{{ url_for('main.asset_image', asset_id=asset.id) }}"{% endif %}
+          alt="Vista previa del producto"
+        >
+        <span class="asset-photo-placeholder" data-asset-photo-placeholder {% if asset and asset.image_mime %}hidden{% endif %}>{{ icon('inventory', 30) }}</span>
+        <span class="asset-photo-camera">+</span>
+      </label>
+      <input id="assetPhotoInput" class="asset-photo-input" type="file" name="image" accept="image/jpeg,image/png,image/webp" data-asset-photo-input>
+      <div class="asset-photo-copy">
+        <strong>Foto del producto</strong>
+        <span data-asset-photo-name>{{ 'Toca la imagen para reemplazarla' if asset and asset.image_mime else 'Toca para elegir una foto' }}</span>
+        <small>JPG, PNG o WebP · máximo 4 MB</small>
+        {% if asset and asset.image_mime %}
+        <label class="asset-photo-remove"><input type="checkbox" name="remove_image" value="1"> Quitar foto actual</label>
+        {% endif %}
+      </div>
+    </div>
+
     {% set kind_value = asset.kind if asset else request.form.get('kind','other') %}
     <div class="form-stack primary-fields">
       <label class="field"><span>Tipo</span><select name="kind">
@@ -22,8 +45,8 @@
         <option value="appliance" {{ 'selected' if kind_value=='appliance' }}>Electrodoméstico</option>
         <option value="other" {{ 'selected' if kind_value=='other' }}>Otro</option>
       </select></label>
-      <label class="field"><span>Nombre del bien *</span><input name="name" required value="{{ asset.name if asset else request.form.get('name','') }}" placeholder="Ej. Toyota Corolla 2020"></label>
-      <label class="field"><span>Placa / IMEI / código</span><input name="identifier" value="{{ asset.identifier if asset else request.form.get('identifier','') }}" placeholder="Opcional pero recomendado"></label>
+      <label class="field"><span>Nombre del producto *</span><input name="name" required value="{{ asset.name if asset else request.form.get('name','') }}" placeholder="Ej. iPhone 15 Pro"></label>
+      <label class="field"><span>IMEI / serial / código</span><input name="identifier" value="{{ asset.identifier if asset else request.form.get('identifier','') }}" placeholder="Opcional pero recomendado"></label>
       <label class="field"><span>Existencia total *</span><input type="number" min="1" step="1" name="quantity_total" required value="{{ asset.quantity_total if asset else request.form.get('quantity_total','1') }}" inputmode="numeric"><small>{% if asset %}{{ asset.committed_quantity }} comprometida{{ 's' if asset.committed_quantity != 1 }} · {{ asset.available_quantity }} disponible{{ 's' if asset.available_quantity != 1 }}{% else %}¿Cuántas unidades iguales tienes?{% endif %}</small></label>
       <label class="field"><span>Precio / valor por unidad</span><input type="number" step="0.01" min="0" name="estimated_value" value="{{ asset.estimated_value if asset else request.form.get('estimated_value','') }}" placeholder="Ej. 60000" inputmode="decimal"><small>CuotaGo usa este valor para calcular las cuotas automáticamente.</small></label>
     </div>
@@ -42,7 +65,7 @@
       </div>
     </details>
 
-    <div class="quick-create-actions inside-card"><button class="btn btn-primary btn-lg btn-block" type="submit">Guardar bien</button></div>
+    <div class="quick-create-actions inside-card"><button class="btn btn-primary btn-lg btn-block" type="submit">Guardar producto</button></div>
   </form>
 </section>
 {% endblock %}

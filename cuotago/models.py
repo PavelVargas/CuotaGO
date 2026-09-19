@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from flask_login import UserMixin
+from sqlalchemy.orm import deferred
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .extensions import db, login_manager
@@ -81,6 +82,8 @@ class Asset(db.Model):
     quantity_total = db.Column(db.Integer, nullable=False, default=1)
     status = db.Column(db.String(30), nullable=False, default="available")
     notes = db.Column(db.Text)
+    image_mime = db.Column(db.String(80))
+    image_data = deferred(db.Column(db.LargeBinary))
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
 
     contracts = db.relationship("Contract", back_populates="asset")

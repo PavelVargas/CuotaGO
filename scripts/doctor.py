@@ -36,7 +36,7 @@ def main() -> int:
             text("SELECT current_database() AS db_name, current_user AS db_user")
         ).mappings().one()
         required = {
-            "assets": {"quantity_total"},
+            "assets": {"quantity_total", "image_mime", "image_data"},
             "contracts": {"quantity", "daily_late_interest"},
             "installments": {"late_fee_amount", "late_fee_paid", "principal_paid_at"},
             "payments": {"late_fee_amount"},
@@ -79,7 +79,7 @@ def main() -> int:
     print(f"[OK] PostgreSQL conectado: {masked_db}")
     print(f"[OK] Base: {row['db_name']} | Usuario: {row['db_user']}")
     print(f"[OK] App: {app.config.get('APP_NAME')} v{app.config.get('APP_VERSION')}")
-    print("[OK] Esquema v1.12.0: inventario + intereses OK")
+    print("[OK] Esquema: inventario, fotos e intereses OK")
     print("[OK] Web Push: VAPID + scheduler configurados")
     print("[OK] CuotaGo esta listo para iniciar.")
     return 0

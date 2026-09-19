@@ -918,6 +918,26 @@
     document.addEventListener('touchcancel', reset, { passive: true });
   };
 
+  const setupAssetPhotoPreview = () => {
+    document.querySelectorAll('[data-asset-photo-input]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        const editor = input.closest('.asset-photo-editor');
+        const preview = editor?.querySelector('[data-asset-photo-preview]');
+        const placeholder = editor?.querySelector('[data-asset-photo-placeholder]');
+        const label = editor?.querySelector('[data-asset-photo-name]');
+        if (!preview) return;
+        const objectUrl = URL.createObjectURL(file);
+        preview.src = objectUrl;
+        preview.hidden = false;
+        if (placeholder) placeholder.hidden = true;
+        if (label) label.textContent = file.name;
+        preview.addEventListener('load', () => URL.revokeObjectURL(objectUrl), { once: true });
+      });
+    });
+  };
+
   const setupPaymentCalendar = () => {
     const host = document.querySelector('[data-payment-calendar]');
     const dataNode = document.getElementById('paymentCalendarEvents');
@@ -1013,7 +1033,7 @@
       const selectedEvents = byDate.get(selectedIso) || [];
       const selectedDate = dateFromIso(selectedIso);
       if (dayTitle) dayTitle.textContent = titleCase(dayFormatter.format(selectedDate));
-      if (dayCount) dayCount.textContent = String(selectedEvents.length);
+      if (dayCount) dayCount.textContent = `${selectedEvents.length} pago${selectedEvents.length === 1 ? '' : 's'}`;
       dayItems.replaceChildren();
 
       if (selectedEvents.length) {
@@ -1021,6 +1041,9 @@
           const link = document.createElement('a');
           link.className = 'calendar-payment-item';
           link.href = item.contract_url;
+
+          const paymentDot = document.createElement('span');
+          paymentDot.className = 'calendar-payment-dot';
 
           const copy = document.createElement('div');
           copy.className = 'calendar-payment-copy';
@@ -1043,7 +1066,11 @@
           const code = document.createElement('small');
           code.textContent = item.contract_code;
           money.append(amount, code);
-          link.append(copy, money);
+          const chevron = document.createElement('span');
+          chevron.className = 'calendar-payment-chevron';
+          chevron.setAttribute('aria-hidden', 'true');
+          chevron.textContent = '›';
+          link.append(paymentDot, copy, money, chevron);
           dayItems.append(link);
         });
         return;
@@ -1233,6 +1260,7 @@
     setupRememberedLaunchGate();
     setupProfileMenu();
     setupPaymentDialog();
+    setupAssetPhotoPreview();
     setupPullToRefresh();
     setupPaymentCalendar();
     applyTheme(document.body.classList.contains('auth-shell') ? 'light' : readTheme(), false);

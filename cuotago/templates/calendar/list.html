@@ -2,28 +2,24 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Calendario · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page calendar-page" data-payment-calendar data-today="{{ today_value.isoformat() }}">
+<section class="content-page calendar-page calendar-native" data-payment-calendar data-today="{{ today_value.isoformat() }}">
   <div class="page-head calendar-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver al inicio">{{ icon('back', 22) }}</a>
-      <div>
-        <span class="eyebrow">CALENDARIO</span>
-        <h1>Agenda de pagos</h1>
-        <p>Busca un cliente y mira sus días de pago al instante.</p>
-      </div>
+      <div><span class="eyebrow">PAGOS</span><h1>Calendario</h1><p>Busca un cliente y revisa sus fechas de pago.</p></div>
     </div>
   </div>
 
   <div class="calendar-filterbar surface">
     <label class="calendar-search" for="calendarClientSearch">
-      <span class="calendar-search-icon">{{ icon('search', 19) }}</span>
+      <span class="calendar-search-icon">{{ icon('search', 18) }}</span>
       <input
         id="calendarClientSearch"
         type="search"
         inputmode="search"
         autocomplete="off"
         list="calendarClientOptions"
-        placeholder="Buscar cliente, teléfono o documento"
+        placeholder="Buscar cliente..."
         aria-label="Buscar cliente"
         data-calendar-search
       >
@@ -38,26 +34,12 @@
     </div>
   </div>
 
-  <div class="calendar-summary-row">
-    <div class="calendar-mini-stat">
-      <span>Pendientes</span>
-      <strong data-calendar-pending-count>{{ pending_count }}</strong>
-    </div>
-    <div class="calendar-mini-stat">
-      <span>Próximo pago</span>
-      <strong data-calendar-next-due>{{ next_due.strftime('%d/%m/%Y') if next_due else '—' }}</strong>
-    </div>
-  </div>
-
   <div class="calendar-workspace">
     <section class="real-calendar surface" aria-label="Calendario de pagos">
       <div class="real-calendar-head">
-        <div>
-          <span class="eyebrow">MES</span>
-          <h2 data-calendar-month-label>—</h2>
-        </div>
-        <div class="real-calendar-nav" aria-label="Navegación del calendario">
-          <button type="button" class="calendar-nav-btn" data-calendar-prev aria-label="Mes anterior">{{ icon('back', 18) }}</button>
+        <button type="button" class="calendar-nav-btn" data-calendar-prev aria-label="Mes anterior">{{ icon('back', 18) }}</button>
+        <h2 data-calendar-month-label>—</h2>
+        <div class="real-calendar-head-actions">
           <button type="button" class="calendar-today-btn" data-calendar-today>Hoy</button>
           <button type="button" class="calendar-nav-btn calendar-nav-next" data-calendar-next aria-label="Mes siguiente">{{ icon('back', 18) }}</button>
         </div>
@@ -76,11 +58,8 @@
 
     <aside class="calendar-day-panel surface" aria-live="polite">
       <div class="calendar-day-panel-head">
-        <div>
-          <span class="eyebrow">DETALLE DEL DÍA</span>
-          <h2 data-calendar-day-title>Selecciona una fecha</h2>
-        </div>
-        <span class="calendar-day-count" data-calendar-day-count>0</span>
+        <h2 data-calendar-day-title>Selecciona una fecha</h2>
+        <span class="calendar-day-count" data-calendar-day-count>0 pagos</span>
       </div>
       <div class="calendar-day-items" data-calendar-day-items></div>
     </aside>

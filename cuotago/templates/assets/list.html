@@ -1,19 +1,19 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
-{% block title %}Bienes · {{ app_name }}{% endblock %}
+{% block title %}Inventario · {{ app_name }}{% endblock %}
 {% block content %}
 <section class="content-page inventory-page">
   <div class="page-head inventory-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><span class="eyebrow">INVENTARIO</span><h1>Inventario</h1><p>Existencias y artículos, sin ruido visual.</p></div>
+      <div><span class="eyebrow">INVENTARIO</span><h1>Inventario</h1><p>Productos, existencias y precios de un vistazo.</p></div>
     </div>
     <a class="btn btn-primary inventory-new-button" href="{{ url_for('main.asset_new') }}">+ Nuevo</a>
   </div>
 
   <div class="toolbar inventory-toolbar">
     <form class="filter-row inventory-filter-row" method="get">
-      <label class="search-box">{{ icon('search', 18) }}<input name="q" value="{{ q }}" placeholder="Buscar artículo, IMEI o serial"></label>
+      <label class="search-box">{{ icon('search', 18) }}<input name="q" value="{{ q }}" placeholder="Buscar producto, IMEI o serial"></label>
       <select name="status" onchange="this.form.submit()" aria-label="Filtrar por estado">
         <option value="">Todos</option>
         <option value="available" {{ 'selected' if status=='available' }}>Disponibles</option>
@@ -22,33 +22,38 @@
         <option value="sold" {{ 'selected' if status=='sold' }}>Vendidos</option>
       </select>
     </form>
-    <span class="result-count">{{ assets|length }} bien{{ 'es' if assets|length != 1 }}</span>
+    <span class="result-count">{{ assets|length }} producto{{ 's' if assets|length != 1 }}</span>
   </div>
 
   <div class="inventory-list">
     {% for asset in assets %}
-      <a class="inventory-row" href="{{ url_for('main.asset_edit', asset_id=asset.id) }}">
-        <span class="inventory-row-icon {{ 'accent-blue' if asset.kind=='car' else 'accent-purple' if asset.kind=='phone' else 'accent-teal' }}">
-          {{ icon('car' if asset.kind in ['car','motorcycle'] else 'phone' if asset.kind=='phone' else 'inventory', 23) }}
+      <a class="inventory-row inventory-product-card" href="{{ url_for('main.asset_edit', asset_id=asset.id) }}">
+        <span class="inventory-row-media">
+          {% if asset.image_mime %}
+            <img src="{{ url_for('main.asset_image', asset_id=asset.id) }}" alt="{{ asset.name }}" loading="lazy">
+          {% else %}
+            <span class="inventory-row-icon {{ 'accent-blue' if asset.kind=='car' else 'accent-purple' if asset.kind=='phone' else 'accent-teal' }}">
+              {{ icon('car' if asset.kind in ['car','motorcycle'] else 'phone' if asset.kind=='phone' else 'inventory', 24) }}
+            </span>
+          {% endif %}
         </span>
 
         <span class="inventory-row-main">
-          <span class="inventory-row-title">
-            <strong>{{ asset.name }}</strong>
-            <span class="status-pill status-{{ asset.status }}">{{ asset_status_label(asset.status) }}</span>
-          </span>
-          <span class="inventory-row-subtitle">{{ [asset.brand, asset.model]|select|join(' · ') or asset_kind_label(asset.kind) }}</span>
-          <span class="inventory-row-meta">
-            <span><b>{{ asset.available_quantity }}</b> / {{ asset.quantity_total }} disponibles</span>
-            {% if asset.committed_quantity %}<span>{{ asset.committed_quantity }} comprometido{{ 's' if asset.committed_quantity != 1 }}</span>{% endif %}
-            <span>{{ money(asset.estimated_value) }}</span>
-          </span>
+          <strong class="inventory-product-name">{{ asset.name }}</strong>
+          <span class="inventory-row-subtitle">{{ [asset.brand, asset.model]|select|join(' · ') or (asset.identifier or asset_kind_label(asset.kind)) }}</span>
+          <span class="inventory-product-status">{{ asset_status_label(asset.status) }}</span>
+        </span>
+
+        <span class="inventory-row-side">
+          <span class="inventory-stock-badge {{ 'is-empty' if asset.available_quantity <= 0 }}">{{ asset.available_quantity }}</span>
+          <strong>{{ money(asset.estimated_value) }}</strong>
+          <small>disponible{{ 's' if asset.available_quantity != 1 }}</small>
         </span>
 
         <span class="inventory-row-chevron" aria-hidden="true">›</span>
       </a>
     {% else %}
-      <div class="surface empty-state full-grid"><span class="empty-icon">{{ icon('box', 34) }}</span><h3>No hay bienes registrados</h3><p>Registra un carro, celular o cualquier artículo que entregues.</p><a class="btn btn-primary" href="{{ url_for('main.asset_new') }}">Registrar bien</a></div>
+      <div class="surface empty-state full-grid"><span class="empty-icon">{{ icon('box', 34) }}</span><h3>No hay productos registrados</h3><p>Agrega tu primer producto para controlar existencias y ventas a crédito.</p><a class="btn btn-primary" href="{{ url_for('main.asset_new') }}">Registrar producto</a></div>
     {% endfor %}
   </div>
 </section>

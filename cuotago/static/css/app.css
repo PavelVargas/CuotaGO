@@ -2004,3 +2004,182 @@ body.payment-dialog-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){
   .real-calendar-grid.calendar-swipe-from-right,.real-calendar-grid.calendar-swipe-from-left{animation:none}
 }
+
+/* --------------------------------------------------------------------------
+   CuotaGo UI v10 · native calendar, larger launcher glyphs, product photos.
+   -------------------------------------------------------------------------- */
+
+/* Home: keep the tile size; only let the pictogram breathe more. */
+.dashboard-launcher-v3 .module-icon svg{width:84%;height:84%;max-width:none;max-height:none}
+@media(max-width:719px){
+  .dashboard-launcher-v3 .module-icon svg{width:52px;height:52px}
+}
+@media(max-width:370px){
+  .dashboard-launcher-v3 .module-icon svg{width:47px;height:47px}
+}
+@media(min-width:720px){
+  .dashboard-launcher-v3 .module-icon svg{width:64px;height:64px}
+}
+
+/* Calendar: visually closer to a native month calendar instead of a grid of cards. */
+.calendar-native{max-width:980px}
+.calendar-native .calendar-page-head{margin-bottom:10px}
+.calendar-native .calendar-filterbar{padding:0;background:transparent;border:0;box-shadow:none}
+.calendar-native .calendar-search{max-width:560px;background:var(--surface);box-shadow:0 2px 8px rgba(31,45,61,.035)}
+.calendar-native .calendar-workspace{grid-template-columns:minmax(0,1.35fr) minmax(280px,.85fr);gap:12px}
+.calendar-native .real-calendar{padding:14px 16px 11px;border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:none}
+.calendar-native .real-calendar-head{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:11px}
+.calendar-native .real-calendar-head h2{margin:0;text-align:center;font-size:15px;font-weight:780;letter-spacing:-.025em}
+.calendar-native .real-calendar-head-actions{display:flex;align-items:center;gap:5px}
+.calendar-native .calendar-today-btn{height:32px;padding:0 11px;border-radius:999px;background:var(--surface);font-size:9px}
+.calendar-native .calendar-nav-btn{width:32px;height:32px;border-radius:999px}
+.calendar-native .real-calendar-weekdays{gap:0;margin:0 0 3px}
+.calendar-native .real-calendar-weekdays span{padding:4px 0 6px;font-size:8px;font-weight:700;text-transform:none;letter-spacing:0;color:var(--muted)}
+.calendar-native .real-calendar-grid{gap:1px}
+.calendar-native .real-calendar-day{
+  min-height:54px;
+  padding:4px 2px;
+  border:0;
+  border-radius:12px;
+  background:transparent;
+  align-items:center;
+  justify-content:flex-start;
+  gap:3px;
+  text-align:center;
+  overflow:visible;
+}
+.calendar-native .real-calendar-day:hover{border:0;background:color-mix(in srgb,var(--primary) 5%,transparent)}
+.calendar-native .real-calendar-day.is-outside{visibility:hidden;opacity:0;background:transparent}
+.calendar-native .real-calendar-day.is-selected{border:0;box-shadow:none;background:transparent}
+.calendar-native .real-calendar-day.is-today::after{display:none}
+.calendar-native .real-calendar-day-number{
+  width:31px;
+  height:31px;
+  border-radius:50%;
+  font-size:10.5px;
+  font-weight:700;
+  color:var(--text-strong);
+  transition:background-color .14s ease,color .14s ease,transform .12s ease;
+}
+.calendar-native .real-calendar-day.is-today:not(.is-selected) .real-calendar-day-number{color:var(--primary);font-weight:850}
+.calendar-native .real-calendar-day.has-payment{border:0;background:transparent}
+.calendar-native .real-calendar-day.has-payment:hover{background:color-mix(in srgb,var(--primary) 5%,transparent)}
+.calendar-native .real-calendar-day.has-payment .real-calendar-day-number{background:transparent;color:var(--text-strong)}
+.calendar-native .real-calendar-day.is-selected .real-calendar-day-number{background:color-mix(in srgb,var(--primary) 13%,var(--surface));color:var(--primary-deep)}
+.calendar-native .real-calendar-day.has-payment.is-selected{border:0;box-shadow:none}
+.calendar-native .real-calendar-day.has-payment.is-selected .real-calendar-day-number{background:var(--primary);color:#fff;box-shadow:0 4px 10px color-mix(in srgb,var(--primary) 28%,transparent)}
+.calendar-native .real-calendar-due{height:8px;min-height:8px;display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:0;line-height:0}
+.calendar-native .real-calendar-due i{width:5px;height:5px;border-radius:50%;background:var(--primary)}
+.calendar-native .real-calendar-due span{display:none}
+.calendar-native .real-calendar-legend{min-height:25px;margin-top:6px;padding-top:6px;border-top:0}
+.calendar-native .real-calendar-legend>span,.calendar-native .real-calendar-legend small{font-size:8px}
+.calendar-native .calendar-legend-dot{width:6px;height:6px;border-radius:50%}
+.calendar-native .calendar-day-panel{min-height:0;padding:13px 14px;border-radius:17px;box-shadow:none}
+.calendar-native .calendar-day-panel-head{align-items:center;padding:0 0 8px;border-bottom:1px solid var(--line)}
+.calendar-native .calendar-day-panel-head h2{margin:0;font-size:12px;font-weight:780}
+.calendar-native .calendar-day-count{width:auto;min-width:0;height:24px;padding:0 8px;border-radius:999px;background:color-mix(in srgb,var(--primary) 14%,var(--surface));color:var(--primary-deep);font-size:7.5px}
+.calendar-native .calendar-day-items{gap:0;padding-top:2px}
+.calendar-native .calendar-payment-item{
+  min-height:57px;
+  padding:8px 2px;
+  border:0;
+  border-bottom:1px solid var(--line);
+  border-radius:0;
+  background:transparent;
+  display:grid;
+  grid-template-columns:7px minmax(0,1fr) auto 12px;
+  gap:8px;
+}
+.calendar-native .calendar-payment-item:last-child{border-bottom:0}
+.calendar-native .calendar-payment-item:hover{border-color:var(--line);background:color-mix(in srgb,var(--primary) 4%,transparent)}
+.calendar-native .calendar-payment-dot{width:6px;height:6px;border-radius:50%;background:var(--primary);align-self:center}
+.calendar-native .calendar-payment-copy strong{font-size:10px}
+.calendar-native .calendar-payment-copy span{font-size:7.6px}
+.calendar-native .calendar-payment-money strong{font-size:9.5px;color:var(--text-strong)}
+.calendar-native .calendar-payment-money small{font-size:7px}
+.calendar-native .calendar-payment-chevron{align-self:center;color:var(--muted-2);font-size:17px;line-height:1}
+
+@media(max-width:719px){
+  .calendar-native{padding-top:12px;padding-inline:max(10px,var(--safe-left)) max(10px,var(--safe-right))}
+  .calendar-native .calendar-page-head{margin-bottom:9px}
+  .calendar-native .calendar-page-head .eyebrow,.calendar-native .calendar-page-head p{display:none}
+  .calendar-native .calendar-page-head h1{font-size:17px}
+  .calendar-native .calendar-filterbar{margin-bottom:8px;padding:0}
+  .calendar-native .calendar-search{height:40px;border-radius:14px}
+  .calendar-native .calendar-search input{font-size:16px}
+  .calendar-native .calendar-filter-status{display:none}
+  .calendar-native .calendar-workspace{grid-template-columns:1fr;gap:8px}
+  .calendar-native .real-calendar{padding:8px 4px 5px;border:0;border-radius:0;background:transparent}
+  .calendar-native .real-calendar-head{grid-template-columns:34px minmax(0,1fr) auto;margin-bottom:7px;padding:0 3px}
+  .calendar-native .real-calendar-head h2{font-size:13px}
+  .calendar-native .calendar-nav-btn{width:31px;height:31px;background:var(--surface)}
+  .calendar-native .calendar-nav-next{display:none}
+  .calendar-native .calendar-today-btn{height:31px;padding:0 10px;background:var(--surface);font-size:8px}
+  .calendar-native .real-calendar-weekdays span{padding:3px 0 5px;font-size:7.4px}
+  .calendar-native .real-calendar-day{min-height:42px;padding:2px 0;gap:1px;border-radius:10px}
+  .calendar-native .real-calendar-day-number{width:29px;height:29px;font-size:9.4px}
+  .calendar-native .real-calendar-due{height:6px;min-height:6px}
+  .calendar-native .real-calendar-due i{width:4.5px;height:4.5px}
+  .calendar-native .real-calendar-legend{margin-top:3px;padding:4px 4px 0}
+  .calendar-native .real-calendar-legend>span,.calendar-native .real-calendar-legend small{font-size:7.1px}
+  .calendar-native .calendar-day-panel{padding:10px 11px;border-radius:15px}
+  .calendar-native .calendar-day-panel-head h2{font-size:10.5px}
+  .calendar-native .calendar-day-count{height:22px;padding-inline:7px;font-size:7px}
+  .calendar-native .calendar-payment-item{min-height:54px;padding:8px 1px;grid-template-columns:6px minmax(0,1fr) auto 10px;gap:7px}
+  .calendar-native .calendar-payment-copy strong{font-size:9.3px}
+  .calendar-native .calendar-payment-copy span{font-size:7.1px}
+  .calendar-native .calendar-payment-money strong{font-size:8.8px}
+  .calendar-native .calendar-payment-chevron{font-size:16px}
+}
+@media(min-width:720px){
+  .calendar-native .real-calendar-day{min-height:58px}
+}
+@media(min-width:1080px){
+  .calendar-native .real-calendar-day{min-height:62px;padding:5px 2px}
+  .calendar-native .real-calendar-day-number{width:33px;height:33px;font-size:11px}
+}
+
+/* Inventory: thumbnails first, then only the information needed to scan stock. */
+.inventory-product-card{
+  grid-template-columns:50px minmax(0,1fr) auto 11px;
+  min-height:66px;
+  padding:7px 8px;
+  gap:9px;
+}
+.inventory-row-media{width:50px;height:50px;border-radius:12px;overflow:hidden;background:var(--surface-2);display:grid;place-items:center;border:1px solid var(--line)}
+.inventory-row-media>img{width:100%;height:100%;display:block;object-fit:cover;background:var(--surface)}
+.inventory-row-media .inventory-row-icon{width:100%;height:100%;border:0;border-radius:0;background:color-mix(in srgb,currentColor 9%,var(--surface));}
+.inventory-product-name{min-width:0;color:var(--text-strong);font-size:11px;line-height:1.15;font-weight:780;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inventory-product-status{width:max-content;max-width:100%;margin-top:2px;color:var(--muted);font-size:7.2px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inventory-row-side{min-width:66px;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:2px}
+.inventory-stock-badge{min-width:28px;height:20px;padding:0 7px;border-radius:999px;background:color-mix(in srgb,var(--success) 13%,var(--surface));color:var(--success);display:grid;place-items:center;font-size:8.5px;font-weight:850}
+.inventory-stock-badge.is-empty{background:color-mix(in srgb,var(--primary) 14%,var(--surface));color:var(--primary-deep)}
+.inventory-row-side>strong{font-size:8.7px;line-height:1.1;color:var(--text-strong);white-space:nowrap}
+.inventory-row-side>small{font-size:6.7px;color:var(--muted)}
+
+/* Product photo editor. */
+.inventory-editor-card{padding-top:13px}
+.asset-photo-editor{display:grid;grid-template-columns:78px minmax(0,1fr);align-items:center;gap:12px;padding:0 0 13px;margin-bottom:13px;border-bottom:1px solid var(--line)}
+.asset-photo-picker{position:relative;width:78px;height:78px;border:1px solid var(--line);border-radius:18px;background:var(--surface-2);overflow:hidden;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 12px rgba(31,45,61,.05)}
+.asset-photo-picker img{width:100%;height:100%;object-fit:cover;background:var(--surface)}
+.asset-photo-placeholder{width:100%;height:100%;display:grid;place-items:center;color:var(--muted)}
+.asset-photo-camera{position:absolute;right:5px;bottom:5px;width:23px;height:23px;border:2px solid var(--surface);border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:16px;font-weight:700;line-height:1}
+.asset-photo-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.asset-photo-copy{min-width:0;display:flex;flex-direction:column;gap:2px}
+.asset-photo-copy>strong{font-size:11px;color:var(--text-strong)}
+.asset-photo-copy>span{font-size:8.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asset-photo-copy>small{font-size:7.4px;color:var(--muted)}
+.asset-photo-remove{width:max-content;max-width:100%;margin-top:5px;display:flex;align-items:center;gap:5px;color:var(--danger);font-size:7.8px;cursor:pointer}
+.asset-photo-remove input{width:14px;height:14px;margin:0;accent-color:var(--danger)}
+
+@media(max-width:719px){
+  .inventory-product-card{grid-template-columns:46px minmax(0,1fr) auto 9px;min-height:62px;padding:6px 7px;gap:8px}
+  .inventory-row-media{width:46px;height:46px;border-radius:11px}
+  .inventory-product-name{font-size:10.3px}
+  .inventory-row-subtitle{font-size:7.7px}
+  .inventory-row-side{min-width:61px}
+  .inventory-row-side>strong{font-size:8.1px}
+  .inventory-row-side>small{font-size:6.3px}
+  .asset-photo-editor{grid-template-columns:70px minmax(0,1fr);gap:10px;padding-bottom:11px;margin-bottom:11px}
+  .asset-photo-picker{width:70px;height:70px;border-radius:16px}
+}

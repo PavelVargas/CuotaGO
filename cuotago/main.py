@@ -5,7 +5,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, Response, abort, current_app, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 
@@ -14,6 +14,31 @@ from .models import Asset, Client, Contract, Installment, Payment
 
 main_bp = Blueprint("main", __name__)
 CENT = Decimal("0.01")
+
+
+ASSET_IMAGE_MAX_BYTES = 4 * 1024 * 1024
+
+
+def read_asset_image_upload(file_storage):
+    """Read and validate one product photo without trusting its filename/MIME."""
+    if not file_storage or not getattr(file_storage, "filename", ""):
+        return None, None
+
+    payload = file_storage.read(ASSET_IMAGE_MAX_BYTES + 1)
+    if not payload:
+        raise ValueError("La foto esta vacia.")
+    if len(payload) > ASSET_IMAGE_MAX_BYTES:
+        raise ValueError("La foto no puede pesar mas de 4 MB.")
+
+    if payload.startswith(b"\x89PNG\r\n\x1a\n"):
+        mime = "image/png"
+    elif payload.startswith(b"\xff\xd8\xff"):
+        mime = "image/jpeg"
+    elif len(payload) >= 12 and payload[:4] == b"RIFF" and payload[8:12] == b"WEBP":
+        mime = "image/webp"
+    else:
+        raise ValueError("Usa una foto JPG, PNG o WebP.")
+    return payload, mime
 
 
 def local_today():
@@ -469,6 +494,19 @@ def client_edit(client_id):
     return render_template("clients/form.html", client=client)
 
 
+
+@main_bp.get("/assets/<int:asset_id>/image")
+@login_required
+def asset_image(asset_id):
+    asset = scoped_asset(asset_id)
+    if not asset.image_mime or not asset.image_data:
+        abort(404)
+    response = Response(bytes(asset.image_data), mimetype=asset.image_mime)
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 @main_bp.get("/assets")
 @login_required
 def assets():
@@ -513,6 +551,12 @@ def asset_new():
         if kind not in {"car", "phone", "motorcycle", "appliance", "computer", "other"}:
             kind = "other"
 
+        try:
+            image_data, image_mime = read_asset_image_upload(request.files.get("image"))
+        except ValueError as exc:
+            flash(str(exc), "error")
+            return render_template("assets/form.html", asset=None)
+
         asset = Asset(
             organization_id=current_user.organization_id,
             kind=kind,
@@ -525,6 +569,8 @@ def asset_new():
             quantity_total=quantity_total,
             status="available",
             notes=request.form.get("notes", "").strip(),
+            image_data=image_data,
+            image_mime=image_mime,
         )
         db.session.add(asset)
         db.session.commit()
@@ -556,6 +602,20 @@ def asset_edit(asset_id):
             return render_template("assets/form.html", asset=asset)
         asset.quantity_total = requested_quantity
         asset.notes = request.form.get("notes", "").strip()
+
+        if request.form.get("remove_image") == "1":
+            asset.image_data = None
+            asset.image_mime = None
+        image_upload = request.files.get("image")
+        if image_upload and image_upload.filename:
+            try:
+                image_data, image_mime = read_asset_image_upload(image_upload)
+            except ValueError as exc:
+                flash(str(exc), "error")
+                return render_template("assets/form.html", asset=asset)
+            asset.image_data = image_data
+            asset.image_mime = image_mime
+
         requested_status = request.form.get("status", "available")
         if requested_status == "maintenance" and asset.committed_quantity == 0:
             asset.status = "maintenance"
