@@ -108,7 +108,7 @@
         <div><dt>Ganancia</dt><dd>{{ '%.2f'|format(contract.profit_margin_percent)|replace('.00','') }}% · {{ money(contract.profit_amount) }}</dd></div>
         {% endif %}
         <div><dt>Frecuencia</dt><dd>{{ frequency_label(contract.frequency) }}</dd></div>
-        <div><dt>Interés por atraso</dt><dd>{{ money(contract.daily_late_interest) }}/día</dd></div>
+        <div><dt>Mora</dt><dd>{% if contract.daily_late_interest > 0 %}{{ money(contract.daily_late_interest) }}/día{% if contract.late_fee_started_on %} · desde {{ contract.late_fee_started_on.strftime('%d/%m/%Y') }}{% endif %}{% else %}Sin mora{% endif %}</dd></div>
       </dl>
       {% if contract.notes %}<div class="note-box">{{ contract.notes }}</div>{% endif %}
     </div>
@@ -120,5 +120,82 @@
     <div class="advanced-options-body payment-history">{% for payment in contract.payments[:12] %}<div><span><strong>{{ money(payment.amount) }}</strong><small>{{ payment.method|capitalize }}{% if payment.note %} · {{ payment.note }}{% endif %}{% if payment.late_fee_amount > 0 %} · {{ money(payment.late_fee_amount) }} interés{% endif %}</small></span><time>{{ payment.paid_at.strftime('%d/%m/%Y') }}</time></div>{% endfor %}</div>
   </details>
   {% endif %}
+
+  <details class="surface advanced-options detail-more agreement-management">
+    <summary>Administrar acuerdo</summary>
+    <div class="advanced-options-body agreement-management-body">
+      <div class="agreement-management-row">
+        <div>
+          <strong>Mora</strong>
+          {% if contract.daily_late_interest > 0 %}
+          <small>{{ money(contract.daily_late_interest) }}/día{% if contract.late_fee_started_on %} · activa desde {{ contract.late_fee_started_on.strftime('%d/%m/%Y') }}{% endif %}</small>
+          {% else %}
+          <small>Este acuerdo no cobra mora. Puedes activarla cuando la necesites.</small>
+          {% endif %}
+        </div>
+        {% if contract.status == 'active' and contract.daily_late_interest <= 0 %}
+        <button class="btn btn-secondary btn-sm" type="button" data-contract-dialog-open="lateFeeDialog">Agregar mora</button>
+        {% endif %}
+      </div>
+      <div class="agreement-management-row danger-row">
+        <div><strong>Eliminar acuerdo</strong><small>Elimina sus cuotas y pagos. El cliente y el producto permanecen guardados.</small></div>
+        <button class="btn btn-danger-soft btn-sm" type="button" data-contract-dialog-open="deleteContractDialog">Eliminar</button>
+      </div>
+    </div>
+  </details>
+
+  {% if contract.status == 'active' and contract.daily_late_interest <= 0 %}
+  <dialog class="payment-dialog compact-contract-dialog" id="lateFeeDialog" aria-labelledby="lateFeeDialogTitle">
+    <div class="payment-dialog-sheet">
+      <div class="payment-dialog-handle" aria-hidden="true"></div>
+      <div class="payment-dialog-head">
+        <div><span class="eyebrow">MORA</span><h2 id="lateFeeDialogTitle">Agregar mora</h2><p>Comenzará a contar desde hoy. No se cobrarán días anteriores.</p></div>
+        <button class="payment-dialog-close" type="button" data-contract-dialog-close aria-label="Cerrar">×</button>
+      </div>
+      <form method="post" action="{{ url_for('main.contract_enable_late_fee', contract_id=contract.id) }}" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="field"><span>Mora por día</span><input type="number" name="daily_late_interest" step="0.01" min="0.01" required inputmode="decimal" placeholder="Ej. 100.00"><small>Monto fijo que se suma por cada día de atraso a partir de la activación.</small></label>
+        <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>Cancelar</button><button class="btn btn-primary" type="submit">Activar mora</button></div>
+      </form>
+    </div>
+  </dialog>
+  {% endif %}
+
+  <dialog class="payment-dialog compact-contract-dialog" id="deleteContractDialog" aria-labelledby="deleteContractDialogTitle">
+    <div class="payment-dialog-sheet">
+      <div class="payment-dialog-handle" aria-hidden="true"></div>
+      <div class="payment-dialog-head">
+        <div><span class="eyebrow text-danger">ELIMINAR</span><h2 id="deleteContractDialogTitle">¿Eliminar este acuerdo?</h2><p>Esta acción borra las cuotas y pagos del acuerdo para que puedas crearlo de nuevo.</p></div>
+        <button class="payment-dialog-close" type="button" data-contract-dialog-close aria-label="Cerrar">×</button>
+      </div>
+      <form method="post" action="{{ url_for('main.contract_delete', contract_id=contract.id) }}" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="delete-contract-note"><strong>{{ contract.client.full_name }}</strong><span>{{ contract.asset.name }} · {{ contract.code }}</span></div>
+        <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>Cancelar</button><button class="btn btn-danger" type="submit">Sí, eliminar</button></div>
+      </form>
+    </div>
+  </dialog>
 </section>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const openers = document.querySelectorAll('[data-contract-dialog-open]');
+  const closeDialog = (dialog) => {
+    if (!dialog) return;
+    if (typeof dialog.close === 'function') dialog.close();
+    else dialog.removeAttribute('open');
+  };
+  const openDialog = (dialog) => {
+    if (!dialog) return;
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+  };
+  openers.forEach((button) => button.addEventListener('click', () => openDialog(document.getElementById(button.dataset.contractDialogOpen))));
+  document.querySelectorAll('[data-contract-dialog-close]').forEach((button) => button.addEventListener('click', () => closeDialog(button.closest('dialog'))));
+  document.querySelectorAll('.compact-contract-dialog').forEach((dialog) => {
+    dialog.addEventListener('click', (event) => { if (event.target === dialog) closeDialog(dialog); });
+  });
+})();
+</script>
 {% endblock %}

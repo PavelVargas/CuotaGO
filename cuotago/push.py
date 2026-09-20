@@ -59,7 +59,9 @@ def _sync_installment_late_fee(installment, today_value):
     principal_paid_at = installment.principal_paid_at or (installment.paid_at if installment.principal_is_paid else None)
     if principal_paid_at:
         end_day = min(today_value, principal_paid_at.date())
-    days_late = max((end_day - installment.due_date).days, 0)
+    activation_day = getattr(contract, "late_fee_started_on", None) or contract.start_date
+    charge_start = max(installment.due_date, activation_day)
+    days_late = max((end_day - charge_start).days, 0)
     target = (rate * days_late).quantize(Decimal("0.01"))
     current = Decimal(str(installment.late_fee_amount or 0)).quantize(Decimal("0.01"))
     if target > current:

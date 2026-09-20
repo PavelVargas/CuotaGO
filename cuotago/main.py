@@ -10,7 +10,7 @@ from flask_login import current_user, login_required
 from sqlalchemy import or_
 
 from .extensions import db
-from .models import Asset, Client, Contract, Installment, Payment
+from .models import Asset, Client, Contract, Installment, Payment, PushNotificationLog
 
 main_bp = Blueprint("main", __name__)
 CENT = Decimal("0.01")
@@ -144,15 +144,18 @@ def generate_installments(contract, installment_count=None):
 
 
 def sync_contract_late_fees(contract, today_value=None, commit=False):
-    """Persist the daily late charge for every overdue installment.
+    """Persist daily mora without retroactively charging a later activation.
 
-    The charge belongs to the agreement, not to the asset. Once principal is
-    fully paid, the charge stops growing on that date.
+    Agreements created with mora keep the original behavior: each installment
+    starts accruing after its due date. If mora is added later, the effective
+    start is ``late_fee_started_on`` so old overdue days are never backcharged.
+    Once principal is fully paid, mora stops growing on that date.
     """
     rate = money_decimal(getattr(contract, "daily_late_interest", 0))
     if rate <= 0 or contract.status != "active":
         return False
     today_value = today_value or local_today()
+    activation_day = getattr(contract, "late_fee_started_on", None) or contract.start_date
     changed = False
     for installment in contract.installments:
         if installment.due_date >= today_value or installment.is_paid:
@@ -161,7 +164,8 @@ def sync_contract_late_fees(contract, today_value=None, commit=False):
         principal_paid_at = installment.principal_paid_at or (installment.paid_at if installment.principal_is_paid else None)
         if principal_paid_at:
             end_day = min(today_value, principal_paid_at.date())
-        days_late = max((end_day - installment.due_date).days, 0)
+        charge_start = max(installment.due_date, activation_day)
+        days_late = max((end_day - charge_start).days, 0)
         target = money_decimal(rate * days_late)
         current = money_decimal(installment.late_fee_amount)
         if target > current:
@@ -810,6 +814,7 @@ def contract_new():
             installment_amount=installment,
             quantity=quantity,
             daily_late_interest=daily_late_interest or Decimal("0.00"),
+            late_fee_started_on=(start if (daily_late_interest or Decimal("0.00")) > 0 else None),
             frequency=frequency,
             start_date=start,
             first_due_date=first_due,
@@ -857,6 +862,64 @@ def contract_new():
 def contract_detail(contract_id):
     contract = scoped_contract(contract_id)
     return render_template("contracts/detail.html", contract=contract)
+
+
+@main_bp.post("/contracts/<int:contract_id>/late-fee")
+@login_required
+def contract_enable_late_fee(contract_id):
+    """Enable mora from today without charging prior overdue days."""
+    contract = scoped_contract(contract_id)
+    if contract.status != "active":
+        flash("Solo puedes agregar mora a un acuerdo activo.", "error")
+        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+
+    if money_decimal(contract.daily_late_interest) > Decimal("0.009"):
+        flash("La mora ya está activa en este acuerdo.", "error")
+        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+
+    daily_amount = parse_money(request.form.get("daily_late_interest"))
+    if daily_amount is None or daily_amount <= 0:
+        flash("Escribe un monto de mora diario mayor que cero.", "error")
+        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+
+    contract.daily_late_interest = daily_amount
+    contract.late_fee_started_on = local_today()
+    db.session.commit()
+    flash(
+        f"Mora de {format_money(daily_amount)} por día activada desde hoy. No se cobraron días anteriores.",
+        "success",
+    )
+    return redirect(url_for("main.contract_detail", contract_id=contract.id))
+
+
+@main_bp.post("/contracts/<int:contract_id>/delete")
+@login_required
+def contract_delete(contract_id):
+    """Delete one tenant-owned agreement and release its inventory quantity."""
+    contract = scoped_contract(contract_id)
+    asset = contract.asset
+    installment_ids = [item.id for item in contract.installments if item.id is not None]
+
+    try:
+        if installment_ids:
+            PushNotificationLog.query.filter(
+                PushNotificationLog.installment_id.in_(installment_ids)
+            ).delete(synchronize_session=False)
+        db.session.delete(contract)
+        db.session.flush()
+        # Reload the relationship after the delete so stock/status are computed
+        # only from agreements that still exist.
+        db.session.expire(asset, ["contracts"])
+        refresh_asset_status(asset)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("No se pudo eliminar el acuerdo %s", contract_id)
+        flash("No se pudo eliminar el acuerdo. Intenta nuevamente.", "error")
+        return redirect(url_for("main.contract_detail", contract_id=contract_id))
+
+    flash("Acuerdo eliminado. El producto volvió a quedar disponible para crear otro acuerdo.", "success")
+    return redirect(url_for("main.contracts"))
 
 
 @main_bp.post("/contracts/<int:contract_id>/pay")

@@ -118,6 +118,10 @@ class Contract(db.Model):
     installment_amount = db.Column(db.Numeric(12, 2), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=1)
     daily_late_interest = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    # When mora is enabled after creation, charges start from this day instead
+    # of being backdated to an older overdue installment. Legacy agreements
+    # with mora and a NULL value keep their original behavior via start_date.
+    late_fee_started_on = db.Column(db.Date, nullable=True)
     frequency = db.Column(db.String(20), nullable=False, default="monthly")
     start_date = db.Column(db.Date, nullable=False)
     first_due_date = db.Column(db.Date, nullable=False)

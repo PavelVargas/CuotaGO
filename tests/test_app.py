@@ -7,7 +7,7 @@ import pytest
 
 from cuotago import create_app
 from cuotago.extensions import db
-from cuotago.models import Asset, Client, Contract, Installment, Organization, PushSubscription, User
+from cuotago.models import Asset, Client, Contract, Installment, Organization, PushNotificationLog, PushSubscription, User
 
 
 @pytest.fixture()
@@ -558,3 +558,100 @@ def test_settings_demo_enables_real_background_push_and_dashboard_desktop_icons_
     assert 'event_type="due_today"' in push
     assert 'width:104px' in css
     assert 'width:84px;height:84px' in css
+
+
+def test_mora_can_be_enabled_later_without_backcharging(client, app):
+    register(client)
+    start = date.today() - timedelta(days=20)
+    due = date.today() - timedelta(days=7)
+    response = client.post('/contracts/new', data={
+        'client_name': 'Cliente Sin Mora',
+        'asset_name': 'Equipo Sin Mora',
+        'asset_kind': 'phone',
+        'asset_stock_quantity': '1',
+        'quantity': '1',
+        'deal_type': 'credit_sale',
+        'total_amount': '10000',
+        'down_payment': '0',
+        'installment_amount': '5000',
+        'frequency': 'monthly',
+        'start_date': start.isoformat(),
+        'first_due_date': due.isoformat(),
+        'daily_late_interest': '0',
+    }, follow_redirects=True)
+    assert response.status_code == 200
+
+    with app.app_context():
+        contract = Contract.query.one()
+        contract_id = contract.id
+        assert contract.late_fee_started_on is None
+        assert contract.installments[0].late_fee_amount == Decimal('0.00')
+
+    response = client.post(
+        f'/contracts/{contract_id}/late-fee',
+        data={'daily_late_interest': '100'},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+
+    with app.app_context():
+        contract = db.session.get(Contract, contract_id)
+        first = contract.installments[0]
+        assert contract.daily_late_interest == Decimal('100.00')
+        assert contract.late_fee_started_on == date.today()
+        # The installment was already seven days late, but mora starts today.
+        assert first.late_fee_amount == Decimal('0.00')
+        contract.late_fee_started_on = date.today() - timedelta(days=2)
+        db.session.commit()
+
+    detail = client.get(f'/contracts/{contract_id}')
+    assert detail.status_code == 200
+    with app.app_context():
+        first = db.session.get(Contract, contract_id).installments[0]
+        assert first.late_fee_amount == Decimal('200.00')
+
+
+def test_contract_can_be_deleted_and_inventory_is_released(client, app):
+    register(client)
+    client.post('/assets/new', data={
+        'kind': 'phone', 'name': 'iPhone Reutilizable', 'quantity_total': '1', 'estimated_value': '50000'
+    }, follow_redirects=True)
+    with app.app_context():
+        asset_id = Asset.query.filter_by(name='iPhone Reutilizable').one().id
+
+    start = date.today()
+    client.post('/contracts/new', data={
+        'client_name': 'Cliente Rehacer',
+        'asset_id': asset_id,
+        'quantity': '1',
+        'deal_type': 'credit_sale',
+        'total_amount': '50000',
+        'down_payment': '0',
+        'installment_amount': '10000',
+        'frequency': 'monthly',
+        'start_date': start.isoformat(),
+        'first_due_date': (start + timedelta(days=30)).isoformat(),
+        'daily_late_interest': '0',
+    }, follow_redirects=True)
+
+    with app.app_context():
+        contract = Contract.query.one()
+        contract_id = contract.id
+        installment_id = contract.installments[0].id
+        org_id = contract.organization_id
+        db.session.add(PushNotificationLog(
+            organization_id=org_id, installment_id=installment_id, event_type='overdue'
+        ))
+        db.session.commit()
+        assert db.session.get(Asset, asset_id).available_quantity == 0
+
+    response = client.post(f'/contracts/{contract_id}/delete', follow_redirects=True)
+    assert response.status_code == 200
+    assert b'Acuerdo eliminado' in response.data
+    with app.app_context():
+        assert Contract.query.count() == 0
+        assert Installment.query.count() == 0
+        assert PushNotificationLog.query.count() == 0
+        asset = db.session.get(Asset, asset_id)
+        assert asset.available_quantity == 1
+        assert asset.status == 'available'
