@@ -4,11 +4,31 @@
 {% block body_class %}superadmin-shell{% endblock %}
 {% block content %}
 <section class="content-page admin-console">
-  <header class="admin-console-head"><div class="admin-console-title"><span class="admin-shield">{{ icon('shield', 23) }}</span><div><span class="eyebrow">SUPERADMIN</span><h1>Historial administrativo</h1><p>Rastro de suscripciones, usuarios, planes y acciones destructivas.</p></div></div></header>
+  <header class="admin-console-head admin-console-hero">
+    <div class="admin-console-title"><span class="admin-shield admin-shield-cyan">{{ icon('refresh', 23) }}</span><div><span class="eyebrow">SUPERADMIN</span><h1>Historial administrativo</h1><p>Revisa quién cambió suscripciones, usuarios, planes o datos sensibles.</p></div></div>
+  </header>
   {% include 'admin/_nav.html' %}
-  <section class="surface admin-directory">
+  <section class="surface admin-directory admin-audit-surface">
+    <div class="admin-section-head admin-section-head-modern">
+      <div class="admin-section-title-wrap"><span class="admin-section-icon tone-cyan">{{ icon('refresh', 18) }}</span><div><span class="eyebrow">AUDITORÍA</span><h2>Actividad</h2><p>Un rastro claro de las acciones administrativas importantes.</p></div></div>
+    </div>
     <form class="admin-filterbar audit-filterbar" method="get"><label class="admin-search-field">{{ icon('search', 17) }}<input name="q" value="{{ query_text }}" placeholder="Buscar en el historial"></label><select name="category"><option value="all" {{ 'selected' if category == 'all' }}>Todas las categorías</option>{% for value,label in [('organization','Empresas'),('subscription','Suscripciones'),('user','Usuarios'),('plan','Planes'),('data','Datos')] %}<option value="{{ value }}" {{ 'selected' if category == value }}>{{ label }}</option>{% endfor %}</select><button class="btn btn-secondary" type="submit">Aplicar</button>{% if query_text or category != 'all' %}<a class="admin-clear-filter" href="{{ url_for('admin.activity') }}">Limpiar</a>{% endif %}</form>
-    {% if logs %}<div class="admin-audit-table"><div class="admin-audit-head"><span>Acción</span><span>Actor</span><span>Fecha</span></div>{% for log in logs %}<article class="admin-audit-row"><div><span class="admin-action-code">{{ log.action }}</span><strong>{{ log.summary }}</strong>{% if log.detail %}<small>{{ log.detail }}</small>{% endif %}</div><div><strong>{{ actors[log.actor_user_id].name if log.actor_user_id in actors else 'Sistema / usuario eliminado' }}</strong><small>{% if log.organization_id %}Empresa #{{ log.organization_id }}{% else %}Global{% endif %}</small></div><time>{{ log.created_at.strftime('%d/%m/%Y') }}<small>{{ log.created_at.strftime('%H:%M') }}</small></time></article>{% endfor %}</div>{% else %}<div class="admin-empty"><span>{{ icon('shield', 30) }}</span><strong>Sin resultados</strong><p>No hay acciones que coincidan con el filtro.</p></div>{% endif %}
+    {% if logs %}
+      <div class="admin-audit-table">
+        <div class="admin-audit-head"><span></span><span>Acción</span><span>Actor</span><span>Fecha</span></div>
+        {% for log in logs %}
+          {% set action_group = (log.action or '').split('.')[0] %}
+          <article class="admin-audit-row">
+            <span class="admin-audit-icon {{ 'tone-blue' if action_group == 'organization' else 'tone-orange' if action_group == 'subscription' else 'tone-green' if action_group == 'user' else 'tone-purple' if action_group == 'plan' else 'tone-red' }}">
+              {{ icon('home', 16) if action_group == 'organization' else icon('wallet', 16) if action_group == 'subscription' else icon('users', 16) if action_group == 'user' else icon('sliders', 16) if action_group == 'plan' else icon('trash', 16) }}
+            </span>
+            <div><span class="admin-action-code">{{ log.action }}</span><strong>{{ log.summary }}</strong>{% if log.detail %}<small>{{ log.detail }}</small>{% endif %}</div>
+            <div><strong>{{ actors[log.actor_user_id].name if log.actor_user_id in actors else 'Sistema / usuario eliminado' }}</strong><small>{% if log.organization_id %}Empresa #{{ log.organization_id }}{% else %}Global{% endif %}</small></div>
+            <time>{{ log.created_at.strftime('%d/%m/%Y') }}<small>{{ log.created_at.strftime('%H:%M') }}</small></time>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}<div class="admin-empty"><span class="admin-empty-icon tone-cyan">{{ icon('refresh', 28) }}</span><strong>Sin resultados</strong><p>No hay acciones que coincidan con el filtro.</p></div>{% endif %}
   </section>
 </section>
 {% endblock %}

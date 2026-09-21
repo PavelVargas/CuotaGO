@@ -1,6 +1,13 @@
+{% from 'macros/icons.html' import icon %}
 {% set summary_active = request.endpoint in ['admin.dashboard','admin.create_company','admin.organization_detail'] %}
 <nav class="admin-nav" aria-label="Administración">
-  <a class="{{ 'is-active' if summary_active else '' }}" href="{{ url_for('admin.dashboard') }}">Resumen</a>
-  <a class="{{ 'is-active' if request.endpoint == 'admin.plans' else '' }}" href="{{ url_for('admin.plans') }}">Planes</a>
-  <a class="{{ 'is-active' if request.endpoint == 'admin.activity' else '' }}" href="{{ url_for('admin.activity') }}">Actividad</a>
+  <a class="{{ 'is-active' if summary_active else '' }}" href="{{ url_for('admin.dashboard') }}">
+    <span class="admin-nav-icon">{{ icon('home', 15) }}</span><b>Resumen</b>
+  </a>
+  <a class="{{ 'is-active' if request.endpoint == 'admin.plans' else '' }}" href="{{ url_for('admin.plans') }}">
+    <span class="admin-nav-icon">{{ icon('wallet', 15) }}</span><b>Planes</b>
+  </a>
+  <a class="{{ 'is-active' if request.endpoint == 'admin.activity' else '' }}" href="{{ url_for('admin.activity') }}">
+    <span class="admin-nav-icon">{{ icon('refresh', 15) }}</span><b>Actividad</b>
+  </a>
 </nav>

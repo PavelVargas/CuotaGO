@@ -4,22 +4,21 @@
 {% block body_class %}superadmin-shell{% endblock %}
 {% block content %}
 <section class="content-page admin-console admin-company-page">
-  <header class="admin-console-head compact">
+  <header class="admin-console-head admin-console-hero compact">
     <div class="admin-console-title">
-      <a class="icon-btn" href="{{ url_for('admin.dashboard') }}" aria-label="Volver">{{ icon('back', 20) }}</a>
-      <span class="admin-company-avatar admin-company-avatar-lg">{{ organization.name[:1]|upper }}</span>
+      <a class="icon-btn admin-back-btn" href="{{ url_for('admin.dashboard') }}" aria-label="Volver">{{ icon('back', 20) }}</a>
+      <span class="admin-company-avatar admin-company-avatar-lg admin-company-avatar-hero">{{ organization.name[:1]|upper }}</span>
       <div><span class="eyebrow">EMPRESA #{{ organization.id }}</span><h1>{{ organization.name }}</h1><p>Control administrativo sin tener todas las herramientas abiertas al mismo tiempo.</p></div>
     </div>
-    <span class="admin-status admin-status-{{ status_tones.get(effective_status,'neutral') }} admin-status-large">{{ status_labels.get(effective_status,effective_status) }}</span>
+    <div class="admin-company-status-side"><span class="admin-status admin-status-{{ status_tones.get(effective_status,'neutral') }} admin-status-large"><i></i>{{ status_labels.get(effective_status,effective_status) }}</span><small>{{ subscription.plan.name if subscription and subscription.plan else 'Sin plan' }}</small></div>
   </header>
 
   {% include 'admin/_nav.html' %}
 
   <section class="surface admin-company-overview">
     <div class="admin-company-overview-plan">
-      <span class="eyebrow">SUSCRIPCIÓN ACTUAL</span>
-      <strong>{{ subscription.plan.name if subscription and subscription.plan else 'Sin plan asignado' }}</strong>
-      <small>{% if subscription and subscription.current_period_end %}Vence {{ subscription.current_period_end.strftime('%d/%m/%Y') }}{% else %}Sin fecha de vencimiento{% endif %}</small>
+      <span class="admin-company-overview-icon tone-orange">{{ icon('wallet', 19) }}</span>
+      <div><span class="eyebrow">SUSCRIPCIÓN ACTUAL</span><strong>{{ subscription.plan.name if subscription and subscription.plan else 'Sin plan asignado' }}</strong><small>{% if subscription and subscription.current_period_end %}Vence {{ subscription.current_period_end.strftime('%d/%m/%Y') }}{% else %}Sin fecha de vencimiento{% endif %}</small></div>
     </div>
     <div class="admin-company-overview-price">
       <span>Precio</span>
@@ -27,39 +26,39 @@
       <small>{% if subscription and subscription.amount_override is not none %}Personalizado{% elif subscription and subscription.plan %}Precio del plan{% else %}Sin precio{% endif %}</small>
     </div>
     <div class="admin-company-overview-counts" aria-label="Uso de la empresa">
-      <span><b>{{ counts.users }}</b> usuarios</span>
-      <span><b>{{ counts.clients }}</b> clientes</span>
-      <span><b>{{ counts.assets }}</b> bienes</span>
-      <span><b>{{ counts.contracts }}</b> acuerdos</span>
-      <span><b>{{ counts.push_devices }}</b> push</span>
+      <span><i class="tone-blue">{{ icon('users', 13) }}</i><b>{{ counts.users }}</b><small>Usuarios</small></span>
+      <span><i class="tone-cyan">{{ icon('person-card', 13) }}</i><b>{{ counts.clients }}</b><small>Clientes</small></span>
+      <span><i class="tone-purple">{{ icon('box', 13) }}</i><b>{{ counts.assets }}</b><small>Bienes</small></span>
+      <span><i class="tone-orange">{{ icon('contract', 13) }}</i><b>{{ counts.contracts }}</b><small>Acuerdos</small></span>
+      <span><i class="tone-green">{{ icon('bell', 13) }}</i><b>{{ counts.push_devices }}</b><small>Push</small></span>
     </div>
   </section>
 
   <section class="admin-control-center" data-admin-panel-group data-default-panel="subscription">
     <div class="admin-control-launcher" role="tablist" aria-label="Herramientas de la empresa">
-      <button type="button" class="admin-control-button is-active" data-admin-panel-target="subscription" role="tab" aria-selected="true">
+      <button type="button" class="admin-control-button tone-orange is-active" data-admin-panel-target="subscription" role="tab" aria-selected="true">
         <span>{{ icon('shield', 20) }}</span><b>Suscripción</b><small>{{ status_labels.get(effective_status,effective_status) }}</small>
       </button>
-      <button type="button" class="admin-control-button" data-admin-panel-target="billing" role="tab" aria-selected="false">
+      <button type="button" class="admin-control-button tone-green" data-admin-panel-target="billing" role="tab" aria-selected="false">
         <span>{{ icon('wallet', 20) }}</span><b>Cobros</b><small>{{ payments|length }} pagos</small>
       </button>
-      <button type="button" class="admin-control-button" data-admin-panel-target="users" role="tab" aria-selected="false">
+      <button type="button" class="admin-control-button tone-blue" data-admin-panel-target="users" role="tab" aria-selected="false">
         <span>{{ icon('users', 20) }}</span><b>Usuarios</b><small>{{ counts.users }} cuentas</small>
       </button>
-      <button type="button" class="admin-control-button" data-admin-panel-target="company" role="tab" aria-selected="false">
+      <button type="button" class="admin-control-button tone-purple" data-admin-panel-target="company" role="tab" aria-selected="false">
         <span>{{ icon('home', 20) }}</span><b>Empresa</b><small>Ficha básica</small>
       </button>
-      <button type="button" class="admin-control-button" data-admin-panel-target="activity" role="tab" aria-selected="false">
+      <button type="button" class="admin-control-button tone-cyan" data-admin-panel-target="activity" role="tab" aria-selected="false">
         <span>{{ icon('refresh', 20) }}</span><b>Actividad</b><small>{{ recent_activity|length }} recientes</small>
       </button>
-      <button type="button" class="admin-control-button admin-control-button-danger" data-admin-panel-target="maintenance" role="tab" aria-selected="false">
+      <button type="button" class="admin-control-button admin-control-button-danger tone-red" data-admin-panel-target="maintenance" role="tab" aria-selected="false">
         <span>{{ icon('trash', 20) }}</span><b>Datos</b><small>Acciones sensibles</small>
       </button>
     </div>
 
     <div class="admin-panel-host">
       <section class="surface admin-tool-panel is-active" id="subscription" data-admin-panel="subscription" role="tabpanel">
-        <div class="admin-section-head"><div><span class="eyebrow">SUSCRIPCIÓN</span><h2>Plan y estado</h2><p>Plan, acceso comercial y fechas del periodo.</p></div></div>
+        <div class="admin-section-head admin-section-head-modern"><div class="admin-section-title-wrap"><span class="admin-section-icon tone-orange">{{ icon('shield', 18) }}</span><div><span class="eyebrow">SUSCRIPCIÓN</span><h2>Plan y estado</h2><p>Plan, acceso comercial y fechas del periodo.</p></div></div></div>
         <form method="post" action="{{ url_for('admin.update_subscription', organization_id=organization.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="admin-form-grid three">
@@ -81,7 +80,7 @@
       </section>
 
       <section class="surface admin-tool-panel" id="billing" data-admin-panel="billing" role="tabpanel" hidden>
-        <div class="admin-section-head"><div><span class="eyebrow">COBROS</span><h2>Pago de suscripción</h2><p>Registra un pago y renueva el periodo. El historial permanece disponible abajo.</p></div></div>
+        <div class="admin-section-head admin-section-head-modern"><div class="admin-section-title-wrap"><span class="admin-section-icon tone-green">{{ icon('wallet', 18) }}</span><div><span class="eyebrow">COBROS</span><h2>Pago de suscripción</h2><p>Registra un pago y renueva el periodo. El historial permanece disponible abajo.</p></div></div></div>
         <form method="post" action="{{ url_for('admin.record_subscription_payment', organization_id=organization.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="admin-form-grid three">
@@ -111,13 +110,13 @@
       </section>
 
       <section class="surface admin-tool-panel" id="users" data-admin-panel="users" role="tabpanel" hidden>
-        <div class="admin-section-head"><div><span class="eyebrow">ACCESO</span><h2>Usuarios de la empresa</h2><p>Activa, bloquea o corrige cuentas sin entrar al negocio del cliente.</p></div></div>
+        <div class="admin-section-head admin-section-head-modern"><div class="admin-section-title-wrap"><span class="admin-section-icon tone-blue">{{ icon('users', 18) }}</span><div><span class="eyebrow">ACCESO</span><h2>Usuarios de la empresa</h2><p>Activa, bloquea o corrige cuentas sin entrar al negocio del cliente.</p></div></div></div>
         <div class="admin-user-list">
           {% for user in users %}
           <article class="admin-user-row">
             <span class="admin-user-avatar">{{ user.name[:1]|upper }}</span>
             <div class="admin-user-copy"><strong>{{ user.name }}</strong><small>{{ user.email }}</small><span>{{ user.role|capitalize }} · {% if user.last_login_at %}Último acceso {{ user.last_login_at.strftime('%d/%m/%Y %H:%M') }}{% else %}Sin acceso registrado{% endif %}</span></div>
-            <span class="admin-status admin-status-{{ 'success' if user.is_enabled else 'danger' }}">{{ 'Habilitado' if user.is_enabled else 'Bloqueado' }}</span>
+            <span class="admin-status admin-status-{{ 'success' if user.is_enabled else 'danger' }}"><i></i>{{ 'Habilitado' if user.is_enabled else 'Bloqueado' }}</span>
             <form method="post" action="{{ url_for('admin.toggle_user', organization_id=organization.id, user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-secondary admin-mini-btn" type="submit">{{ 'Bloquear' if user.is_enabled else 'Habilitar' }}</button></form>
             <details class="admin-user-reset"><summary>Gestionar usuario</summary><div class="admin-user-manage-grid"><form method="post" action="{{ url_for('admin.update_user', organization_id=organization.id, user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input name="name" value="{{ user.name }}" required aria-label="Nombre"><input type="email" name="email" value="{{ user.email }}" required aria-label="Correo"><select name="role" aria-label="Rol"><option value="staff" {{ 'selected' if user.role == 'staff' }}>Usuario</option><option value="owner" {{ 'selected' if user.role == 'owner' }}>Propietario</option></select><button type="submit">Guardar perfil</button></form><form method="post" action="{{ url_for('admin.reset_user_password', organization_id=organization.id, user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="password" name="password" minlength="8" required placeholder="Nueva contraseña temporal"><button type="submit">Cambiar contraseña</button></form></div></details>
           </article>
@@ -134,7 +133,7 @@
       </section>
 
       <section class="surface admin-tool-panel" id="company" data-admin-panel="company" role="tabpanel" hidden>
-        <div class="admin-section-head"><div><span class="eyebrow">EMPRESA</span><h2>Ficha básica</h2><p>Datos de identidad que usa CuotaGo para esta cuenta.</p></div></div>
+        <div class="admin-section-head admin-section-head-modern"><div class="admin-section-title-wrap"><span class="admin-section-icon tone-purple">{{ icon('home', 18) }}</span><div><span class="eyebrow">EMPRESA</span><h2>Ficha básica</h2><p>Datos de identidad que usa CuotaGo para esta cuenta.</p></div></div></div>
         <div class="admin-company-profile-grid">
           <form method="post" action="{{ url_for('admin.update_company', organization_id=organization.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -146,12 +145,12 @@
       </section>
 
       <section class="surface admin-tool-panel" id="activity" data-admin-panel="activity" role="tabpanel" hidden>
-        <div class="admin-section-head"><div><span class="eyebrow">AUDITORÍA</span><h2>Últimos cambios</h2><p>Acciones administrativas registradas para esta empresa.</p></div><a class="admin-panel-link" href="{{ url_for('admin.activity', q=organization.name) }}">Ver historial completo</a></div>
+        <div class="admin-section-head admin-section-head-modern"><div class="admin-section-title-wrap"><span class="admin-section-icon tone-cyan">{{ icon('refresh', 18) }}</span><div><span class="eyebrow">AUDITORÍA</span><h2>Últimos cambios</h2><p>Acciones administrativas registradas para esta empresa.</p></div></div><a class="admin-panel-link" href="{{ url_for('admin.activity', q=organization.name) }}">Ver historial completo</a></div>
         {% if recent_activity %}<div class="admin-activity-list">{% for log in recent_activity %}<div class="admin-activity-row"><span class="admin-activity-dot"></span><div><strong>{{ log.summary }}</strong><small>{{ log.action }} · {{ log.created_at.strftime('%d/%m/%Y %H:%M') }}</small></div></div>{% endfor %}</div>{% else %}<p class="admin-muted-copy">Sin actividad administrativa.</p>{% endif %}
       </section>
 
       <section class="surface admin-tool-panel admin-tool-panel-danger" id="maintenance" data-admin-panel="maintenance" role="tabpanel" hidden>
-        <div class="admin-section-head"><div><span class="eyebrow">DATOS</span><h2>Acciones sensibles</h2><p>Ninguna operación se ejecuta solo por pulsar el botón: primero debes abrirla y escribir su frase de seguridad.</p></div><span class="admin-danger-badge">Zona sensible</span></div>
+        <div class="admin-section-head admin-section-head-modern"><div class="admin-section-title-wrap"><span class="admin-section-icon tone-red">{{ icon('trash', 18) }}</span><div><span class="eyebrow">DATOS</span><h2>Acciones sensibles</h2><p>Ninguna operación se ejecuta solo por pulsar el botón: primero debes abrirla y escribir su frase de seguridad.</p></div></div><span class="admin-danger-badge">Zona sensible</span></div>
 
         <div class="admin-danger-launcher" data-admin-danger-group data-default-danger="clear">
           <button type="button" class="admin-danger-action is-active" data-admin-danger-target="clear"><span>{{ icon('refresh', 18) }}</span><b>Limpiar módulo</b><small>Solo una categoría</small></button>

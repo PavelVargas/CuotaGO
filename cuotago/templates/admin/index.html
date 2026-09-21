@@ -4,36 +4,57 @@
 {% block body_class %}superadmin-shell{% endblock %}
 {% block content %}
 <section class="content-page admin-console">
-  <header class="admin-console-head">
+  <header class="admin-console-head admin-console-hero">
     <div class="admin-console-title">
       <span class="admin-shield">{{ icon('shield', 24) }}</span>
-      <div><span class="eyebrow">SUPERADMIN</span><h1>Centro de administración</h1><p>Empresas, suscripciones, soporte y control operativo desde un solo lugar.</p></div>
+      <div><span class="eyebrow">SUPERADMIN</span><h1>Centro de administración</h1><p>Controla empresas, suscripciones y soporte desde un panel más claro y visual.</p></div>
     </div>
     <div class="admin-head-actions">
-      <a class="btn btn-secondary" href="{{ url_for('admin.export_subscriptions') }}">{{ icon('download', 17) }} Exportar</a>
-      <a class="btn btn-primary" href="{{ url_for('admin.create_company') }}">+ Nueva empresa</a>
+      <a class="btn btn-secondary admin-head-btn" href="{{ url_for('admin.export_subscriptions') }}"><span class="admin-btn-icon">{{ icon('download', 17) }}</span> Exportar</a>
+      <a class="btn btn-primary admin-head-btn" href="{{ url_for('admin.create_company') }}"><span class="admin-btn-plus">+</span> Nueva empresa</a>
     </div>
   </header>
 
   {% include 'admin/_nav.html' %}
 
   <section class="surface admin-overview-strip" aria-label="Resumen del negocio">
-    <div><span>Empresas</span><strong>{{ total_companies }}</strong><small>Total</small></div>
-    <div><span>Activas</span><strong>{{ active_subscriptions }}</strong><small>{{ due_soon }} por renovar</small></div>
-    <div class="money"><span>MRR estimado</span><strong>RD${{ '{:,.2f}'.format(mrr) }}</strong><small>Mensual</small></div>
-    <div class="money"><span>Cobrado este mes</span><strong>RD${{ '{:,.2f}'.format(collected_month) }}</strong><small>Registrado</small></div>
-    <div class="{{ 'needs-attention' if attention else '' }}"><span>Atención</span><strong>{{ attention }}</strong><small>Pendientes/vencidas</small></div>
-    <div><span>Renuevan en 7 días</span><strong>{{ due_soon }}</strong><small>Próximas</small></div>
+    <div class="admin-kpi tone-blue">
+      <span class="admin-kpi-icon">{{ icon('home', 18) }}</span>
+      <div class="admin-kpi-copy"><span>Empresas</span><strong>{{ total_companies }}</strong><small>Total administradas</small></div>
+    </div>
+    <div class="admin-kpi tone-green">
+      <span class="admin-kpi-icon">{{ icon('shield', 18) }}</span>
+      <div class="admin-kpi-copy"><span>Activas</span><strong>{{ active_subscriptions }}</strong><small>{{ due_soon }} por renovar</small></div>
+    </div>
+    <div class="admin-kpi tone-purple money">
+      <span class="admin-kpi-icon">{{ icon('chart', 18) }}</span>
+      <div class="admin-kpi-copy"><span>MRR estimado</span><strong>RD${{ '{:,.2f}'.format(mrr) }}</strong><small>Ingreso mensual</small></div>
+    </div>
+    <div class="admin-kpi tone-cyan money">
+      <span class="admin-kpi-icon">{{ icon('wallet', 18) }}</span>
+      <div class="admin-kpi-copy"><span>Cobrado este mes</span><strong>RD${{ '{:,.2f}'.format(collected_month) }}</strong><small>Pagos registrados</small></div>
+    </div>
+    <div class="admin-kpi tone-amber {{ 'needs-attention' if attention else '' }}">
+      <span class="admin-kpi-icon">{{ icon('bell-alert', 18) }}</span>
+      <div class="admin-kpi-copy"><span>Atención</span><strong>{{ attention }}</strong><small>Pendientes o vencidas</small></div>
+    </div>
+    <div class="admin-kpi tone-orange">
+      <span class="admin-kpi-icon">{{ icon('calendar-pay', 18) }}</span>
+      <div class="admin-kpi-copy"><span>Renuevan en 7 días</span><strong>{{ due_soon }}</strong><small>Próximas renovaciones</small></div>
+    </div>
   </section>
 
   <section class="surface admin-directory">
-    <div class="admin-section-head">
-      <div><span class="eyebrow">EMPRESAS</span><h2>Directorio</h2><p>Busca una empresa y entra a sus herramientas solo cuando las necesites.</p></div>
-      <span class="admin-result-count">{{ rows|length }} resultado{{ '' if rows|length == 1 else 's' }}</span>
+    <div class="admin-section-head admin-section-head-modern">
+      <div class="admin-section-title-wrap">
+        <span class="admin-section-icon tone-blue">{{ icon('home', 18) }}</span>
+        <div><span class="eyebrow">EMPRESAS</span><h2>Directorio</h2><p>Encuentra una cuenta y entra a sus herramientas solo cuando las necesites.</p></div>
+      </div>
+      <span class="admin-result-count"><b>{{ rows|length }}</b> resultado{{ '' if rows|length == 1 else 's' }}</span>
     </div>
 
     <details class="admin-filter-disclosure" {% if query_text or status_filter != 'all' or plan_filter != 'all' or sort != 'recent' %}open{% endif %}>
-      <summary>{{ icon('search', 16) }} <span>Buscar y filtrar</span>{% if query_text or status_filter != 'all' or plan_filter != 'all' or sort != 'recent' %}<b>Activo</b>{% endif %}</summary>
+      <summary><span class="admin-filter-icon">{{ icon('search', 16) }}</span><span>Buscar y filtrar</span>{% if query_text or status_filter != 'all' or plan_filter != 'all' or sort != 'recent' %}<b>Activo</b>{% endif %}<i>⌄</i></summary>
       <form class="admin-filterbar" method="get">
         <label class="admin-search-field">{{ icon('search', 17) }}<input name="q" value="{{ query_text }}" placeholder="Empresa, propietario o correo" autocomplete="off"></label>
         <select name="status" aria-label="Estado">
@@ -53,19 +74,19 @@
       {% for row in rows %}
       <article class="admin-company-row" role="listitem">
         <div class="admin-company-identity"><span class="admin-company-avatar">{{ row.organization.name[:1]|upper }}</span><div><strong>{{ row.organization.name }}</strong><small>{{ row.owner.email if row.owner else 'Sin propietario' }}</small><small>{{ row.owner.name if row.owner else 'Sin usuario principal' }}</small></div></div>
-        <div class="admin-subscription-cell"><span class="admin-status admin-status-{{ row.status_tone }}">{{ row.status_label }}</span><strong>{{ row.plan.name if row.plan else 'Sin plan' }}</strong>{% if row.plan or row.amount %}<small>{{ row.plan.currency if row.plan else row.organization.currency }} {{ '{:,.2f}'.format(row.amount) }}{% if row.plan and row.plan.billing_interval_months > 1 %} / {{ row.plan.billing_interval_months }} meses{% else %} / mes{% endif %}</small>{% endif %}</div>
+        <div class="admin-subscription-cell"><span class="admin-status admin-status-{{ row.status_tone }}"><i></i>{{ row.status_label }}</span><strong>{{ row.plan.name if row.plan else 'Sin plan' }}</strong>{% if row.plan or row.amount %}<small>{{ row.plan.currency if row.plan else row.organization.currency }} {{ '{:,.2f}'.format(row.amount) }}{% if row.plan and row.plan.billing_interval_months > 1 %} / {{ row.plan.billing_interval_months }} meses{% else %} / mes{% endif %}</small>{% endif %}</div>
         <div class="admin-renewal-cell">{% if row.subscription and row.subscription.current_period_end %}<strong>{{ row.subscription.current_period_end.strftime('%d/%m/%Y') }}</strong>{% if row.days_remaining is not none %}<small class="{{ 'is-danger' if row.days_remaining < 0 else 'is-warning' if row.days_remaining <= 7 else '' }}">{% if row.days_remaining < 0 %}Venció hace {{ row.days_remaining|abs }} día{{ '' if row.days_remaining|abs == 1 else 's' }}{% elif row.days_remaining == 0 %}Vence hoy{% else %}{{ row.days_remaining }} días restantes{% endif %}</small>{% endif %}{% else %}<strong>Sin fecha</strong><small>No configurado</small>{% endif %}</div>
         <div class="admin-usage-cell"><span><b>{{ row.users }}</b> usuarios</span><span><b>{{ row.contracts }}</b> acuerdos</span><span><b>{{ row.clients }}</b> clientes</span></div>
-        <a class="admin-manage-link" href="{{ url_for('admin.organization_detail', organization_id=row.organization.id) }}">Gestionar <span>›</span></a>
+        <a class="admin-manage-link" href="{{ url_for('admin.organization_detail', organization_id=row.organization.id) }}"><span class="admin-manage-label">Gestionar</span><span class="admin-manage-arrow">›</span></a>
       </article>
       {% endfor %}
     </div>
-    {% else %}<div class="admin-empty"><span>{{ icon('search', 30) }}</span><strong>No encontramos empresas</strong><p>Cambia los filtros o crea una empresa nueva.</p></div>{% endif %}
+    {% else %}<div class="admin-empty"><span class="admin-empty-icon tone-blue">{{ icon('search', 28) }}</span><strong>No encontramos empresas</strong><p>Cambia los filtros o crea una empresa nueva.</p></div>{% endif %}
   </section>
 
   <div class="admin-bottom-actions">
-    <a class="admin-bottom-action" href="{{ url_for('admin.plans') }}"><span>{{ icon('wallet', 18) }}</span><div><strong>Planes</strong><small>Precios y ciclos</small></div><b>›</b></a>
-    <a class="admin-bottom-action" href="{{ url_for('admin.activity') }}"><span>{{ icon('refresh', 18) }}</span><div><strong>Actividad administrativa</strong><small>{% if recent_activity %}Último cambio: {{ recent_activity[0].created_at.strftime('%d/%m %H:%M') }}{% else %}Sin actividad todavía{% endif %}</small></div><b>›</b></a>
+    <a class="admin-bottom-action" href="{{ url_for('admin.plans') }}"><span class="admin-bottom-icon tone-purple">{{ icon('wallet', 18) }}</span><div><strong>Planes</strong><small>Precios, ciclos y disponibilidad</small></div><b>›</b></a>
+    <a class="admin-bottom-action" href="{{ url_for('admin.activity') }}"><span class="admin-bottom-icon tone-cyan">{{ icon('refresh', 18) }}</span><div><strong>Actividad administrativa</strong><small>{% if recent_activity %}Último cambio: {{ recent_activity[0].created_at.strftime('%d/%m %H:%M') }}{% else %}Sin actividad todavía{% endif %}</small></div><b>›</b></a>
   </div>
 </section>
 {% endblock %}
