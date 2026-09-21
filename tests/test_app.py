@@ -674,3 +674,26 @@ def test_reports_v19_has_two_column_mobile_kpis_and_core_business_sections():
     assert 'late_fee_generated' in main
     assert 'inventory_available_value' in main
     assert 'recent_activity' in main
+
+def test_reminders_v20_compacts_dashboard_and_adds_dedicated_view():
+    from pathlib import Path
+    dashboard = Path('cuotago/templates/dashboard.html').read_text(encoding='utf-8')
+    reminders = Path('cuotago/templates/reminders/index.html').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    main = Path('cuotago/main.py').read_text(encoding='utf-8')
+    base = Path('cuotago/templates/base.html').read_text(encoding='utf-8')
+    sw = Path('cuotago/static/service-worker.js').read_text(encoding='utf-8')
+
+    assert 'home-reminder-button' in dashboard
+    assert 'Lo que necesita atención' not in dashboard
+    assert "url_for('main.reminders')" in dashboard
+    assert 'reminder_count' in dashboard
+    assert '@main_bp.get("/reminders")' in main
+    assert 'reminders/index.html' in main
+    assert 'PRÓXIMOS 7 DÍAS' in reminders
+    assert 'reminder-v20-row' in reminders
+    assert '.home-reminder-button{' in css
+    assert '.reminders-page-v20{' in css
+    assert '-ui-v20' in base
+    assert "1.12.1-ui-v20" in sw
+

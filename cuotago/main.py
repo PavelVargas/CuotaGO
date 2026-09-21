@@ -392,14 +392,29 @@ def dashboard():
 
     return render_template(
         "dashboard.html",
-        overdue=overdue[:5],
-        due_today=due_today[:5],
-        upcoming=upcoming[:5],
         overdue_count=len(overdue),
         due_today_count=len(due_today),
+        reminder_count=len(overdue) + len(due_today) + len(upcoming),
         active_count=len(active_contracts),
         receivable=receivable,
         overdue_total=overdue_total,
+    )
+
+
+@main_bp.get("/reminders")
+@login_required
+def reminders():
+    items = payment_notification_items(limit=500)
+    overdue = [item for item in items if item["type"] == "overdue"]
+    due_today = [item for item in items if item["type"] == "today"]
+    upcoming = [item for item in items if item["type"] == "upcoming"]
+    return render_template(
+        "reminders/index.html",
+        items=items,
+        overdue=overdue,
+        due_today=due_today,
+        upcoming=upcoming,
+        reminder_count=len(items),
     )
 
 

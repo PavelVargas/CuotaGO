@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Recordatorios · {{ app_name }}{% endblock %}
+{% block body_class %}reminders-page-body{% endblock %}
+
+{% macro reminder_rows(rows, state, label) %}
+  {% for item in rows %}
+  <a class="reminder-v20-row is-{{ state }}" href="{{ item.url }}">
+    <span class="reminder-v20-indicator" aria-hidden="true"></span>
+    <span class="reminder-v20-main">
+      <span class="reminder-v20-name"><strong>{{ item.client }}</strong><span class="reminder-v20-status">{{ label }}</span></span>
+      <small>{% if item.contractCode %}{{ item.contractCode }} · {% endif %}{{ item.asset }}</small>
+    </span>
+    <span class="reminder-v20-side"><strong>{{ item.amount }}</strong><small>{{ item.detail }}</small></span>
+    <span class="reminder-v20-arrow" aria-hidden="true">›</span>
+  </a>
+  {% endfor %}
+{% endmacro %}
+
+{% block content %}
+<section class="content-page reminders-page-v20">
+  <div class="page-head simple-page-head reminders-page-head-v20">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <div>
+        <h1>Recordatorios</h1>
+        <p>Todo lo que necesita seguimiento, sin cargar la pantalla principal.</p>
+      </div>
+    </div>
+  </div>
+
+  <section class="reminder-overview-v20{% if not reminder_count %} is-clear{% endif %}">
+    <span class="reminder-overview-check" aria-hidden="true">✓</span>
+    <div class="reminder-overview-copy">
+      <span class="eyebrow">RESUMEN</span>
+      <strong>{{ reminder_count }} recordatorio{{ 's' if reminder_count != 1 }}</strong>
+      <small>{% if reminder_count %}Vencidos, cobros de hoy y próximos pagos de los siguientes 7 días.{% else %}No tienes pagos por atender en los próximos 7 días.{% endif %}</small>
+    </div>
+    <div class="reminder-overview-breakdown" aria-label="Resumen de recordatorios">
+      <span class="is-overdue"><b>{{ overdue|length }}</b> vencido{{ 's' if overdue|length != 1 }}</span>
+      <span class="is-today"><b>{{ due_today|length }}</b> hoy</span>
+      <span class="is-upcoming"><b>{{ upcoming|length }}</b> próximo{{ 's' if upcoming|length != 1 }}</span>
+    </div>
+  </section>
+
+  {% if reminder_count %}
+    {% if overdue %}
+    <section class="reminder-group-v20">
+      <div class="reminder-group-head-v20"><div><span class="eyebrow danger-text">VENCIDOS</span><h2>Necesitan atención</h2></div><span>{{ overdue|length }}</span></div>
+      <div class="reminder-v20-list">{{ reminder_rows(overdue, 'overdue', 'Vencido') }}</div>
+    </section>
+    {% endif %}
+
+    {% if due_today %}
+    <section class="reminder-group-v20">
+      <div class="reminder-group-head-v20"><div><span class="eyebrow warning-text">HOY</span><h2>Cobros del día</h2></div><span>{{ due_today|length }}</span></div>
+      <div class="reminder-v20-list">{{ reminder_rows(due_today, 'today', 'Hoy') }}</div>
+    </section>
+    {% endif %}
+
+    {% if upcoming %}
+    <section class="reminder-group-v20">
+      <div class="reminder-group-head-v20"><div><span class="eyebrow">PRÓXIMOS 7 DÍAS</span><h2>Lo que viene</h2></div><span>{{ upcoming|length }}</span></div>
+      <div class="reminder-v20-list">{{ reminder_rows(upcoming, 'upcoming', 'Próximo') }}</div>
+    </section>
+    {% endif %}
+  {% else %}
+    <section class="reminders-empty-v20">
+      <span class="reminders-empty-check" aria-hidden="true">✓</span>
+      <strong>Todo está al día</strong>
+      <p>Cuando haya un pago vencido, para hoy o próximo, aparecerá aquí automáticamente.</p>
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('main.collections') }}">Ver cobros</a>
+    </section>
+  {% endif %}
+</section>
+{% endblock %}

@@ -54,39 +54,15 @@
       <div><span>Hoy</span><strong>{{ due_today_count }}</strong></div>
     </div>
 
-    {% if overdue or due_today or upcoming %}
-    <div class="home-reminders">
-      <div class="section-heading compact">
-        <div><span class="eyebrow">RECORDATORIOS</span><h2>Lo que necesita atención</h2></div>
-        <a href="{{ url_for('main.collections') }}">Ver todos</a>
-      </div>
-      <div class="reminder-list">
-        {% for installment in overdue %}
-          <a class="reminder-row is-overdue" href="{{ url_for('main.contract_detail', contract_id=installment.contract.id) }}">
-            <span class="reminder-dot"></span>
-            <span class="reminder-main"><strong>{{ installment.contract.client.full_name }}</strong><small>{{ installment.contract.code }} · venció {{ installment.due_date.strftime('%d/%m') }}</small></span>
-            <span class="reminder-amount">{{ money(installment.remaining) }}</span>
-          </a>
-        {% endfor %}
-        {% for installment in due_today %}
-          <a class="reminder-row is-today" href="{{ url_for('main.contract_detail', contract_id=installment.contract.id) }}">
-            <span class="reminder-dot"></span>
-            <span class="reminder-main"><strong>{{ installment.contract.client.full_name }}</strong><small>{{ installment.contract.code }} · paga hoy</small></span>
-            <span class="reminder-amount">{{ money(installment.remaining) }}</span>
-          </a>
-        {% endfor %}
-        {% for installment in upcoming[:3] %}
-          <a class="reminder-row" href="{{ url_for('main.contract_detail', contract_id=installment.contract.id) }}">
-            <span class="reminder-dot"></span>
-            <span class="reminder-main"><strong>{{ installment.contract.client.full_name }}</strong><small>{{ installment.contract.code }} · {{ installment.due_date.strftime('%d/%m') }}</small></span>
-            <span class="reminder-amount">{{ money(installment.remaining) }}</span>
-          </a>
-        {% endfor %}
-      </div>
-    </div>
-    {% else %}
-    <div class="home-empty"><span>✓</span><div><strong>No tienes cobros pendientes cercanos</strong><small>Cuando crees acuerdos, sus fechas aparecerán aquí.</small></div></div>
-    {% endif %}
+    <a class="home-reminder-button" href="{{ url_for('main.reminders') }}" aria-label="Abrir recordatorios: {{ reminder_count }}">
+      <span class="home-reminder-check" aria-hidden="true">✓</span>
+      <span class="home-reminder-copy">
+        <strong>Recordatorios</strong>
+        <small>Pagos que necesitan seguimiento</small>
+      </span>
+      <span class="home-reminder-pill"><span aria-hidden="true">✓</span>{{ reminder_count }} recordatorio{{ 's' if reminder_count != 1 }}</span>
+      <span class="home-reminder-arrow" aria-hidden="true">›</span>
+    </a>
   </section>
 </section>
 {% endblock %}
