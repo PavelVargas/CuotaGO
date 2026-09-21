@@ -3,89 +3,225 @@
 {% block title %}Nueva compra · {{ app_name }}{% endblock %}
 {% block content %}
 {% set has_assets = assets|length > 0 %}
-<section class="content-page narrow-page simple-form-page">
-  <div class="page-head simple-page-head">
+<section class="content-page purchases-entry-page">
+  <div class="page-head simple-page-head purchases-entry-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.purchases') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><h1>Nueva compra</h1><p>Costo, precio de venta y existencia quedan conectados al inventario.</p></div>
+      <div><span class="eyebrow">COMPRAS</span><h1>Nueva compra</h1><p>Agrega todos los artículos de la compra y guarda todo de una vez.</p></div>
     </div>
   </div>
 
-  <form method="post" class="surface form-surface simple-form-card purchase-form-card" id="purchaseForm" data-mode="{{ 'existing' if form.get('asset_id') or (has_assets and not form.get('asset_name')) else 'new' }}">
+  <form method="post" class="purchase-batch-form" id="purchaseForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <div class="choice-buttons two purchase-mode-toggle" role="group" aria-label="Producto de la compra">
-      <button type="button" data-purchase-mode="existing" {{ 'disabled' if not has_assets }}>Producto existente</button>
-      <button type="button" data-purchase-mode="new">+ Producto nuevo</button>
-    </div>
-
-    <div class="form-stack" data-purchase-fields="existing">
-      <label class="field"><span>Producto *</span><select name="asset_id" id="purchaseAssetSelect">
-        <option value="">Seleccionar...</option>
-        {% for asset in assets %}<option value="{{ asset.id }}" data-cost="{{ asset.estimated_value or 0 }}" data-sale="{{ asset.sale_price or 0 }}" {{ 'selected' if form.get('asset_id')|string == asset.id|string }}>{{ asset.name }} · {{ asset.available_quantity }} disp.</option>{% endfor %}
-      </select></label>
-    </div>
-
-    <div class="form-stack" data-purchase-fields="new">
-      <label class="field"><span>Nombre del producto *</span><input name="asset_name" id="purchaseAssetName" value="{{ form.get('asset_name','') }}" placeholder="Ej. iPhone 15 Pro"></label>
-      <label class="field"><span>Tipo</span><select name="asset_kind">{% set kind=form.get('asset_kind','other') %}<option value="phone" {{ 'selected' if kind=='phone' }}>Celular</option><option value="car" {{ 'selected' if kind=='car' }}>Vehículo</option><option value="motorcycle" {{ 'selected' if kind=='motorcycle' }}>Motor</option><option value="computer" {{ 'selected' if kind=='computer' }}>Computadora</option><option value="appliance" {{ 'selected' if kind=='appliance' }}>Electrodoméstico</option><option value="other" {{ 'selected' if kind=='other' }}>Otro</option></select></label>
-    </div>
-
-    <div class="form-grid two compact-grid">
-      <label class="field"><span>Cantidad *</span><input type="number" min="1" step="1" name="quantity" id="purchaseQuantity" value="{{ form.get('quantity','1') }}" required inputmode="numeric"></label>
-      <label class="field"><span>Fecha *</span><input type="date" name="purchase_date" value="{{ form.get('purchase_date', default_date) }}" required></label>
-      <label class="field"><span>Costo por unidad *</span><input type="number" min="0.01" step="0.01" name="unit_cost" id="purchaseUnitCost" value="{{ form.get('unit_cost','') }}" placeholder="45000" required inputmode="decimal"></label>
-      <label class="field"><span>Precio de venta por unidad *</span><input type="number" min="0.01" step="0.01" name="unit_sale_price" id="purchaseSalePrice" value="{{ form.get('unit_sale_price','') }}" placeholder="60000" required inputmode="decimal"></label>
-    </div>
-
-    <div class="purchase-profit-preview" aria-live="polite">
-      <div><span>Total de compra</span><strong id="purchaseTotalCost">RD$0</strong></div>
-      <div><span>Venta estimada</span><strong id="purchaseExpectedRevenue">RD$0</strong></div>
-      <div class="profit"><span>Ganancia / margen</span><strong id="purchaseExpectedProfit">RD$0 · 0%</strong></div>
-    </div>
-
-    <details class="advanced-options">
-      <summary>Proveedor y referencia</summary>
-      <div class="advanced-options-body"><div class="form-grid two compact-grid">
+    <section class="surface purchase-header-card">
+      <div class="purchase-section-title">
+        <span class="purchase-section-icon">{{ icon('home-purchases', 21) }}</span>
+        <div><strong>Datos de la compra</strong><small>Estos datos se aplican a todos los artículos.</small></div>
+      </div>
+      <div class="form-grid three purchase-common-grid">
+        <label class="field"><span>Fecha *</span><input type="date" name="purchase_date" value="{{ form.get('purchase_date', default_date) }}" required></label>
         <label class="field"><span>Proveedor</span><input name="supplier" value="{{ form.get('supplier','') }}" placeholder="Opcional"></label>
         <label class="field"><span>Factura / referencia</span><input name="reference" value="{{ form.get('reference','') }}" placeholder="Opcional"></label>
-        <label class="field field-span-2"><span>Notas</span><textarea name="notes" rows="2" placeholder="Color, lote, condición...">{{ form.get('notes','') }}</textarea></label>
-      </div></div>
-    </details>
+      </div>
+    </section>
 
-    <div class="quick-create-actions inside-card"><button class="btn btn-primary btn-lg btn-block" type="submit">Guardar compra</button></div>
+    <section class="purchase-items-section">
+      <div class="purchase-items-head">
+        <div><span class="eyebrow">ARTÍCULOS</span><h2>¿Qué compraste?</h2><p>Puedes mezclar carros, celulares u otros artículos en la misma compra.</p></div>
+        <button class="btn btn-soft purchase-add-top" type="button" data-add-purchase-item>+ Agregar artículo</button>
+      </div>
+
+      <div class="purchase-items" id="purchaseItems">
+        {% for row in rows %}
+        {% set row_mode = row.get('mode', 'existing' if has_assets else 'new') %}
+        <article class="surface purchase-item-card" data-purchase-item>
+          <div class="purchase-item-head">
+            <div class="purchase-item-number"><span>Artículo</span><strong data-item-number>{{ loop.index }}</strong></div>
+            <button class="purchase-remove-item" type="button" data-remove-purchase-item aria-label="Quitar artículo">{{ icon('trash', 17) }}<span>Quitar</span></button>
+          </div>
+
+          <input type="hidden" name="item_mode" value="{{ row_mode }}" data-item-mode>
+          <div class="choice-buttons two purchase-mode-toggle" role="group" aria-label="Tipo de artículo">
+            <button type="button" data-row-mode="existing" {{ 'disabled' if not has_assets }}>Del inventario</button>
+            <button type="button" data-row-mode="new">+ Artículo nuevo</button>
+          </div>
+
+          <div class="form-stack" data-row-fields="existing">
+            <label class="field"><span>Producto *</span><select name="item_asset_id" data-purchase-asset>
+              <option value="">Seleccionar...</option>
+              {% for asset in assets %}<option value="{{ asset.id }}" data-cost="{{ asset.estimated_value or 0 }}" data-sale="{{ asset.sale_price or 0 }}" {{ 'selected' if row.get('asset_id')|string == asset.id|string }}>{{ asset.name }} · {{ asset.available_quantity }} disp.</option>{% endfor %}
+            </select></label>
+          </div>
+
+          <div class="form-grid two compact-grid" data-row-fields="new">
+            <label class="field"><span>Nombre *</span><input name="item_name" value="{{ row.get('asset_name','') }}" placeholder="Ej. Toyota Corolla 2022"></label>
+            <label class="field"><span>Tipo</span><select name="item_kind">{% set kind=row.get('asset_kind','other') %}<option value="phone" {{ 'selected' if kind=='phone' }}>Celular</option><option value="car" {{ 'selected' if kind=='car' }}>Vehículo</option><option value="motorcycle" {{ 'selected' if kind=='motorcycle' }}>Motor</option><option value="computer" {{ 'selected' if kind=='computer' }}>Computadora</option><option value="appliance" {{ 'selected' if kind=='appliance' }}>Electrodoméstico</option><option value="other" {{ 'selected' if kind=='other' }}>Otro</option></select></label>
+          </div>
+
+          <div class="form-grid three compact-grid purchase-line-values">
+            <label class="field"><span>Cantidad *</span><input type="number" min="1" step="1" name="item_quantity" value="{{ row.get('quantity','1') }}" required inputmode="numeric" data-purchase-qty></label>
+            <label class="field"><span>Costo c/u *</span><input type="number" min="0.01" step="0.01" name="item_unit_cost" value="{{ row.get('unit_cost','') }}" placeholder="45000" required inputmode="decimal" data-purchase-cost></label>
+            <label class="field"><span>Venta c/u *</span><input type="number" min="0.01" step="0.01" name="item_unit_sale_price" value="{{ row.get('unit_sale_price','') }}" placeholder="60000" required inputmode="decimal" data-purchase-sale></label>
+          </div>
+
+          <label class="field purchase-item-note"><span>Nota de este artículo</span><input name="item_notes" value="{{ row.get('notes','') }}" placeholder="Color, placa, condición... (opcional)"></label>
+
+          <div class="purchase-line-summary" aria-live="polite">
+            <span>Subtotal <strong data-line-cost>RD$0</strong></span>
+            <span>Venta <strong data-line-revenue>RD$0</strong></span>
+            <span class="profit">Ganancia <strong data-line-profit>RD$0 · 0%</strong></span>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+
+      <button class="purchase-add-line" type="button" data-add-purchase-item><span>+</span><strong>Agregar otro artículo</strong><small>No tienes que guardar uno por uno</small></button>
+    </section>
+
+    <section class="surface purchase-batch-summary" aria-live="polite">
+      <div class="purchase-batch-summary-head"><div><span class="eyebrow">RESUMEN</span><strong>Totales de esta compra</strong></div><span class="purchase-item-count" id="purchaseItemCount">1 artículo</span></div>
+      <div class="purchase-profit-preview batch-preview">
+        <div><span>Total invertido</span><strong id="purchaseTotalCost">RD$0</strong></div>
+        <div><span>Venta estimada</span><strong id="purchaseExpectedRevenue">RD$0</strong></div>
+        <div class="profit"><span>Ganancia / margen</span><strong id="purchaseExpectedProfit">RD$0 · 0%</strong></div>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" type="submit" id="purchaseSubmit">Guardar compra</button>
+    </section>
   </form>
 </section>
 {% endblock %}
 {% block scripts %}
 <script>
 (() => {
-  const form = document.getElementById('purchaseForm'); if (!form) return;
-  const select = document.getElementById('purchaseAssetSelect');
-  const name = document.getElementById('purchaseAssetName');
-  const qty = document.getElementById('purchaseQuantity');
-  const cost = document.getElementById('purchaseUnitCost');
-  const sale = document.getElementById('purchaseSalePrice');
+  const form = document.getElementById('purchaseForm');
+  const items = document.getElementById('purchaseItems');
+  if (!form || !items) return;
+
+  const hasAssets = {{ 'true' if has_assets else 'false' }};
+  const money = new Intl.NumberFormat('es-DO', {style:'currency', currency:'DOP', minimumFractionDigits:0, maximumFractionDigits:2});
   const totalCost = document.getElementById('purchaseTotalCost');
   const expectedRevenue = document.getElementById('purchaseExpectedRevenue');
   const expectedProfit = document.getElementById('purchaseExpectedProfit');
-  const money = new Intl.NumberFormat('es-DO',{style:'currency',currency:'DOP',minimumFractionDigits:0,maximumFractionDigits:2});
-  let mode = form.dataset.mode || (select?.options?.length > 1 ? 'existing' : 'new');
-  const setMode = (value) => {
-    mode=value;
-    document.querySelectorAll('[data-purchase-mode]').forEach(b=>{b.classList.toggle('is-active',b.dataset.purchaseMode===mode);b.setAttribute('aria-pressed',b.dataset.purchaseMode===mode?'true':'false')});
-    document.querySelectorAll('[data-purchase-fields]').forEach(box=>box.hidden=box.dataset.purchaseFields!==mode);
-    if(select) select.required=mode==='existing'; if(name) name.required=mode==='new';
+  const itemCount = document.getElementById('purchaseItemCount');
+  const submit = document.getElementById('purchaseSubmit');
+
+  const number = (value) => Math.max(0, Number(value || 0));
+
+  const setMode = (item, mode) => {
+    if (mode === 'existing' && !hasAssets) mode = 'new';
+    const hidden = item.querySelector('[data-item-mode]');
+    if (hidden) hidden.value = mode;
+    item.querySelectorAll('[data-row-mode]').forEach((button) => {
+      const active = button.dataset.rowMode === mode;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    item.querySelectorAll('[data-row-fields]').forEach((box) => {
+      const active = box.dataset.rowFields === mode;
+      box.hidden = !active;
+      box.querySelectorAll('input,select').forEach((control) => {
+        if (control.name === 'item_asset_id' || control.name === 'item_name') control.required = active;
+      });
+    });
+    calculateItem(item);
   };
-  const calculate = () => {
-    const q=Math.max(0,Number(qty?.value||0)); const c=Math.max(0,Number(cost?.value||0)); const s=Math.max(0,Number(sale?.value||0));
-    const invested=q*c; const revenue=q*s; const profit=revenue-invested; const margin=invested>0?(profit/invested)*100:0;
-    totalCost.textContent=money.format(invested); expectedRevenue.textContent=money.format(revenue); expectedProfit.textContent=`${money.format(profit)} · ${margin.toLocaleString('es-DO',{maximumFractionDigits:2})}%`;
+
+  const calculateItem = (item) => {
+    const qty = number(item.querySelector('[data-purchase-qty]')?.value);
+    const cost = number(item.querySelector('[data-purchase-cost]')?.value);
+    const sale = number(item.querySelector('[data-purchase-sale]')?.value);
+    const invested = qty * cost;
+    const revenue = qty * sale;
+    const profit = revenue - invested;
+    const margin = invested > 0 ? (profit / invested) * 100 : 0;
+    item.dataset.invested = String(invested);
+    item.dataset.revenue = String(revenue);
+    item.querySelector('[data-line-cost]').textContent = money.format(invested);
+    item.querySelector('[data-line-revenue]').textContent = money.format(revenue);
+    item.querySelector('[data-line-profit]').textContent = `${money.format(profit)} · ${margin.toLocaleString('es-DO',{maximumFractionDigits:2})}%`;
+    calculateBatch();
   };
-  const syncAsset = (force=false) => { const option=select?.selectedOptions?.[0]; if(!option?.value)return; if((force || !cost.value) && Number(option.dataset.cost)>0)cost.value=option.dataset.cost; if((force || !sale.value) && Number(option.dataset.sale)>0)sale.value=option.dataset.sale; calculate(); };
-  document.querySelectorAll('[data-purchase-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.purchaseMode)));
-  select?.addEventListener('change',()=>syncAsset(true)); [qty,cost,sale].forEach(el=>el?.addEventListener('input',calculate));
-  setMode(mode); syncAsset(false); calculate();
+
+  const calculateBatch = () => {
+    const all = [...items.querySelectorAll('[data-purchase-item]')];
+    let invested = 0;
+    let revenue = 0;
+    all.forEach((item) => {
+      invested += number(item.dataset.invested);
+      revenue += number(item.dataset.revenue);
+    });
+    const profit = revenue - invested;
+    const margin = invested > 0 ? (profit / invested) * 100 : 0;
+    totalCost.textContent = money.format(invested);
+    expectedRevenue.textContent = money.format(revenue);
+    expectedProfit.textContent = `${money.format(profit)} · ${margin.toLocaleString('es-DO',{maximumFractionDigits:2})}%`;
+    itemCount.textContent = `${all.length} artículo${all.length === 1 ? '' : 's'}`;
+    submit.textContent = all.length === 1 ? 'Guardar compra' : `Guardar ${all.length} artículos`;
+    all.forEach((item, index) => {
+      const label = item.querySelector('[data-item-number]');
+      if (label) label.textContent = String(index + 1);
+      const remove = item.querySelector('[data-remove-purchase-item]');
+      if (remove) remove.hidden = all.length === 1;
+    });
+  };
+
+  const syncAsset = (item, force = false) => {
+    const select = item.querySelector('[data-purchase-asset]');
+    const option = select?.selectedOptions?.[0];
+    if (!option?.value) return calculateItem(item);
+    const cost = item.querySelector('[data-purchase-cost]');
+    const sale = item.querySelector('[data-purchase-sale]');
+    if ((force || !cost.value) && number(option.dataset.cost) > 0) cost.value = option.dataset.cost;
+    if ((force || !sale.value) && number(option.dataset.sale) > 0) sale.value = option.dataset.sale;
+    calculateItem(item);
+  };
+
+  const bindItem = (item) => {
+    item.querySelectorAll('[data-row-mode]').forEach((button) => button.addEventListener('click', () => setMode(item, button.dataset.rowMode)));
+    item.querySelector('[data-purchase-asset]')?.addEventListener('change', () => syncAsset(item, true));
+    item.querySelectorAll('[data-purchase-qty],[data-purchase-cost],[data-purchase-sale]').forEach((control) => control.addEventListener('input', () => calculateItem(item)));
+    item.querySelector('[data-remove-purchase-item]')?.addEventListener('click', () => {
+      if (items.querySelectorAll('[data-purchase-item]').length <= 1) return;
+      item.remove();
+      calculateBatch();
+    });
+    setMode(item, item.querySelector('[data-item-mode]')?.value || (hasAssets ? 'existing' : 'new'));
+    syncAsset(item, false);
+  };
+
+  const addItem = () => {
+    const source = items.querySelector('[data-purchase-item]');
+    if (!source) return;
+    const item = source.cloneNode(true);
+    item.querySelector('[data-item-mode]').value = hasAssets ? 'existing' : 'new';
+    const select = item.querySelector('[data-purchase-asset]');
+    if (select) select.value = '';
+    const name = item.querySelector('input[name="item_name"]');
+    if (name) name.value = '';
+    const kind = item.querySelector('select[name="item_kind"]');
+    if (kind) kind.value = 'other';
+    const qty = item.querySelector('[data-purchase-qty]');
+    if (qty) qty.value = '1';
+    const cost = item.querySelector('[data-purchase-cost]');
+    if (cost) cost.value = '';
+    const sale = item.querySelector('[data-purchase-sale]');
+    if (sale) sale.value = '';
+    const note = item.querySelector('input[name="item_notes"]');
+    if (note) note.value = '';
+    item.dataset.invested = '0';
+    item.dataset.revenue = '0';
+    items.appendChild(item);
+    bindItem(item);
+    calculateBatch();
+    item.scrollIntoView({behavior:'smooth', block:'center'});
+    const firstControl = hasAssets ? item.querySelector('[data-purchase-asset]') : item.querySelector('input[name="item_name"]');
+    window.setTimeout(() => firstControl?.focus({preventScroll:true}), 260);
+  };
+
+  items.querySelectorAll('[data-purchase-item]').forEach(bindItem);
+  document.querySelectorAll('[data-add-purchase-item]').forEach((button) => button.addEventListener('click', addItem));
+  calculateBatch();
 })();
 </script>
 {% endblock %}

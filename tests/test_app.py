@@ -902,7 +902,7 @@ def test_reminders_v20_compacts_dashboard_and_adds_dedicated_view():
     assert '.home-reminder-button{' in css
     assert '.reminders-page-v20{' in css
     assert '-ui-v27' in base
-    assert "1.14.0-ui-v27" in sw
+    assert "1.14.0-ui-v28" in sw
 
 
 
@@ -918,4 +918,58 @@ def test_overdue_push_repeats_outside_app_without_notification_pileup():
     assert 'Recordatorio de cobro' in push
     assert 'replaceKey' in push
     assert 'getNotifications()' in worker
-    assert "1.14.0-ui-v27" in worker
+    assert "1.14.0-ui-v28" in worker
+
+
+def test_purchase_batch_registers_multiple_items_in_one_submit(client, app):
+    register(client)
+    client.post('/assets/new', data={
+        'kind': 'phone', 'name': 'Producto existente lote', 'quantity_total': '2',
+        'estimated_value': '100', 'sale_price': '150'
+    }, follow_redirects=True)
+    with app.app_context():
+        existing_id = Asset.query.filter_by(name='Producto existente lote').one().id
+
+    response = client.post('/purchases/new', data={
+        'purchase_date': date.today().isoformat(),
+        'supplier': 'Proveedor lote',
+        'reference': 'FAC-001',
+        'item_mode': ['existing', 'new'],
+        'item_asset_id': [str(existing_id), ''],
+        'item_name': ['', 'Toyota Corolla lote'],
+        'item_kind': ['other', 'car'],
+        'item_quantity': ['3', '2'],
+        'item_unit_cost': ['200', '500000'],
+        'item_unit_sale_price': ['300', '650000'],
+        'item_notes': ['Reposicion', 'Dos unidades'],
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'2 art' in response.data
+
+    with app.app_context():
+        purchases = Purchase.query.order_by(Purchase.id.asc()).all()
+        assert len(purchases) == 2
+        assert sum(p.quantity for p in purchases) == 5
+        existing = db.session.get(Asset, existing_id)
+        assert existing.quantity_total == 5
+        assert existing.estimated_value == Decimal('160.00')
+        assert existing.sale_price == Decimal('300.00')
+        new_asset = Asset.query.filter_by(name='Toyota Corolla lote').one()
+        assert new_asset.quantity_total == 2
+        assert new_asset.estimated_value == Decimal('500000.00')
+        assert new_asset.sale_price == Decimal('650000.00')
+        assert all(p.supplier == 'Proveedor lote' for p in purchases)
+        assert all(p.reference == 'FAC-001' for p in purchases)
+
+
+def test_purchase_form_supports_dynamic_multiple_rows_and_launcher_flows_left_to_right():
+    from pathlib import Path
+    form_html = Path('cuotago/templates/purchases/form.html').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    assert 'data-add-purchase-item' in form_html
+    assert 'name="item_quantity"' in form_html
+    assert 'name="item_unit_cost"' in form_html
+    assert 'name="item_unit_sale_price"' in form_html
+    assert 'Guardar ${all.length} artículos' in form_html
+    assert '.dashboard-launcher-v3 .module-grid>.module-card:last-child{grid-column:2 / span 2}' not in css
+    assert 'grid-column:auto!important' in css

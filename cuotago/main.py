@@ -683,91 +683,192 @@ def purchase_new():
         .order_by(Asset.name.asc())
         .all()
     )
-    if request.method == "POST":
-        asset_id = request.form.get("asset_id", type=int)
-        asset = None
-        if asset_id:
-            asset = Asset.query.filter_by(
-                id=asset_id, organization_id=current_user.organization_id
-            ).first()
 
-        asset_name = request.form.get("asset_name", "").strip()
-        asset_kind = request.form.get("asset_kind", "other").strip()
+    def submitted_rows():
+        fields = {
+            "mode": request.form.getlist("item_mode"),
+            "asset_id": request.form.getlist("item_asset_id"),
+            "asset_name": request.form.getlist("item_name"),
+            "asset_kind": request.form.getlist("item_kind"),
+            "quantity": request.form.getlist("item_quantity"),
+            "unit_cost": request.form.getlist("item_unit_cost"),
+            "unit_sale_price": request.form.getlist("item_unit_sale_price"),
+            "notes": request.form.getlist("item_notes"),
+        }
+        row_count = max((len(values) for values in fields.values()), default=0)
+
+        # Backward compatibility with the original one-item purchase form and
+        # older clients/tests that may still POST those field names.
+        if row_count == 0:
+            legacy_has_values = any(
+                request.form.get(name)
+                for name in ("asset_id", "asset_name", "quantity", "unit_cost", "unit_sale_price")
+            )
+            if legacy_has_values:
+                return [{
+                    "mode": "existing" if request.form.get("asset_id") else "new",
+                    "asset_id": request.form.get("asset_id", ""),
+                    "asset_name": request.form.get("asset_name", ""),
+                    "asset_kind": request.form.get("asset_kind", "other"),
+                    "quantity": request.form.get("quantity", "1"),
+                    "unit_cost": request.form.get("unit_cost", ""),
+                    "unit_sale_price": request.form.get("unit_sale_price", ""),
+                    "notes": request.form.get("notes", ""),
+                }]
+            return []
+
+        rows = []
+        for index in range(row_count):
+            def value(key, default=""):
+                values = fields[key]
+                return values[index] if index < len(values) else default
+
+            rows.append({
+                "mode": value("mode", "existing" if assets_list else "new"),
+                "asset_id": value("asset_id"),
+                "asset_name": value("asset_name"),
+                "asset_kind": value("asset_kind", "other"),
+                "quantity": value("quantity", "1"),
+                "unit_cost": value("unit_cost"),
+                "unit_sale_price": value("unit_sale_price"),
+                "notes": value("notes"),
+            })
+        return rows
+
+    if request.method == "POST":
+        rows = submitted_rows()
         supplier = request.form.get("supplier", "").strip()
         reference = request.form.get("reference", "").strip()
-        notes = request.form.get("notes", "").strip()
-        quantity = parse_int(request.form.get("quantity"), None, minimum=1)
-        unit_cost = parse_money(request.form.get("unit_cost"))
-        unit_sale_price = parse_money(request.form.get("unit_sale_price"))
         purchase_date = parse_date(request.form.get("purchase_date")) or local_today()
-
         errors = []
-        if asset_id and asset is None:
-            errors.append("El producto seleccionado no existe.")
-        if asset is None and len(asset_name) < 2:
-            errors.append("Escribe el nombre del producto o selecciona uno del inventario.")
-        if asset_kind not in {"car", "phone", "motorcycle", "appliance", "computer", "other"}:
-            asset_kind = "other"
-        if quantity is None or quantity < 1:
-            errors.append("La cantidad debe ser al menos 1.")
-        if unit_cost is None or unit_cost <= 0:
-            errors.append("El costo por unidad debe ser mayor que cero.")
-        if unit_sale_price is None or unit_sale_price <= 0:
-            errors.append("El precio de venta por unidad debe ser mayor que cero.")
-        elif unit_cost is not None and unit_sale_price < unit_cost:
-            errors.append("El precio de venta no puede ser menor que el costo por unidad.")
+        prepared = []
+        allowed_kinds = {"car", "phone", "motorcycle", "appliance", "computer", "other"}
+
+        if not rows:
+            errors.append("Agrega al menos un artículo a la compra.")
+
+        for index, row in enumerate(rows, start=1):
+            mode = (row.get("mode") or "existing").strip()
+            asset = None
+            asset_id = parse_int(row.get("asset_id"), None, minimum=1)
+            asset_name = (row.get("asset_name") or "").strip()
+            asset_kind = (row.get("asset_kind") or "other").strip()
+            quantity = parse_int(row.get("quantity"), None, minimum=1)
+            unit_cost = parse_money(row.get("unit_cost"))
+            unit_sale_price = parse_money(row.get("unit_sale_price"))
+            notes = (row.get("notes") or "").strip()
+            prefix = f"Artículo {index}: "
+
+            if mode == "existing":
+                if asset_id:
+                    asset = Asset.query.filter_by(
+                        id=asset_id, organization_id=current_user.organization_id
+                    ).first()
+                if asset is None:
+                    errors.append(prefix + "selecciona un producto válido del inventario.")
+            else:
+                mode = "new"
+                if len(asset_name) < 2:
+                    errors.append(prefix + "escribe el nombre del producto.")
+                if asset_kind not in allowed_kinds:
+                    asset_kind = "other"
+
+            if quantity is None or quantity < 1:
+                errors.append(prefix + "la cantidad debe ser al menos 1.")
+            if unit_cost is None or unit_cost <= 0:
+                errors.append(prefix + "el costo por unidad debe ser mayor que cero.")
+            if unit_sale_price is None or unit_sale_price <= 0:
+                errors.append(prefix + "el precio de venta debe ser mayor que cero.")
+            elif unit_cost is not None and unit_sale_price < unit_cost:
+                errors.append(prefix + "el precio de venta no puede ser menor que el costo.")
+
+            prepared.append({
+                "mode": mode,
+                "asset": asset,
+                "asset_name": asset_name,
+                "asset_kind": asset_kind,
+                "quantity": quantity,
+                "unit_cost": unit_cost,
+                "unit_sale_price": unit_sale_price,
+                "notes": notes,
+            })
 
         if errors:
             for error in errors:
                 flash(error, "error")
             return render_template(
-                "purchases/form.html", assets=assets_list, form=request.form, default_date=local_today().isoformat()
+                "purchases/form.html",
+                assets=assets_list,
+                form=request.form,
+                rows=rows or [{"mode": "existing" if assets_list else "new", "quantity": "1", "asset_kind": "other"}],
+                default_date=local_today().isoformat(),
             )
 
-        if asset is None:
-            asset = Asset(
-                organization_id=current_user.organization_id,
-                kind=asset_kind,
-                name=asset_name,
-                estimated_value=unit_cost,
-                sale_price=unit_sale_price,
-                quantity_total=quantity,
-                status="available",
-            )
-            db.session.add(asset)
-            db.session.flush()
-        else:
-            previous_quantity = max(int(asset.quantity_total or 0), 0)
-            previous_cost = money_decimal(asset.estimated_value)
-            new_quantity = previous_quantity + quantity
-            if previous_quantity > 0 and previous_cost > 0:
-                weighted_cost = (previous_cost * Decimal(previous_quantity) + unit_cost * Decimal(quantity)) / Decimal(new_quantity)
-                asset.estimated_value = money_decimal(weighted_cost)
+        total_units = 0
+        created_purchases = 0
+        for item in prepared:
+            quantity = item["quantity"]
+            unit_cost = item["unit_cost"]
+            unit_sale_price = item["unit_sale_price"]
+            asset = item["asset"]
+
+            if item["mode"] == "new":
+                asset = Asset(
+                    organization_id=current_user.organization_id,
+                    kind=item["asset_kind"],
+                    name=item["asset_name"],
+                    estimated_value=unit_cost,
+                    sale_price=unit_sale_price,
+                    quantity_total=quantity,
+                    status="available",
+                )
+                db.session.add(asset)
+                db.session.flush()
             else:
-                asset.estimated_value = unit_cost
-            asset.sale_price = unit_sale_price
-            asset.quantity_total = new_quantity
-            if asset.status != "maintenance":
-                refresh_asset_status(asset)
+                previous_quantity = max(int(asset.quantity_total or 0), 0)
+                previous_cost = money_decimal(asset.estimated_value)
+                new_quantity = previous_quantity + quantity
+                if previous_quantity > 0 and previous_cost > 0:
+                    weighted_cost = (
+                        previous_cost * Decimal(previous_quantity)
+                        + unit_cost * Decimal(quantity)
+                    ) / Decimal(new_quantity)
+                    asset.estimated_value = money_decimal(weighted_cost)
+                else:
+                    asset.estimated_value = unit_cost
+                asset.sale_price = unit_sale_price
+                asset.quantity_total = new_quantity
+                if asset.status != "maintenance":
+                    refresh_asset_status(asset)
 
-        purchase = Purchase(
-            organization_id=current_user.organization_id,
-            asset=asset,
-            supplier=supplier,
-            reference=reference,
-            purchase_date=purchase_date,
-            quantity=quantity,
-            unit_cost=unit_cost,
-            unit_sale_price=unit_sale_price,
-            notes=notes,
-        )
-        db.session.add(purchase)
+            db.session.add(Purchase(
+                organization_id=current_user.organization_id,
+                asset=asset,
+                supplier=supplier,
+                reference=reference,
+                purchase_date=purchase_date,
+                quantity=quantity,
+                unit_cost=unit_cost,
+                unit_sale_price=unit_sale_price,
+                notes=item["notes"],
+            ))
+            total_units += quantity
+            created_purchases += 1
+
         db.session.commit()
-        flash(f"Compra registrada: {quantity} unidad(es) de {asset.name}.", "success")
+        flash(
+            f"Compra registrada: {created_purchases} artículo(s) · {total_units} unidad(es).",
+            "success",
+        )
         return redirect(url_for("main.purchases"))
 
+    default_mode = "existing" if assets_list else "new"
     return render_template(
-        "purchases/form.html", assets=assets_list, form={}, default_date=local_today().isoformat()
+        "purchases/form.html",
+        assets=assets_list,
+        form={},
+        rows=[{"mode": default_mode, "quantity": "1", "asset_kind": "other"}],
+        default_date=local_today().isoformat(),
     )
 
 
