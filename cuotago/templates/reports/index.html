@@ -2,18 +2,170 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Reportes · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page">
-  <div class="page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back', 22) }}</a><div><span class="eyebrow">REPORTES</span><h1>Resumen del negocio</h1><p>Números básicos para saber cuánto has cobrado y cuánto falta.</p></div></div></div>
-
-  <div class="report-hero-grid">
-    <article class="report-card primary"><span>Por cobrar</span><strong>{{ money(receivable) }}</strong><small>{{ active_count }} acuerdos activos</small></article>
-    <article class="report-card"><span>Cobrado este mes</span><strong>{{ money(month_collected) }}</strong><small>Pagos registrados</small></article>
-    <article class="report-card danger"><span>Vencido</span><strong>{{ money(overdue_total) }}</strong><small>{{ overdue_count }} cuotas</small></article>
+<section class="content-page reports-v19">
+  <div class="page-head report-page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back', 22) }}</a>
+      <div>
+        <span class="eyebrow">REPORTES</span>
+        <h1>Cómo va el negocio</h1>
+        <p>Lo importante: cobros, cartera, ganancia, mora e inventario.</p>
+      </div>
+    </div>
   </div>
 
-  <div class="report-grid">
-    <section class="surface report-panel"><div class="section-heading"><div><span class="eyebrow">ACTIVIDAD</span><h2>Estado general</h2></div></div><div class="stat-list"><div><span>Acuerdos activos</span><strong>{{ active_count }}</strong></div><div><span>Acuerdos completados</span><strong>{{ completed_count }}</strong></div><div><span>Clientes</span><strong>{{ clients_count }}</strong></div><div><span>Bienes registrados</span><strong>{{ assets_count }}</strong></div></div></section>
-    <section class="surface report-panel"><div class="section-heading"><div><span class="eyebrow">LECTURA RÁPIDA</span><h2>Qué mirar cada día</h2></div></div><div class="tip-list"><p><strong>1. Vencidos:</strong> son los cobros que ya pasaron de fecha.</p><p><strong>2. Por cobrar:</strong> es el saldo que todavía deben tus clientes.</p><p><strong>3. Cobrado este mes:</strong> solo cuenta pagos registrados después del inicial.</p></div></section>
+  <form class="report-filters-v19" method="get" action="{{ url_for('main.reports') }}">
+    <label>
+      <span>Periodo</span>
+      <select name="period">
+        <option value="today" {% if report_period == 'today' %}selected{% endif %}>Hoy</option>
+        <option value="7d" {% if report_period == '7d' %}selected{% endif %}>Últimos 7 días</option>
+        <option value="month" {% if report_period == 'month' %}selected{% endif %}>Este mes</option>
+        <option value="all" {% if report_period == 'all' %}selected{% endif %}>Todo</option>
+      </select>
+    </label>
+    <label>
+      <span>Cliente</span>
+      <select name="client_id">
+        <option value="">Todos</option>
+        {% for client in report_clients %}
+          <option value="{{ client.id }}" {% if selected_client_id == client.id %}selected{% endif %}>{{ client.full_name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span>Estado</span>
+      <select name="status">
+        <option value="all" {% if report_status == 'all' %}selected{% endif %}>Todos</option>
+        <option value="active" {% if report_status == 'active' %}selected{% endif %}>Activos</option>
+        <option value="overdue" {% if report_status == 'overdue' %}selected{% endif %}>Con atraso</option>
+        <option value="completed" {% if report_status == 'completed' %}selected{% endif %}>Completados</option>
+      </select>
+    </label>
+    <button class="btn btn-secondary report-filter-button" type="submit">Aplicar</button>
+  </form>
+
+  <div class="report-kpi-grid-v19">
+    <article class="report-kpi-v19">
+      <span>Por cobrar</span>
+      <strong>{{ money(receivable) }}</strong>
+      <small>{{ active_count }} acuerdo{% if active_count != 1 %}s{% endif %} activo{% if active_count != 1 %}s{% endif %}</small>
+    </article>
+    <article class="report-kpi-v19 danger">
+      <span>Vencido</span>
+      <strong>{{ money(overdue_total) }}</strong>
+      <small>{{ overdue_clients_count }} cliente{% if overdue_clients_count != 1 %}s{% endif %} con atraso</small>
+    </article>
+    <article class="report-kpi-v19 success">
+      <span>Cobrado · {{ period_label }}</span>
+      <strong>{{ money(period_collected) }}</strong>
+      <small>{{ period_payment_count }} movimiento{% if period_payment_count != 1 %}s{% endif %}</small>
+    </article>
+    <article class="report-kpi-v19 profit">
+      <span>Ganancia esperada</span>
+      <strong>{{ money(profit_expected) }}</strong>
+      <small>En acuerdos con costo registrado</small>
+    </article>
   </div>
+
+  <div class="report-primary-grid-v19">
+    <section class="surface report-panel-v19 report-chart-panel-v19">
+      <div class="report-section-head-v19">
+        <div>
+          <span class="eyebrow">COBROS</span>
+          <h2>{{ chart_title }}</h2>
+        </div>
+        <strong>{{ money(chart_total) }}</strong>
+      </div>
+
+      <div class="report-chart-v19" aria-label="Gráfica de cobros del periodo">
+        <div class="report-chart-scale-v19">
+          <span>{{ money(chart_max_value) }}</span>
+          <span>{{ money(0) }}</span>
+        </div>
+        <svg viewBox="0 0 1000 190" role="img" aria-hidden="true" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="reportAreaFill" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="currentColor" stop-opacity=".16" />
+              <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+          <line x1="20" y1="155" x2="980" y2="155" class="report-chart-axis-v19" />
+          {% if chart_has_data %}
+            <polygon points="{{ chart_area_svg }}" fill="url(#reportAreaFill)" />
+            <polyline points="{{ chart_points_svg }}" class="report-chart-line-v19" />
+          {% else %}
+            <line x1="20" y1="155" x2="980" y2="155" class="report-chart-empty-line-v19" />
+          {% endif %}
+        </svg>
+        <div class="report-chart-labels-v19"><span>{{ chart_first_label }}</span><span>{{ chart_last_label }}</span></div>
+        {% if not chart_has_data %}<p class="report-empty-v19">Todavía no hay cobros registrados en este periodo.</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="surface report-panel-v19 report-portfolio-panel-v19">
+      <div class="report-section-head-v19">
+        <div><span class="eyebrow">CARTERA</span><h2>Estado actual</h2></div>
+      </div>
+      <div class="report-metric-list-v19">
+        <div><span>Clientes al día</span><strong>{{ current_clients_count }}</strong></div>
+        <div class="danger"><span>Clientes vencidos</span><strong>{{ overdue_clients_count }}</strong></div>
+        <div><span>Próximos 7 días</span><strong>{{ money(upcoming_total) }}</strong></div>
+        <div><span>Acuerdos completados</span><strong>{{ completed_count }}</strong></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="report-detail-grid-v19">
+    <section class="surface report-panel-v19">
+      <div class="report-section-head-v19"><div><span class="eyebrow">RENTABILIDAD</span><h2>Capital y ganancia</h2></div></div>
+      <div class="report-money-stack-v19">
+        <div><span>Total acordado</span><strong>{{ money(financed_total) }}</strong></div>
+        <div><span>Capital registrado</span><strong>{{ money(capital_total) }}</strong></div>
+        <div class="success"><span>Capital recuperado · estimado</span><strong>{{ money(capital_recovered) }}</strong></div>
+        <div><span>Capital pendiente · estimado</span><strong>{{ money(capital_pending) }}</strong></div>
+        <div class="profit"><span>Ganancia cobrada · estimada</span><strong>{{ money(profit_realized) }}</strong></div>
+        <div><span>Ganancia pendiente · estimada</span><strong>{{ money(profit_pending) }}</strong></div>
+      </div>
+      {% if profit_untracked_count %}<p class="report-note-v19">{{ profit_untracked_count }} acuerdo{% if profit_untracked_count != 1 %}s{% endif %} no tiene{% if profit_untracked_count == 1 %}{% else %}n{% endif %} costo base registrado y no entra{% if profit_untracked_count != 1 %}n{% endif %} en la ganancia.</p>{% endif %}
+    </section>
+
+    <section class="surface report-panel-v19">
+      <div class="report-section-head-v19"><div><span class="eyebrow">MORA</span><h2>Recargos</h2></div></div>
+      <div class="report-metric-list-v19 compact">
+        <div><span>Generada</span><strong>{{ money(late_fee_generated) }}</strong></div>
+        <div class="success"><span>Cobrada</span><strong>{{ money(late_fee_collected) }}</strong></div>
+        <div class="danger"><span>Pendiente</span><strong>{{ money(late_fee_pending) }}</strong></div>
+      </div>
+    </section>
+
+    <section class="surface report-panel-v19">
+      <div class="report-section-head-v19"><div><span class="eyebrow">INVENTARIO</span><h2>Disponibilidad</h2></div></div>
+      <div class="report-metric-list-v19 compact">
+        <div><span>Unidades disponibles</span><strong>{{ inventory_available_units }}</strong></div>
+        <div><span>Comprometidas</span><strong>{{ inventory_committed_units }}</strong></div>
+        <div><span>Valor disponible</span><strong>{{ money(inventory_available_value) }}</strong></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="surface report-panel-v19 report-activity-v19">
+    <div class="report-section-head-v19">
+      <div><span class="eyebrow">MOVIMIENTOS</span><h2>Actividad reciente</h2></div>
+    </div>
+    {% if recent_activity %}
+      <div class="report-activity-list-v19">
+        {% for item in recent_activity %}
+          <a href="{{ item.url }}" class="report-activity-row-v19">
+            <span class="report-activity-icon-v19 {{ item.kind }}">{% if item.kind == 'agreement' %}{{ icon('contract', 18) }}{% else %}{{ icon('cash-stack', 18) }}{% endif %}</span>
+            <span class="report-activity-copy-v19"><strong>{{ item.label }} · {{ item.client }}</strong><small>{{ item.detail }} · {{ item.date }}</small></span>
+            <b>{{ money(item.amount) }}</b>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="report-empty-v19">Todavía no hay movimientos para mostrar.</p>
+    {% endif %}
+  </section>
 </section>
 {% endblock %}

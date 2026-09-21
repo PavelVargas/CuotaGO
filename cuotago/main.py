@@ -1074,35 +1074,247 @@ def payment_calendar():
 @main_bp.get("/reports")
 @login_required
 def reports():
+    """Simple business report focused on collections, portfolio and profit."""
+    sync_org_late_fees(commit=True)
     org_id = current_user.organization_id
-    contracts_all = Contract.query.filter_by(organization_id=org_id).all()
-    active = [c for c in contracts_all if c.status == "active"]
-    completed = [c for c in contracts_all if c.status == "completed"]
-    clients_count = Client.query.filter_by(organization_id=org_id).count()
-    assets_count = Asset.query.filter_by(organization_id=org_id).count()
+    today_value = local_today()
 
-    month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    monthly_payments = (
-        Payment.query.join(Contract)
-        .filter(Contract.organization_id == org_id, Payment.paid_at >= month_start)
+    report_period = (request.args.get("period") or "month").strip().lower()
+    if report_period not in {"today", "7d", "month", "all"}:
+        report_period = "month"
+    report_status = (request.args.get("status") or "all").strip().lower()
+    if report_status not in {"all", "active", "overdue", "completed"}:
+        report_status = "all"
+    selected_client_id = parse_int(request.args.get("client_id"))
+
+    period_labels = {
+        "today": "Hoy",
+        "7d": "7 días",
+        "month": "Este mes",
+        "all": "Histórico",
+    }
+    period_label = period_labels[report_period]
+    if report_period == "today":
+        period_start = today_value
+    elif report_period == "7d":
+        period_start = today_value - timedelta(days=6)
+    elif report_period == "month":
+        period_start = today_value.replace(day=1)
+    else:
+        period_start = None
+
+    report_clients = (
+        Client.query.filter_by(organization_id=org_id)
+        .order_by(Client.full_name.asc())
         .all()
     )
-    month_collected = sum((money_decimal(p.amount) for p in monthly_payments), Decimal("0.00"))
-    installments = tenant_installments(active_only=True)
-    receivable = sum((c.balance for c in active), Decimal("0.00"))
-    overdue = [i for i in installments if i.remaining > Decimal("0.009") and i.due_date < local_today()]
-    overdue_total = sum((i.remaining for i in overdue), Decimal("0.00"))
+    if selected_client_id and not any(client.id == selected_client_id for client in report_clients):
+        selected_client_id = None
+
+    contracts_all = (
+        Contract.query.filter_by(organization_id=org_id)
+        .order_by(Contract.created_at.desc())
+        .all()
+    )
+    if selected_client_id:
+        contracts_all = [contract for contract in contracts_all if contract.client_id == selected_client_id]
+
+    def contract_is_overdue(contract):
+        return contract.status == "active" and any(
+            item.remaining > Decimal("0.009") and item.due_date < today_value
+            for item in contract.installments
+        )
+
+    if report_status == "active":
+        contracts_scope = [contract for contract in contracts_all if contract.status == "active"]
+    elif report_status == "completed":
+        contracts_scope = [contract for contract in contracts_all if contract.status == "completed"]
+    elif report_status == "overdue":
+        contracts_scope = [contract for contract in contracts_all if contract_is_overdue(contract)]
+    else:
+        contracts_scope = list(contracts_all)
+
+    active = [contract for contract in contracts_scope if contract.status == "active"]
+    completed = [contract for contract in contracts_scope if contract.status == "completed"]
+    active_installments = [item for contract in active for item in contract.installments]
+    all_installments = [item for contract in contracts_scope for item in contract.installments]
+    all_payments = [payment for contract in contracts_scope for payment in contract.payments]
+
+    receivable = sum((contract.balance for contract in active), Decimal("0.00"))
+    overdue_installments = [
+        item for item in active_installments
+        if item.remaining > Decimal("0.009") and item.due_date < today_value
+    ]
+    overdue_total = sum((item.remaining for item in overdue_installments), Decimal("0.00"))
+    overdue_client_ids = {item.contract.client_id for item in overdue_installments}
+    active_client_ids = {contract.client_id for contract in active}
+    current_client_ids = active_client_ids - overdue_client_ids
+    upcoming_items = [
+        item for item in active_installments
+        if item.remaining > Decimal("0.009") and today_value <= item.due_date <= today_value + timedelta(days=7)
+    ]
+    upcoming_total = sum((item.remaining for item in upcoming_items), Decimal("0.00"))
+
+    def date_in_period(value):
+        if value is None:
+            return False
+        value_date = value.date() if isinstance(value, datetime) else value
+        return period_start is None or period_start <= value_date <= today_value
+
+    period_payments = [payment for payment in all_payments if date_in_period(payment.paid_at)]
+    period_down_payments = [
+        contract for contract in contracts_scope
+        if money_decimal(contract.down_payment) > 0 and date_in_period(contract.created_at)
+    ]
+    period_collected = (
+        sum((money_decimal(payment.amount) for payment in period_payments), Decimal("0.00"))
+        + sum((money_decimal(contract.down_payment) for contract in period_down_payments), Decimal("0.00"))
+    )
+    period_payment_count = len(period_payments) + len(period_down_payments)
+
+    financed_total = sum((money_decimal(contract.total_amount) for contract in contracts_scope), Decimal("0.00"))
+    profit_contracts = [
+        contract for contract in contracts_scope
+        if money_decimal(contract.base_amount) > 0 and money_decimal(contract.total_amount) > 0
+    ]
+    profit_untracked_count = len(contracts_scope) - len(profit_contracts)
+    capital_total = sum((money_decimal(contract.base_amount) for contract in profit_contracts), Decimal("0.00"))
+    profit_expected = sum((contract.profit_amount for contract in profit_contracts), Decimal("0.00"))
+    capital_recovered = Decimal("0.00")
+    profit_realized = Decimal("0.00")
+    for contract in profit_contracts:
+        total = money_decimal(contract.total_amount)
+        received_principal = min(money_decimal(contract.principal_paid_total), total)
+        ratio = (received_principal / total) if total > 0 else Decimal("0")
+        capital_recovered += money_decimal(contract.base_amount) * ratio
+        profit_realized += money_decimal(contract.profit_amount) * ratio
+    capital_recovered = money_decimal(capital_recovered)
+    profit_realized = money_decimal(profit_realized)
+    capital_pending = max(capital_total - capital_recovered, Decimal("0.00"))
+    profit_pending = max(profit_expected - profit_realized, Decimal("0.00"))
+
+    late_fee_generated = sum((money_decimal(item.late_fee_amount) for item in all_installments), Decimal("0.00"))
+    late_fee_pending = sum((item.late_fee_remaining for item in all_installments), Decimal("0.00"))
+    late_fee_collected = sum((money_decimal(payment.late_fee_amount) for payment in all_payments), Decimal("0.00"))
+
+    assets = Asset.query.filter_by(organization_id=org_id).all()
+    inventory_available_units = sum((asset.available_quantity for asset in assets), 0)
+    inventory_committed_units = sum((asset.committed_quantity for asset in assets), 0)
+    inventory_available_value = sum(
+        (money_decimal(asset.estimated_value) * Decimal(asset.available_quantity) for asset in assets),
+        Decimal("0.00"),
+    )
+
+    chart_start = period_start or (today_value - timedelta(days=29))
+    if (today_value - chart_start).days > 30:
+        chart_start = today_value - timedelta(days=29)
+    chart_days = [chart_start + timedelta(days=offset) for offset in range((today_value - chart_start).days + 1)]
+    if not chart_days:
+        chart_days = [today_value]
+    daily_collected = {day: Decimal("0.00") for day in chart_days}
+    for payment in all_payments:
+        payment_day = payment.paid_at.date()
+        if payment_day in daily_collected:
+            daily_collected[payment_day] += money_decimal(payment.amount)
+    for contract in contracts_scope:
+        created_day = contract.created_at.date() if contract.created_at else None
+        if created_day in daily_collected and money_decimal(contract.down_payment) > 0:
+            daily_collected[created_day] += money_decimal(contract.down_payment)
+
+    chart_values = [money_decimal(daily_collected[day]) for day in chart_days]
+    chart_total = sum(chart_values, Decimal("0.00"))
+    chart_max_value = max(chart_values, default=Decimal("0.00"))
+    chart_has_data = chart_max_value > Decimal("0.009")
+    chart_ceiling = chart_max_value if chart_has_data else Decimal("1.00")
+    points = []
+    for index, value in enumerate(chart_values):
+        if len(chart_values) == 1:
+            x = Decimal("500")
+        else:
+            x = Decimal("20") + (Decimal(index) * Decimal("960") / Decimal(len(chart_values) - 1))
+        y = Decimal("155") - (value / chart_ceiling * Decimal("118"))
+        points.append((float(x), float(y)))
+    chart_points_svg = " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
+    if points:
+        chart_area_svg = f"20,155 {chart_points_svg} 980,155"
+    else:
+        chart_area_svg = "20,155 980,155"
+    chart_first_label = chart_days[0].strftime("%d/%m")
+    chart_last_label = chart_days[-1].strftime("%d/%m")
+    chart_title = {
+        "today": "Cobros de hoy",
+        "7d": "Cobros de los últimos 7 días",
+        "month": "Cobros de este mes",
+        "all": "Cobros de los últimos 30 días",
+    }[report_period]
+
+    recent_activity = []
+    for contract in contracts_scope:
+        if contract.created_at:
+            recent_activity.append({
+                "kind": "agreement",
+                "label": "Acuerdo",
+                "client": contract.client.full_name,
+                "detail": contract.asset.name,
+                "date": contract.created_at.strftime("%d/%m/%Y"),
+                "timestamp": contract.created_at,
+                "amount": money_decimal(contract.total_amount),
+                "url": url_for("main.contract_detail", contract_id=contract.id),
+            })
+        for payment in contract.payments:
+            payment_label = "Abono" if (payment.note or "").strip().casefold() == "abono" else "Pago"
+            recent_activity.append({
+                "kind": "payment",
+                "label": payment_label,
+                "client": contract.client.full_name,
+                "detail": contract.asset.name,
+                "date": payment.paid_at.strftime("%d/%m/%Y"),
+                "timestamp": payment.paid_at,
+                "amount": money_decimal(payment.amount),
+                "url": url_for("main.contract_detail", contract_id=contract.id, _anchor="pay"),
+            })
+    recent_activity.sort(key=lambda item: item["timestamp"], reverse=True)
+    recent_activity = recent_activity[:8]
 
     return render_template(
         "reports/index.html",
+        report_period=report_period,
+        period_label=period_label,
+        report_status=report_status,
+        selected_client_id=selected_client_id,
+        report_clients=report_clients,
         active_count=len(active),
         completed_count=len(completed),
-        clients_count=clients_count,
-        assets_count=assets_count,
-        month_collected=month_collected,
         receivable=receivable,
         overdue_total=overdue_total,
-        overdue_count=len(overdue),
+        overdue_clients_count=len(overdue_client_ids),
+        current_clients_count=len(current_client_ids),
+        upcoming_total=upcoming_total,
+        period_collected=period_collected,
+        period_payment_count=period_payment_count,
+        financed_total=financed_total,
+        capital_total=capital_total,
+        capital_recovered=capital_recovered,
+        capital_pending=capital_pending,
+        profit_expected=profit_expected,
+        profit_realized=profit_realized,
+        profit_pending=profit_pending,
+        profit_untracked_count=profit_untracked_count,
+        late_fee_generated=late_fee_generated,
+        late_fee_collected=late_fee_collected,
+        late_fee_pending=late_fee_pending,
+        inventory_available_units=inventory_available_units,
+        inventory_committed_units=inventory_committed_units,
+        inventory_available_value=inventory_available_value,
+        chart_title=chart_title,
+        chart_total=chart_total,
+        chart_max_value=chart_max_value,
+        chart_has_data=chart_has_data,
+        chart_points_svg=chart_points_svg,
+        chart_area_svg=chart_area_svg,
+        chart_first_label=chart_first_label,
+        chart_last_label=chart_last_label,
+        recent_activity=recent_activity,
     )
 
 

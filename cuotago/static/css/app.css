@@ -2636,3 +2636,150 @@ body.app-authenticated .page-shell>*{
   .agreement-management-row .btn{flex:0 0 auto}
   .compact-contract-dialog .payment-dialog-sheet{max-width:none}
 }
+
+/* --------------------------------------------------------------------------
+   CuotaGo UI v19 · reportes ejecutivos simples y legibles.
+   PWA: KPIs siempre en dos columnas; escritorio: cuatro columnas.
+   -------------------------------------------------------------------------- */
+.reports-v19{max-width:1180px;margin:0 auto;padding-bottom:34px}
+.report-page-head{margin-bottom:14px}
+.report-page-head h1{font-size:22px;line-height:1.1}
+.report-page-head p{max-width:620px}
+
+.report-filters-v19{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr auto;
+  align-items:end;
+  gap:8px;
+  margin-bottom:12px;
+  padding:10px 11px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:var(--surface);
+}
+.report-filters-v19 label{display:flex;flex-direction:column;gap:4px;min-width:0}
+.report-filters-v19 label>span{font-size:8px;color:var(--muted);font-weight:780;letter-spacing:.02em}
+.report-filters-v19 select{
+  width:100%;
+  min-height:39px;
+  padding:0 31px 0 10px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:var(--surface-2);
+  color:var(--text-strong);
+  font:inherit;
+  font-size:10px;
+  outline:0;
+}
+.report-filters-v19 select:focus{border-color:color-mix(in srgb,var(--primary) 52%,var(--line));box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 9%,transparent)}
+.report-filter-button{min-height:39px;padding-inline:16px}
+
+.report-kpi-grid-v19{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:12px}
+.report-kpi-v19{
+  min-width:0;
+  min-height:94px;
+  padding:13px 14px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:var(--surface);
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:2px;
+  box-shadow:0 5px 15px rgba(16,24,40,.025);
+}
+.report-kpi-v19 span{font-size:8.4px;color:var(--muted);font-weight:720}
+.report-kpi-v19 strong{font-size:20px;line-height:1.15;color:var(--text-strong);letter-spacing:-.035em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.report-kpi-v19 small{font-size:8px;color:var(--muted-2);line-height:1.3}
+.report-kpi-v19.danger strong{color:var(--danger)}
+.report-kpi-v19.success strong{color:var(--success)}
+.report-kpi-v19.profit strong{color:var(--primary-deep)}
+
+.report-primary-grid-v19{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,.8fr);gap:10px;margin-bottom:10px}
+.report-detail-grid-v19{display:grid;grid-template-columns:1.35fr .8fr .8fr;gap:10px;margin-bottom:10px}
+.report-panel-v19{padding:14px;border-radius:16px;box-shadow:none}
+.report-section-head-v19{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px}
+.report-section-head-v19 h2{margin:1px 0 0;font-size:13.5px;line-height:1.2;color:var(--text-strong)}
+.report-section-head-v19>strong{font-size:15px;color:var(--text-strong);letter-spacing:-.02em;white-space:nowrap}
+
+.report-chart-v19{position:relative;min-height:205px;padding-left:52px;padding-top:3px;color:var(--primary)}
+.report-chart-v19 svg{display:block;width:100%;height:165px;overflow:visible}
+.report-chart-axis-v19{stroke:var(--line);stroke-width:1.2}
+.report-chart-line-v19{fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.report-chart-empty-line-v19{stroke:var(--line-strong);stroke-width:2;stroke-dasharray:10 10}
+.report-chart-scale-v19{position:absolute;left:0;top:7px;bottom:29px;display:flex;flex-direction:column;justify-content:space-between;font-size:7.5px;color:var(--muted-2)}
+.report-chart-labels-v19{display:flex;justify-content:space-between;margin-top:-4px;font-size:7.5px;color:var(--muted-2)}
+.report-empty-v19{margin:8px 0 0;font-size:9px;color:var(--muted);text-align:center}
+
+.report-metric-list-v19{display:flex;flex-direction:column}
+.report-metric-list-v19>div,.report-money-stack-v19>div{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px;border-top:1px solid var(--line)}
+.report-metric-list-v19>div:first-child,.report-money-stack-v19>div:first-child{border-top:0}
+.report-metric-list-v19 span,.report-money-stack-v19 span{font-size:9px;color:var(--muted)}
+.report-metric-list-v19 strong,.report-money-stack-v19 strong{font-size:11px;color:var(--text-strong);white-space:nowrap}
+.report-metric-list-v19 .danger strong{color:var(--danger)}
+.report-metric-list-v19 .success strong,.report-money-stack-v19 .success strong{color:var(--success)}
+.report-money-stack-v19 .profit strong{color:var(--primary-deep)}
+.report-metric-list-v19.compact>div{min-height:40px}
+.report-note-v19{margin:8px 0 0;padding-top:8px;border-top:1px solid var(--line);font-size:7.8px;line-height:1.45;color:var(--muted-2)}
+
+.report-activity-v19{padding-bottom:8px}
+.report-activity-list-v19{display:flex;flex-direction:column}
+.report-activity-row-v19{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:9px;min-height:54px;padding:7px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none}
+.report-activity-row-v19:first-child{border-top:0}
+.report-activity-icon-v19{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2);color:var(--muted)}
+.report-activity-icon-v19.payment{background:color-mix(in srgb,var(--success) 10%,var(--surface));color:var(--success)}
+.report-activity-icon-v19.agreement{background:color-mix(in srgb,var(--primary) 10%,var(--surface));color:var(--primary)}
+.report-activity-copy-v19{display:flex;flex-direction:column;gap:1px;min-width:0}
+.report-activity-copy-v19 strong{font-size:9.5px;line-height:1.3;color:var(--text-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.report-activity-copy-v19 small{font-size:7.8px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.report-activity-row-v19>b{font-size:10px;color:var(--text-strong);white-space:nowrap}
+
+@media(hover:hover) and (pointer:fine){
+  .report-kpi-v19:hover,.report-panel-v19:hover{border-color:color-mix(in srgb,var(--line-strong) 85%,var(--primary))}
+  .report-activity-row-v19:hover{transform:translateX(2px)}
+}
+
+@media(max-width:900px){
+  .report-primary-grid-v19{grid-template-columns:1fr}
+  .report-detail-grid-v19{grid-template-columns:1fr 1fr}
+  .report-detail-grid-v19>section:first-child{grid-column:1/-1}
+}
+
+@media(max-width:719px){
+  .reports-v19{padding-top:8px;padding-bottom:max(24px,var(--safe-bottom))}
+  .report-page-head{margin-bottom:10px}
+  .report-page-head h1{font-size:17px}
+  .report-page-head p{font-size:9px;line-height:1.4}
+  .report-filters-v19{grid-template-columns:1fr 1fr;gap:7px;padding:8px;margin-bottom:9px;border-radius:13px}
+  .report-filters-v19 label:nth-child(1){grid-column:1/-1}
+  .report-filter-button{grid-column:1/-1;min-height:38px}
+  .report-filters-v19 select{min-height:38px;font-size:9.5px}
+
+  /* Pedido PWA: KPI 1 + KPI 2 / KPI 3 + KPI 4. */
+  .report-kpi-grid-v19{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:9px}
+  .report-kpi-v19{min-height:84px;padding:10px 11px;border-radius:13px}
+  .report-kpi-v19 strong{font-size:16px}
+  .report-kpi-v19 span{font-size:7.8px}
+  .report-kpi-v19 small{font-size:7.2px}
+
+  .report-primary-grid-v19,.report-detail-grid-v19{grid-template-columns:1fr;gap:8px;margin-bottom:8px}
+  .report-detail-grid-v19>section:first-child{grid-column:auto}
+  .report-panel-v19{padding:11px;border-radius:14px}
+  .report-section-head-v19{margin-bottom:7px}
+  .report-section-head-v19 h2{font-size:12px}
+  .report-section-head-v19>strong{font-size:12px}
+  .report-chart-v19{min-height:180px;padding-left:44px}
+  .report-chart-v19 svg{height:145px}
+  .report-metric-list-v19>div,.report-money-stack-v19>div{min-height:38px}
+  .report-metric-list-v19 span,.report-money-stack-v19 span{font-size:8.5px}
+  .report-metric-list-v19 strong,.report-money-stack-v19 strong{font-size:10px}
+  .report-activity-row-v19{grid-template-columns:31px minmax(0,1fr) auto;min-height:50px;gap:7px}
+  .report-activity-icon-v19{width:30px;height:30px;border-radius:9px}
+  .report-activity-row-v19>b{font-size:9px}
+}
+
+@media(max-width:380px){
+  .report-kpi-v19 strong{font-size:14.5px}
+  .report-kpi-v19{padding-inline:9px}
+  .report-activity-row-v19>b{font-size:8.2px}
+}

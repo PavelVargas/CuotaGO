@@ -655,3 +655,22 @@ def test_contract_can_be_deleted_and_inventory_is_released(client, app):
         asset = db.session.get(Asset, asset_id)
         assert asset.available_quantity == 1
         assert asset.status == 'available'
+
+
+def test_reports_v19_has_two_column_mobile_kpis_and_core_business_sections():
+    from pathlib import Path
+    template = Path('cuotago/templates/reports/index.html').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    main = Path('cuotago/main.py').read_text(encoding='utf-8')
+
+    assert 'report-kpi-grid-v19' in template
+    assert 'Ganancia esperada' in template
+    assert 'Capital recuperado' in template
+    assert 'MORA' in template
+    assert 'INVENTARIO' in template
+    assert 'Actividad reciente' in template
+    assert '.report-kpi-grid-v19{grid-template-columns:repeat(2,minmax(0,1fr))' in css
+    assert 'profit_realized' in main
+    assert 'late_fee_generated' in main
+    assert 'inventory_available_value' in main
+    assert 'recent_activity' in main
