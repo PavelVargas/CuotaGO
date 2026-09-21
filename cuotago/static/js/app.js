@@ -120,7 +120,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = '1.13.0-ui-v22';
+  const APP_VERSION = '1.13.0-ui-v25';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -1335,6 +1335,94 @@
     }
   };
 
+  const normalizeAdminConfirmation = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+
+  const setupSuperadminControlCenter = () => {
+    document.querySelectorAll('[data-admin-panel-group]').forEach((group) => {
+      const buttons = Array.from(group.querySelectorAll('[data-admin-panel-target]'));
+      const panels = Array.from(group.querySelectorAll('[data-admin-panel]'));
+      if (!buttons.length || !panels.length) return;
+
+      const activate = (name, updateHash = true) => {
+        const target = panels.find((panel) => panel.dataset.adminPanel === name) || panels[0];
+        const activeName = target.dataset.adminPanel;
+        buttons.forEach((button) => {
+          const active = button.dataset.adminPanelTarget === activeName;
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        panels.forEach((panel) => {
+          const active = panel === target;
+          panel.classList.toggle('is-active', active);
+          panel.hidden = !active;
+        });
+        if (updateHash && activeName) {
+          const next = `#${activeName}`;
+          if (window.location.hash !== next) history.replaceState(null, '', next);
+        }
+      };
+
+      buttons.forEach((button) => {
+        button.addEventListener('click', () => activate(button.dataset.adminPanelTarget));
+      });
+
+      const hashName = window.location.hash.replace(/^#/, '');
+      const initial = panels.some((panel) => panel.dataset.adminPanel === hashName)
+        ? hashName
+        : group.dataset.defaultPanel;
+      activate(initial, false);
+
+      window.addEventListener('hashchange', () => {
+        const next = window.location.hash.replace(/^#/, '');
+        if (panels.some((panel) => panel.dataset.adminPanel === next)) activate(next, false);
+      });
+    });
+
+    document.querySelectorAll('[data-admin-danger-group]').forEach((group) => {
+      const buttons = Array.from(group.querySelectorAll('[data-admin-danger-target]'));
+      const host = group.parentElement;
+      const panels = host ? Array.from(host.querySelectorAll('[data-admin-danger-panel]')) : [];
+      if (!buttons.length || !panels.length) return;
+      const activate = (name) => {
+        const target = panels.find((panel) => panel.dataset.adminDangerPanel === name) || panels[0];
+        const activeName = target.dataset.adminDangerPanel;
+        buttons.forEach((button) => button.classList.toggle('is-active', button.dataset.adminDangerTarget === activeName));
+        panels.forEach((panel) => {
+          const active = panel === target;
+          panel.classList.toggle('is-active', active);
+          panel.hidden = !active;
+        });
+        target.querySelector('[data-admin-confirm-input]')?.focus({ preventScroll: true });
+      };
+      buttons.forEach((button) => button.addEventListener('click', () => activate(button.dataset.adminDangerTarget)));
+      activate(group.dataset.defaultDanger || panels[0].dataset.adminDangerPanel);
+    });
+
+    document.querySelectorAll('[data-admin-confirm-form]').forEach((form) => {
+      const input = form.querySelector('[data-admin-confirm-input]');
+      const submit = form.querySelector('[data-admin-confirm-submit]');
+      const checkbox = form.querySelector('[data-admin-confirm-check]');
+      if (!input || !submit) return;
+      const expected = normalizeAdminConfirmation(form.dataset.expectedConfirmation);
+      const update = () => {
+        const phraseMatches = normalizeAdminConfirmation(input.value) === expected;
+        const checkMatches = !checkbox || checkbox.checked;
+        submit.disabled = !(phraseMatches && checkMatches);
+        form.classList.toggle('is-confirmed', phraseMatches && checkMatches);
+      };
+      input.addEventListener('input', update);
+      checkbox?.addEventListener('change', update);
+      form.addEventListener('submit', (event) => {
+        update();
+        if (submit.disabled) {
+          event.preventDefault();
+          input.focus();
+        }
+      });
+      update();
+    });
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     setupRememberedLaunchGate();
     setupProfileMenu();
@@ -1342,6 +1430,7 @@
     setupAssetPhotoPreview();
     setupPullToRefresh();
     setupPaymentCalendar();
+    setupSuperadminControlCenter();
     applyTheme(document.body.classList.contains('auth-shell') ? 'light' : readTheme(), false);
 
     document.querySelectorAll('[data-theme-choice]').forEach((button) => {

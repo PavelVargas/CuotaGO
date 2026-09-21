@@ -293,7 +293,7 @@ def test_superadmin_can_clear_company_data(client, app):
 
     response = client.post(
         f'/superadmin/organizations/{target_org}/reset',
-        data={'confirm_name': 'Préstamos Demo'},
+        data={'confirm_phrase': 'VACIAR Préstamos Demo'},
         follow_redirects=True,
     )
     assert response.status_code == 200
@@ -303,6 +303,77 @@ def test_superadmin_can_clear_company_data(client, app):
         assert Client.query.filter_by(organization_id=target_org).count() == 0
         assert Asset.query.filter_by(organization_id=target_org).count() == 0
         assert Contract.query.filter_by(organization_id=target_org).count() == 0
+
+
+def test_superadmin_sensitive_actions_require_real_action_phrase(client, app):
+    register(client)
+    with app.app_context():
+        target = User.query.filter_by(email='pavel@example.com').one().organization
+        target_id = target.id
+        original_clients = Client.query.filter_by(organization_id=target_id).count()
+        admin_org = Organization(name='Admin Seguridad', currency='DOP')
+        admin = User(organization=admin_org, name='Admin', email='security-admin@example.com', role='superadmin')
+        admin.set_password('superadmin12345')
+        db.session.add_all([admin_org, admin])
+        db.session.commit()
+
+    client.post('/logout')
+    client.post('/login', data={'email': 'security-admin@example.com', 'password': 'superadmin12345'}, follow_redirects=True)
+
+    wrong = client.post(
+        f'/superadmin/organizations/{target_id}/reset',
+        data={'confirm_phrase': 'Préstamos Demo'},
+        follow_redirects=True,
+    )
+    assert wrong.status_code == 200
+    assert b'Frase incorrecta' in wrong.data
+    with app.app_context():
+        assert Client.query.filter_by(organization_id=target_id).count() == original_clients
+
+    correct = client.post(
+        f'/superadmin/organizations/{target_id}/reset',
+        data={'confirm_phrase': 'VACIAR Préstamos Demo'},
+        follow_redirects=True,
+    )
+    assert correct.status_code == 200
+    with app.app_context():
+        assert Client.query.filter_by(organization_id=target_id).count() == 0
+
+
+def test_superadmin_delete_company_requires_keyword_and_really_deletes(client, app):
+    register(client)
+    with app.app_context():
+        target = User.query.filter_by(email='pavel@example.com').one().organization
+        target_id = target.id
+        admin_org = Organization(name='Admin Borrado', currency='DOP')
+        admin = User(organization=admin_org, name='Admin', email='delete-admin@example.com', role='superadmin')
+        admin.set_password('superadmin12345')
+        db.session.add_all([admin_org, admin])
+        db.session.commit()
+
+    client.post('/logout')
+    client.post('/login', data={'email': 'delete-admin@example.com', 'password': 'superadmin12345'}, follow_redirects=True)
+
+    blocked = client.post(
+        f'/superadmin/organizations/{target_id}/delete',
+        data={'confirm_phrase': 'ELIMINAR OTRA EMPRESA', 'confirm_delete': 'yes'},
+        follow_redirects=True,
+    )
+    assert blocked.status_code == 200
+    with app.app_context():
+        assert db.session.get(Organization, target_id) is not None
+
+    deleted = client.post(
+        f'/superadmin/organizations/{target_id}/delete',
+        data={'confirm_phrase': 'ELIMINAR Préstamos Demo', 'confirm_delete': 'yes'},
+        follow_redirects=True,
+    )
+    assert deleted.status_code == 200
+    with app.app_context():
+        assert db.session.get(Organization, target_id) is None
+        assert User.query.filter_by(organization_id=target_id).count() == 0
+        assert OrganizationSubscription.query.filter_by(organization_id=target_id).count() == 0
+        assert AdminAuditLog.query.filter_by(organization_id=target_id, action='organization.delete').count() == 1
 
 
 def test_superadmin_manages_plans_subscription_payment_and_audit(client, app):
@@ -378,10 +449,14 @@ def test_superadmin_dashboard_has_professional_admin_sections():
     organization = Path('cuotago/templates/admin/organization.html').read_text(encoding='utf-8')
     assert 'MRR estimado' in html
     assert 'Centro de administración' in html
-    assert 'Registrar pago de suscripción' in organization
+    assert 'Pago de suscripción' in organization
     assert 'Historial de pagos' in organization
     assert 'Zona sensible' in organization
-    assert 'confirm_name' in organization
+    assert 'confirm_phrase' in organization
+    assert 'data-admin-panel-target' in organization
+    assert 'LIMPIAR {{ organization.name }}' in organization
+    assert 'VACIAR {{ organization.name }}' in organization
+    assert 'ELIMINAR {{ organization.name }}' in organization
 
 
 
@@ -783,8 +858,8 @@ def test_reminders_v20_compacts_dashboard_and_adds_dedicated_view():
     assert 'reminder-v20-row' in reminders
     assert '.home-reminder-button{' in css
     assert '.reminders-page-v20{' in css
-    assert '-ui-v22' in base
-    assert "1.13.0-ui-v22" in sw
+    assert '-ui-v25' in base
+    assert "1.13.0-ui-v25" in sw
 
 
 
@@ -800,4 +875,4 @@ def test_overdue_push_repeats_outside_app_without_notification_pileup():
     assert 'Recordatorio de cobro' in push
     assert 'replaceKey' in push
     assert 'getNotifications()' in worker
-    assert "1.13.0-ui-v22" in worker
+    assert "1.13.0-ui-v25" in worker

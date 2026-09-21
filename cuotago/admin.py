@@ -169,10 +169,29 @@ def _audit(action, summary, *, organization_id=None, target_type="organization",
     )
 
 
-def _require_company_name(organization):
-    confirmation = (request.form.get("confirm_name") or "").strip()
-    if confirmation != organization.name:
-        abort(400, description="Escribe exactamente el nombre de la empresa para confirmar la accion.")
+def _normalize_confirmation(value):
+    return " ".join((value or "").strip().split()).casefold()
+
+
+def _confirmation_phrase(organization, action):
+    prefixes = {
+        "clear": "LIMPIAR",
+        "reset": "VACIAR",
+        "delete": "ELIMINAR",
+    }
+    prefix = prefixes.get(action)
+    if prefix is None:
+        raise ValueError("Accion de confirmacion no valida.")
+    return f"{prefix} {organization.name}"
+
+
+def _require_company_confirmation(organization, action):
+    expected = _confirmation_phrase(organization, action)
+    confirmation = request.form.get("confirm_phrase") or ""
+    if _normalize_confirmation(confirmation) != _normalize_confirmation(expected):
+        flash(f'Frase incorrecta. Escribe "{expected}" para continuar.', "error")
+        return False
+    return True
 
 
 def _count_by_org(model, *, extra_filter=None):
@@ -846,7 +865,8 @@ def reset_user_password(organization_id, user_id):
 @superadmin_required
 def clear_module(organization_id):
     organization = _organization_or_404(organization_id)
-    _require_company_name(organization)
+    if not _require_company_confirmation(organization, "clear"):
+        return redirect(url_for("admin.organization_detail", organization_id=organization.id, _anchor="maintenance"))
     module = (request.form.get("module") or "").strip()
     label = _clear_module(organization.id, module)
     _audit(
@@ -865,7 +885,8 @@ def clear_module(organization_id):
 @superadmin_required
 def reset_company(organization_id):
     organization = _organization_or_404(organization_id)
-    _require_company_name(organization)
+    if not _require_company_confirmation(organization, "reset"):
+        return redirect(url_for("admin.organization_detail", organization_id=organization.id, _anchor="maintenance"))
     _clear_company_content(organization.id)
     _audit(
         "organization.reset",
@@ -882,9 +903,11 @@ def reset_company(organization_id):
 @superadmin_required
 def delete_company(organization_id):
     organization = _organization_or_404(organization_id)
-    _require_company_name(organization)
+    if not _require_company_confirmation(organization, "delete"):
+        return redirect(url_for("admin.organization_detail", organization_id=organization.id, _anchor="maintenance"))
     if request.form.get("confirm_delete") != "yes":
-        abort(400, description="Confirma que entiendes que la eliminacion es permanente.")
+        flash("Marca la casilla de confirmacion antes de eliminar la empresa.", "error")
+        return redirect(url_for("admin.organization_detail", organization_id=organization.id, _anchor="maintenance"))
     name = organization.name
 
     _audit(
