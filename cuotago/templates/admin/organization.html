@@ -30,6 +30,7 @@
       <span><i class="tone-cyan">{{ icon('person-card', 13) }}</i><b>{{ counts.clients }}</b><small>Clientes</small></span>
       <span><i class="tone-purple">{{ icon('box', 13) }}</i><b>{{ counts.assets }}</b><small>Bienes</small></span>
       <span><i class="tone-orange">{{ icon('contract', 13) }}</i><b>{{ counts.contracts }}</b><small>Acuerdos</small></span>
+      <span><i class="tone-green">{{ icon('home-purchases', 13) }}</i><b>{{ counts.purchases }}</b><small>Compras</small></span>
       <span><i class="tone-green">{{ icon('bell', 13) }}</i><b>{{ counts.push_devices }}</b><small>Push</small></span>
     </div>
   </section>
@@ -162,14 +163,14 @@
           <form class="admin-danger-form is-active" data-admin-danger-panel="clear" data-admin-confirm-form data-expected-confirmation="LIMPIAR {{ organization.name }}" method="post" action="{{ url_for('admin.clear_module', organization_id=organization.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="admin-danger-copy"><strong>Limpiar un módulo</strong><p>Elige la categoría. CuotaGo mantiene la consistencia entre acuerdos, inventario y cobros.</p></div>
-            <label class="field"><span>Módulo</span><select name="module"><option value="collections">Cobros y pagos</option><option value="contracts">Acuerdos</option><option value="assets">Bienes</option><option value="clients">Clientes</option><option value="notifications">Historial de alertas</option><option value="push_devices">Dispositivos Push</option></select></label>
+            <label class="field"><span>Módulo</span><select name="module"><option value="collections">Cobros y pagos</option><option value="contracts">Acuerdos</option><option value="purchases">Compras</option><option value="assets">Bienes</option><option value="clients">Clientes</option><option value="notifications">Historial de alertas</option><option value="push_devices">Dispositivos Push</option></select></label>
             <div class="admin-confirmation-box"><span>Frase requerida</span><code>LIMPIAR {{ organization.name }}</code><label class="field"><span>Escríbela para habilitar la acción</span><input name="confirm_phrase" data-admin-confirm-input required autocomplete="off" spellcheck="false" placeholder="LIMPIAR {{ organization.name }}"></label></div>
             <button class="btn btn-secondary" data-admin-confirm-submit type="submit" disabled>Limpiar módulo</button>
           </form>
 
           <form class="admin-danger-form" data-admin-danger-panel="reset" data-admin-confirm-form data-expected-confirmation="VACIAR {{ organization.name }}" method="post" action="{{ url_for('admin.reset_company', organization_id=organization.id) }}" hidden>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="admin-danger-copy"><strong>Vaciar datos operativos</strong><p>Borra clientes, bienes, acuerdos, cobros, alertas y dispositivos Push. Conserva la empresa, suscripción y usuarios.</p></div>
+            <div class="admin-danger-copy"><strong>Vaciar datos operativos</strong><p>Borra clientes, bienes, compras, acuerdos, cobros, alertas y dispositivos Push. Conserva la empresa, suscripción y usuarios.</p></div>
             <div class="admin-confirmation-box"><span>Frase requerida</span><code>VACIAR {{ organization.name }}</code><label class="field"><span>Escríbela para habilitar la acción</span><input name="confirm_phrase" data-admin-confirm-input required autocomplete="off" spellcheck="false" placeholder="VACIAR {{ organization.name }}"></label></div>
             <button class="btn btn-danger" data-admin-confirm-submit type="submit" disabled>Vaciar datos operativos</button>
           </form>

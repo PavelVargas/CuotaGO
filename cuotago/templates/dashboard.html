@@ -25,6 +25,11 @@
       <strong>Clientes</strong>
       <small>Personas y contactos</small>
     </a>
+    <a class="module-card" href="{{ url_for('main.purchases') }}">
+      <span class="module-icon accent-green">{{ icon('home-purchases', 36) }}</span>
+      <strong>Compras</strong>
+      <small>Costos y margen</small>
+    </a>
     <a class="module-card" href="{{ url_for('main.assets') }}">
       <span class="module-icon accent-teal">{{ icon('home-inventory', 36) }}</span>
       <strong>Inventario</strong>

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Compras · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page purchases-page">
+  <div class="page-head purchases-page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <div><span class="eyebrow">COMPRAS</span><h1>Compras</h1><p>Registra lo que te costó y a cuánto piensas venderlo.</p></div>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">+ Nueva compra</a>
+  </div>
+
+  <div class="purchase-kpis">
+    <article class="purchase-kpi"><span>Invertido</span><strong>{{ money(invested) }}</strong><small>{{ units }} unidad{% if units != 1 %}es{% endif %} comprada{% if units != 1 %}s{% endif %}</small></article>
+    <article class="purchase-kpi"><span>Venta estimada</span><strong>{{ money(expected_revenue) }}</strong><small>Con los precios registrados</small></article>
+    <article class="purchase-kpi profit"><span>Ganancia potencial</span><strong>{{ money(expected_profit) }}</strong><small>Antes de mora u otros cargos</small></article>
+    <article class="purchase-kpi profit"><span>Margen</span><strong>{{ '%.2f'|format(margin_percent) }}%</strong><small>Ganancia sobre costo</small></article>
+  </div>
+
+  <section class="surface report-panel-v19">
+    <div class="report-section-head-v19"><div><span class="eyebrow">HISTORIAL</span><h2>Últimas compras</h2></div></div>
+    {% if purchases %}
+    <div class="purchase-list">
+      {% for purchase in purchases %}
+      <article class="purchase-row">
+        <div class="purchase-row-main">
+          <strong>{{ purchase.asset.name }} · {{ purchase.quantity }} unidad{% if purchase.quantity != 1 %}es{% endif %}</strong>
+          <small>{{ purchase.purchase_date.strftime('%d/%m/%Y') }}{% if purchase.supplier %} · {{ purchase.supplier }}{% endif %}{% if purchase.reference %} · Ref. {{ purchase.reference }}{% endif %}</small>
+        </div>
+        <div class="purchase-row-money">
+          <strong>Costo {{ money(purchase.unit_cost) }} → Venta {{ money(purchase.unit_sale_price) }}</strong>
+          <small>Inversión {{ money(purchase.total_cost) }} · ganancia {{ money(purchase.expected_profit) }}</small>
+        </div>
+        <span class="purchase-margin-pill {{ 'negative' if purchase.margin_percent < 0 }}">{{ '%.1f'|format(purchase.margin_percent) }}%</span>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+      <div class="empty-state"><span class="empty-icon">{{ icon('home-purchases', 34) }}</span><h3>Aún no hay compras</h3><p>Registra una compra para empezar a medir costo, precio de venta y margen.</p><a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">Registrar primera compra</a></div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

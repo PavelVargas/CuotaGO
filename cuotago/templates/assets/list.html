@@ -46,8 +46,8 @@
 
         <span class="inventory-row-side">
           <span class="inventory-stock-badge {{ 'is-empty' if asset.available_quantity <= 0 }}">{{ asset.available_quantity }}</span>
-          <strong>{{ money(asset.estimated_value) }}</strong>
-          <small>disponible{{ 's' if asset.available_quantity != 1 }}</small>
+          <strong>{{ money(asset.sale_price if asset.sale_price else asset.estimated_value) }}</strong>
+          <small>{% if asset.sale_price and asset.estimated_value %}costo {{ money(asset.estimated_value) }} · {{ '%.1f'|format(asset.expected_margin_percent) }}%{% else %}precio / costo{% endif %}</small>
         </span>
 
         <span class="inventory-row-chevron" aria-hidden="true">›</span>

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Nueva compra · {{ app_name }}{% endblock %}
+{% block content %}
+{% set has_assets = assets|length > 0 %}
+<section class="content-page narrow-page simple-form-page">
+  <div class="page-head simple-page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.purchases') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <div><h1>Nueva compra</h1><p>Costo, precio de venta y existencia quedan conectados al inventario.</p></div>
+    </div>
+  </div>
+
+  <form method="post" class="surface form-surface simple-form-card purchase-form-card" id="purchaseForm" data-mode="{{ 'existing' if form.get('asset_id') or (has_assets and not form.get('asset_name')) else 'new' }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="choice-buttons two purchase-mode-toggle" role="group" aria-label="Producto de la compra">
+      <button type="button" data-purchase-mode="existing" {{ 'disabled' if not has_assets }}>Producto existente</button>
+      <button type="button" data-purchase-mode="new">+ Producto nuevo</button>
+    </div>
+
+    <div class="form-stack" data-purchase-fields="existing">
+      <label class="field"><span>Producto *</span><select name="asset_id" id="purchaseAssetSelect">
+        <option value="">Seleccionar...</option>
+        {% for asset in assets %}<option value="{{ asset.id }}" data-cost="{{ asset.estimated_value or 0 }}" data-sale="{{ asset.sale_price or 0 }}" {{ 'selected' if form.get('asset_id')|string == asset.id|string }}>{{ asset.name }} · {{ asset.available_quantity }} disp.</option>{% endfor %}
+      </select></label>
+    </div>
+
+    <div class="form-stack" data-purchase-fields="new">
+      <label class="field"><span>Nombre del producto *</span><input name="asset_name" id="purchaseAssetName" value="{{ form.get('asset_name','') }}" placeholder="Ej. iPhone 15 Pro"></label>
+      <label class="field"><span>Tipo</span><select name="asset_kind">{% set kind=form.get('asset_kind','other') %}<option value="phone" {{ 'selected' if kind=='phone' }}>Celular</option><option value="car" {{ 'selected' if kind=='car' }}>Vehículo</option><option value="motorcycle" {{ 'selected' if kind=='motorcycle' }}>Motor</option><option value="computer" {{ 'selected' if kind=='computer' }}>Computadora</option><option value="appliance" {{ 'selected' if kind=='appliance' }}>Electrodoméstico</option><option value="other" {{ 'selected' if kind=='other' }}>Otro</option></select></label>
+    </div>
+
+    <div class="form-grid two compact-grid">
+      <label class="field"><span>Cantidad *</span><input type="number" min="1" step="1" name="quantity" id="purchaseQuantity" value="{{ form.get('quantity','1') }}" required inputmode="numeric"></label>
+      <label class="field"><span>Fecha *</span><input type="date" name="purchase_date" value="{{ form.get('purchase_date', default_date) }}" required></label>
+      <label class="field"><span>Costo por unidad *</span><input type="number" min="0.01" step="0.01" name="unit_cost" id="purchaseUnitCost" value="{{ form.get('unit_cost','') }}" placeholder="45000" required inputmode="decimal"></label>
+      <label class="field"><span>Precio de venta por unidad *</span><input type="number" min="0.01" step="0.01" name="unit_sale_price" id="purchaseSalePrice" value="{{ form.get('unit_sale_price','') }}" placeholder="60000" required inputmode="decimal"></label>
+    </div>
+
+    <div class="purchase-profit-preview" aria-live="polite">
+      <div><span>Total de compra</span><strong id="purchaseTotalCost">RD$0</strong></div>
+      <div><span>Venta estimada</span><strong id="purchaseExpectedRevenue">RD$0</strong></div>
+      <div class="profit"><span>Ganancia / margen</span><strong id="purchaseExpectedProfit">RD$0 · 0%</strong></div>
+    </div>
+
+    <details class="advanced-options">
+      <summary>Proveedor y referencia</summary>
+      <div class="advanced-options-body"><div class="form-grid two compact-grid">
+        <label class="field"><span>Proveedor</span><input name="supplier" value="{{ form.get('supplier','') }}" placeholder="Opcional"></label>
+        <label class="field"><span>Factura / referencia</span><input name="reference" value="{{ form.get('reference','') }}" placeholder="Opcional"></label>
+        <label class="field field-span-2"><span>Notas</span><textarea name="notes" rows="2" placeholder="Color, lote, condición...">{{ form.get('notes','') }}</textarea></label>
+      </div></div>
+    </details>
+
+    <div class="quick-create-actions inside-card"><button class="btn btn-primary btn-lg btn-block" type="submit">Guardar compra</button></div>
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const form = document.getElementById('purchaseForm'); if (!form) return;
+  const select = document.getElementById('purchaseAssetSelect');
+  const name = document.getElementById('purchaseAssetName');
+  const qty = document.getElementById('purchaseQuantity');
+  const cost = document.getElementById('purchaseUnitCost');
+  const sale = document.getElementById('purchaseSalePrice');
+  const totalCost = document.getElementById('purchaseTotalCost');
+  const expectedRevenue = document.getElementById('purchaseExpectedRevenue');
+  const expectedProfit = document.getElementById('purchaseExpectedProfit');
+  const money = new Intl.NumberFormat('es-DO',{style:'currency',currency:'DOP',minimumFractionDigits:0,maximumFractionDigits:2});
+  let mode = form.dataset.mode || (select?.options?.length > 1 ? 'existing' : 'new');
+  const setMode = (value) => {
+    mode=value;
+    document.querySelectorAll('[data-purchase-mode]').forEach(b=>{b.classList.toggle('is-active',b.dataset.purchaseMode===mode);b.setAttribute('aria-pressed',b.dataset.purchaseMode===mode?'true':'false')});
+    document.querySelectorAll('[data-purchase-fields]').forEach(box=>box.hidden=box.dataset.purchaseFields!==mode);
+    if(select) select.required=mode==='existing'; if(name) name.required=mode==='new';
+  };
+  const calculate = () => {
+    const q=Math.max(0,Number(qty?.value||0)); const c=Math.max(0,Number(cost?.value||0)); const s=Math.max(0,Number(sale?.value||0));
+    const invested=q*c; const revenue=q*s; const profit=revenue-invested; const margin=invested>0?(profit/invested)*100:0;
+    totalCost.textContent=money.format(invested); expectedRevenue.textContent=money.format(revenue); expectedProfit.textContent=`${money.format(profit)} · ${margin.toLocaleString('es-DO',{maximumFractionDigits:2})}%`;
+  };
+  const syncAsset = (force=false) => { const option=select?.selectedOptions?.[0]; if(!option?.value)return; if((force || !cost.value) && Number(option.dataset.cost)>0)cost.value=option.dataset.cost; if((force || !sale.value) && Number(option.dataset.sale)>0)sale.value=option.dataset.sale; calculate(); };
+  document.querySelectorAll('[data-purchase-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.purchaseMode)));
+  select?.addEventListener('change',()=>syncAsset(true)); [qty,cost,sale].forEach(el=>el?.addEventListener('input',calculate));
+  setMode(mode); syncAsset(false); calculate();
+})();
+</script>
+{% endblock %}

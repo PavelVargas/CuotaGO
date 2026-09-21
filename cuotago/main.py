@@ -10,7 +10,7 @@ from flask_login import current_user, login_required
 from sqlalchemy import or_
 
 from .extensions import db
-from .models import Asset, Client, Contract, Installment, Payment, PushNotificationLog
+from .models import Asset, Client, Contract, Installment, Payment, Purchase, PushNotificationLog
 
 main_bp = Blueprint("main", __name__)
 CENT = Decimal("0.01")
@@ -562,6 +562,7 @@ def asset_new():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         value = parse_money(request.form.get("estimated_value"), Decimal("0.00"))
+        sale_price = parse_money(request.form.get("sale_price"), Decimal("0.00"))
         quantity_total = parse_int(request.form.get("quantity_total"), 1, minimum=1) or 1
         kind = request.form.get("kind", "other")
         if len(name) < 2:
@@ -585,6 +586,7 @@ def asset_new():
             identifier=request.form.get("identifier", "").strip(),
             serial_number=request.form.get("serial_number", "").strip(),
             estimated_value=value or Decimal("0.00"),
+            sale_price=sale_price or Decimal("0.00"),
             quantity_total=quantity_total,
             status="available",
             notes=request.form.get("notes", "").strip(),
@@ -615,6 +617,7 @@ def asset_edit(asset_id):
         asset.identifier = request.form.get("identifier", "").strip()
         asset.serial_number = request.form.get("serial_number", "").strip()
         asset.estimated_value = parse_money(request.form.get("estimated_value"), Decimal("0.00"))
+        asset.sale_price = parse_money(request.form.get("sale_price"), Decimal("0.00"))
         requested_quantity = parse_int(request.form.get("quantity_total"), int(asset.quantity_total or 1), minimum=1)
         if requested_quantity is None or requested_quantity < asset.committed_quantity:
             flash(f"No puedes bajar la existencia por debajo de {asset.committed_quantity}; esa cantidad ya está entregada o vendida.", "error")
@@ -646,6 +649,126 @@ def asset_edit(asset_id):
         flash("Bien actualizado.", "success")
         return redirect(url_for("main.assets"))
     return render_template("assets/form.html", asset=asset)
+
+
+@main_bp.get("/purchases")
+@login_required
+def purchases():
+    items = (
+        Purchase.query.filter_by(organization_id=current_user.organization_id)
+        .order_by(Purchase.purchase_date.desc(), Purchase.created_at.desc())
+        .all()
+    )
+    invested = sum((money_decimal(item.total_cost) for item in items), Decimal("0.00"))
+    expected_revenue = sum((money_decimal(item.expected_revenue) for item in items), Decimal("0.00"))
+    expected_profit = expected_revenue - invested
+    margin_percent = (expected_profit / invested * Decimal("100")) if invested > 0 else Decimal("0.00")
+    units = sum((int(item.quantity or 0) for item in items), 0)
+    return render_template(
+        "purchases/list.html",
+        purchases=items,
+        invested=money_decimal(invested),
+        expected_revenue=money_decimal(expected_revenue),
+        expected_profit=money_decimal(expected_profit),
+        margin_percent=money_decimal(margin_percent),
+        units=units,
+    )
+
+
+@main_bp.route("/purchases/new", methods=["GET", "POST"])
+@login_required
+def purchase_new():
+    assets_list = (
+        Asset.query.filter_by(organization_id=current_user.organization_id)
+        .order_by(Asset.name.asc())
+        .all()
+    )
+    if request.method == "POST":
+        asset_id = request.form.get("asset_id", type=int)
+        asset = None
+        if asset_id:
+            asset = Asset.query.filter_by(
+                id=asset_id, organization_id=current_user.organization_id
+            ).first()
+
+        asset_name = request.form.get("asset_name", "").strip()
+        asset_kind = request.form.get("asset_kind", "other").strip()
+        supplier = request.form.get("supplier", "").strip()
+        reference = request.form.get("reference", "").strip()
+        notes = request.form.get("notes", "").strip()
+        quantity = parse_int(request.form.get("quantity"), None, minimum=1)
+        unit_cost = parse_money(request.form.get("unit_cost"))
+        unit_sale_price = parse_money(request.form.get("unit_sale_price"))
+        purchase_date = parse_date(request.form.get("purchase_date")) or local_today()
+
+        errors = []
+        if asset_id and asset is None:
+            errors.append("El producto seleccionado no existe.")
+        if asset is None and len(asset_name) < 2:
+            errors.append("Escribe el nombre del producto o selecciona uno del inventario.")
+        if asset_kind not in {"car", "phone", "motorcycle", "appliance", "computer", "other"}:
+            asset_kind = "other"
+        if quantity is None or quantity < 1:
+            errors.append("La cantidad debe ser al menos 1.")
+        if unit_cost is None or unit_cost <= 0:
+            errors.append("El costo por unidad debe ser mayor que cero.")
+        if unit_sale_price is None or unit_sale_price <= 0:
+            errors.append("El precio de venta por unidad debe ser mayor que cero.")
+        elif unit_cost is not None and unit_sale_price < unit_cost:
+            errors.append("El precio de venta no puede ser menor que el costo por unidad.")
+
+        if errors:
+            for error in errors:
+                flash(error, "error")
+            return render_template(
+                "purchases/form.html", assets=assets_list, form=request.form, default_date=local_today().isoformat()
+            )
+
+        if asset is None:
+            asset = Asset(
+                organization_id=current_user.organization_id,
+                kind=asset_kind,
+                name=asset_name,
+                estimated_value=unit_cost,
+                sale_price=unit_sale_price,
+                quantity_total=quantity,
+                status="available",
+            )
+            db.session.add(asset)
+            db.session.flush()
+        else:
+            previous_quantity = max(int(asset.quantity_total or 0), 0)
+            previous_cost = money_decimal(asset.estimated_value)
+            new_quantity = previous_quantity + quantity
+            if previous_quantity > 0 and previous_cost > 0:
+                weighted_cost = (previous_cost * Decimal(previous_quantity) + unit_cost * Decimal(quantity)) / Decimal(new_quantity)
+                asset.estimated_value = money_decimal(weighted_cost)
+            else:
+                asset.estimated_value = unit_cost
+            asset.sale_price = unit_sale_price
+            asset.quantity_total = new_quantity
+            if asset.status != "maintenance":
+                refresh_asset_status(asset)
+
+        purchase = Purchase(
+            organization_id=current_user.organization_id,
+            asset=asset,
+            supplier=supplier,
+            reference=reference,
+            purchase_date=purchase_date,
+            quantity=quantity,
+            unit_cost=unit_cost,
+            unit_sale_price=unit_sale_price,
+            notes=notes,
+        )
+        db.session.add(purchase)
+        db.session.commit()
+        flash(f"Compra registrada: {quantity} unidad(es) de {asset.name}.", "success")
+        return redirect(url_for("main.purchases"))
+
+    return render_template(
+        "purchases/form.html", assets=assets_list, form={}, default_date=local_today().isoformat()
+    )
 
 
 @main_bp.get("/contracts")
@@ -811,6 +934,7 @@ def contract_new():
                 name=asset_name,
                 identifier=asset_identifier,
                 estimated_value=(money_decimal(unit_price) if unit_price is not None else (money_decimal(total / quantity) if total and quantity else Decimal("0.00"))),
+                sale_price=(money_decimal(total / quantity) if total and quantity else Decimal("0.00")),
                 quantity_total=asset_stock_quantity,
                 status="available",
             )
@@ -1207,6 +1331,8 @@ def reports():
     profit_realized = money_decimal(profit_realized)
     capital_pending = max(capital_total - capital_recovered, Decimal("0.00"))
     profit_pending = max(profit_expected - profit_realized, Decimal("0.00"))
+    profit_margin_percent = (profit_expected / capital_total * Decimal("100")) if capital_total > 0 else Decimal("0.00")
+    profit_margin_percent = money_decimal(profit_margin_percent)
 
     late_fee_generated = sum((money_decimal(item.late_fee_amount) for item in all_installments), Decimal("0.00"))
     late_fee_pending = sum((item.late_fee_remaining for item in all_installments), Decimal("0.00"))
@@ -1219,6 +1345,20 @@ def reports():
         (money_decimal(asset.estimated_value) * Decimal(asset.available_quantity) for asset in assets),
         Decimal("0.00"),
     )
+    inventory_sale_value = sum(
+        (
+            (money_decimal(asset.sale_price) if money_decimal(asset.sale_price) > 0 else money_decimal(asset.estimated_value))
+            * Decimal(asset.available_quantity)
+            for asset in assets
+        ),
+        Decimal("0.00"),
+    )
+    inventory_potential_profit = inventory_sale_value - inventory_available_value
+
+    purchases_scope = Purchase.query.filter_by(organization_id=org_id).all()
+    period_purchases = [item for item in purchases_scope if date_in_period(item.purchase_date)]
+    purchases_period_invested = sum((money_decimal(item.total_cost) for item in period_purchases), Decimal("0.00"))
+    purchases_period_expected_profit = sum((money_decimal(item.expected_profit) for item in period_purchases), Decimal("0.00"))
 
     chart_start = period_start or (today_value - timedelta(days=29))
     if (today_value - chart_start).days > 30:
@@ -1314,6 +1454,7 @@ def reports():
         profit_expected=profit_expected,
         profit_realized=profit_realized,
         profit_pending=profit_pending,
+        profit_margin_percent=profit_margin_percent,
         profit_untracked_count=profit_untracked_count,
         late_fee_generated=late_fee_generated,
         late_fee_collected=late_fee_collected,
@@ -1321,6 +1462,10 @@ def reports():
         inventory_available_units=inventory_available_units,
         inventory_committed_units=inventory_committed_units,
         inventory_available_value=inventory_available_value,
+        inventory_sale_value=inventory_sale_value,
+        inventory_potential_profit=inventory_potential_profit,
+        purchases_period_invested=purchases_period_invested,
+        purchases_period_expected_profit=purchases_period_expected_profit,
         chart_title=chart_title,
         chart_total=chart_total,
         chart_max_value=chart_max_value,

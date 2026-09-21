@@ -77,6 +77,7 @@
             <option value="{{ asset.id }}"
                     data-available="{{ asset.available_quantity }}"
                     data-price="{{ asset.estimated_value or 0 }}"
+                    data-sale-price="{{ asset.sale_price or 0 }}"
                     data-name="{{ asset.name }}"
                     {{ 'selected' if form.get('asset_id')|string == asset.id|string }}>{{ asset.name }} &middot; {{ asset.available_quantity }} disp.{% if asset.identifier %} &middot; {{ asset.identifier }}{% endif %}</option>
             {% endfor %}
@@ -123,8 +124,8 @@
       </div>
 
       <div class="wizard-price-row">
-        <div><span>Precio detectado</span><strong id="detectedAssetName">Selecciona un articulo</strong><small>Se toma del inventario. Puedes cambiarlo solo para este acuerdo.</small></div>
-        <label class="field compact-price"><span>Precio base</span><input id="unitPrice" type="number" step="0.01" min="0.01" name="unit_price" required value="{{ form.get('unit_price','') }}" placeholder="50000" inputmode="decimal"></label>
+        <div><span>Costo detectado</span><strong id="detectedAssetName">Selecciona un articulo</strong><small>Se toma del inventario. El precio de venta registrado precarga tu margen.</small></div>
+        <label class="field compact-price"><span>Costo por unidad</span><input id="unitPrice" type="number" step="0.01" min="0.01" name="unit_price" required value="{{ form.get('unit_price','') }}" placeholder="50000" inputmode="decimal"></label>
       </div>
 
       <div class="wizard-label wizard-label-spaced">Numero de cuotas</div>
@@ -134,7 +135,7 @@
       </div>
 
       <div class="profit-margin-line">
-        <div class="profit-margin-copy"><strong>Tu ganancia</strong><span>Porcentaje sobre el precio base de este acuerdo.</span></div>
+        <div class="profit-margin-copy"><strong>Margen de ganancia</strong><span>Se precarga desde Compras y puedes ajustarlo para este acuerdo.</span></div>
         <label class="profit-margin-input" aria-label="Margen de ganancia"><input id="profitMarginPercent" type="number" min="0" max="1000" step="0.01" name="profit_margin_percent" value="{{ form.get('profit_margin_percent','0') }}" inputmode="decimal"><b>%</b></label>
         <strong class="profit-margin-money" id="profitAmountPreview">+RD$0</strong>
       </div>
@@ -223,6 +224,7 @@
   let assetMode = form.dataset.assetMode || (assetSelect?.options?.length > 1 ? 'existing' : 'new');
   let dueTouched = {{ 'true' if form.get('first_due_date') else 'false' }};
   let priceTouched = {{ 'true' if form.get('unit_price') else 'false' }};
+  let marginTouched = {{ 'true' if form.get('profit_margin_percent') else 'false' }};
 
   const currentAsset = () => assetSelect?.selectedOptions?.[0] || null;
   const selectedFrequency = () => document.querySelector('input[name="frequency"]:checked')?.value || 'monthly';
@@ -272,10 +274,16 @@
     }
     const option = currentAsset();
     const price = Number(option?.dataset?.price || 0);
+    const salePrice = Number(option?.dataset?.salePrice || 0);
     if (detectedAssetName) detectedAssetName.textContent = option?.dataset?.name || 'Selecciona un articulo';
     if (unitPrice && price > 0 && (force || !priceTouched || !unitPrice.value)) {
       unitPrice.value = String(price);
       priceTouched = false;
+    }
+    if (profitMarginPercent && price > 0 && salePrice > 0 && (force || !marginTouched)) {
+      const margin = ((salePrice - price) / price) * 100;
+      profitMarginPercent.value = String(Math.max(0, margin.toFixed(2)));
+      marginTouched = false;
     }
   };
 
@@ -471,13 +479,13 @@
   clientSelect?.addEventListener('change', refreshWizardState);
   clientName?.addEventListener('input', refreshWizardState);
   clientPhone?.addEventListener('input', updateReview);
-  assetSelect?.addEventListener('change', () => { priceTouched = false; syncAssetPrice(true); syncStock(); refreshWizardState(); });
+  assetSelect?.addEventListener('change', () => { priceTouched = false; marginTouched = false; syncAssetPrice(true); syncStock(); refreshWizardState(); });
   assetName?.addEventListener('input', () => { syncAssetPrice(false); refreshWizardState(); });
   assetStockQuantity?.addEventListener('input', refreshWizardState);
   contractQuantity?.addEventListener('input', refreshWizardState);
   unitPrice?.addEventListener('input', () => { priceTouched = true; refreshWizardState(); });
   installmentCount?.addEventListener('input', refreshWizardState);
-  profitMarginPercent?.addEventListener('input', refreshWizardState);
+  profitMarginPercent?.addEventListener('input', () => { marginTouched = true; refreshWizardState(); });
   dailyLateInterest?.addEventListener('input', refreshWizardState);
   down?.addEventListener('input', refreshWizardState);
   startDate?.addEventListener('change', () => { dueTouched = false; autoDue(); refreshWizardState(); });

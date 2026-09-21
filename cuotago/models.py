@@ -200,7 +200,11 @@ class Asset(db.Model):
     model = db.Column(db.String(100))
     identifier = db.Column(db.String(120))
     serial_number = db.Column(db.String(120))
+    # ``estimated_value`` is kept as the acquisition/base cost for backward
+    # compatibility with existing agreements and reports. ``sale_price`` is
+    # the target cash/credit selling price per unit.
     estimated_value = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    sale_price = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     quantity_total = db.Column(db.Integer, nullable=False, default=1)
     status = db.Column(db.String(30), nullable=False, default="available")
     notes = db.Column(db.Text)
@@ -209,6 +213,18 @@ class Asset(db.Model):
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
 
     contracts = db.relationship("Contract", back_populates="asset")
+    purchases = db.relationship("Purchase", back_populates="asset", order_by="Purchase.purchase_date.desc()")
+
+    @property
+    def expected_profit_per_unit(self):
+        return Decimal(str(self.sale_price or 0)) - Decimal(str(self.estimated_value or 0))
+
+    @property
+    def expected_margin_percent(self):
+        cost = Decimal(str(self.estimated_value or 0))
+        if cost <= 0:
+            return Decimal("0.00")
+        return ((self.expected_profit_per_unit / cost) * Decimal("100")).quantize(Decimal("0.01"))
 
     @property
     def committed_quantity(self):
@@ -222,6 +238,43 @@ class Asset(db.Model):
     @property
     def available_quantity(self):
         return max(int(self.quantity_total or 1) - self.committed_quantity, 0)
+
+
+class Purchase(db.Model):
+    __tablename__ = "purchases"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False, index=True)
+    asset_id = db.Column(db.Integer, db.ForeignKey("assets.id"), nullable=False, index=True)
+    supplier = db.Column(db.String(140))
+    reference = db.Column(db.String(120))
+    purchase_date = db.Column(db.Date, nullable=False, default=date.today, index=True)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    unit_cost = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    unit_sale_price = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
+
+    asset = db.relationship("Asset", back_populates="purchases")
+
+    @property
+    def total_cost(self):
+        return Decimal(str(self.unit_cost or 0)) * Decimal(int(self.quantity or 0))
+
+    @property
+    def expected_revenue(self):
+        return Decimal(str(self.unit_sale_price or 0)) * Decimal(int(self.quantity or 0))
+
+    @property
+    def expected_profit(self):
+        return self.expected_revenue - self.total_cost
+
+    @property
+    def margin_percent(self):
+        cost = self.total_cost
+        if cost <= 0:
+            return Decimal("0.00")
+        return ((self.expected_profit / cost) * Decimal("100")).quantize(Decimal("0.01"))
 
 
 class Contract(db.Model):

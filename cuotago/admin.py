@@ -20,6 +20,7 @@ from .models import (
     Organization,
     OrganizationSubscription,
     Payment,
+    Purchase,
     PushNotificationLog,
     PushSubscription,
     SubscriptionPayment,
@@ -206,6 +207,7 @@ def _rows_for_organizations(organizations):
     client_counts = _count_by_org(Client)
     asset_counts = _count_by_org(Asset)
     contract_counts = _count_by_org(Contract)
+    purchase_counts = _count_by_org(Purchase)
     push_counts = _count_by_org(PushSubscription, extra_filter=PushSubscription.is_active.is_(True))
 
     rows = []
@@ -227,6 +229,7 @@ def _rows_for_organizations(organizations):
                 "clients": client_counts.get(organization.id, 0),
                 "assets": asset_counts.get(organization.id, 0),
                 "contracts": contract_counts.get(organization.id, 0),
+                "purchases": purchase_counts.get(organization.id, 0),
                 "push_devices": push_counts.get(organization.id, 0),
             }
         )
@@ -282,8 +285,12 @@ def _clear_module(organization_id, module):
     if module == "contracts":
         _delete_contracts(organization_id)
         return "Acuerdos"
+    if module == "purchases":
+        Purchase.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
+        return "Compras"
     if module == "assets":
         _delete_contracts(organization_id)
+        Purchase.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
         Asset.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
         return "Bienes"
     if module == "clients":
@@ -304,6 +311,7 @@ def _clear_company_content(organization_id):
     PushSubscription.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
     _delete_contracts(organization_id)
     Client.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
+    Purchase.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
     Asset.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
     db.session.flush()
 
@@ -491,6 +499,7 @@ def organization_detail(organization_id):
         "clients": Client.query.filter_by(organization_id=organization.id).count(),
         "assets": Asset.query.filter_by(organization_id=organization.id).count(),
         "contracts": Contract.query.filter_by(organization_id=organization.id).count(),
+        "purchases": Purchase.query.filter_by(organization_id=organization.id).count(),
         "push_devices": PushSubscription.query.filter_by(organization_id=organization.id, is_active=True).count(),
     }
     users = User.query.filter_by(organization_id=organization.id).order_by(User.role.asc(), User.created_at.asc()).all()
@@ -920,6 +929,7 @@ def delete_company(organization_id):
     PushSubscription.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
     _delete_contracts(organization.id)
     Client.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
+    Purchase.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
     Asset.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
     User.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
     if organization.subscription is not None:

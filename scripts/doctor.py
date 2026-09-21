@@ -36,10 +36,11 @@ def main() -> int:
             text("SELECT current_database() AS db_name, current_user AS db_user")
         ).mappings().one()
         required = {
-            "assets": {"quantity_total", "image_mime", "image_data"},
+            "assets": {"quantity_total", "image_mime", "image_data", "sale_price"},
             "contracts": {"quantity", "daily_late_interest"},
             "installments": {"late_fee_amount", "late_fee_paid", "principal_paid_at"},
             "payments": {"late_fee_amount"},
+            "purchases": {"organization_id", "asset_id", "purchase_date", "quantity", "unit_cost", "unit_sale_price"},
         }
         missing = []
         for table_name, expected in required.items():
@@ -52,7 +53,7 @@ def main() -> int:
                 missing.append(f"{table_name}.{column}")
         db.session.commit()
         if missing:
-            print("[ERROR] Faltan columnas v1.12.0: " + ", ".join(missing))
+            print("[ERROR] Faltan columnas/tablas v1.14.0: " + ", ".join(missing))
             return 1
 
     try:
@@ -79,7 +80,7 @@ def main() -> int:
     print(f"[OK] PostgreSQL conectado: {masked_db}")
     print(f"[OK] Base: {row['db_name']} | Usuario: {row['db_user']}")
     print(f"[OK] App: {app.config.get('APP_NAME')} v{app.config.get('APP_VERSION')}")
-    print("[OK] Esquema: inventario, fotos e intereses OK")
+    print("[OK] Esquema: compras, inventario, fotos e intereses OK")
     print("[OK] Web Push: VAPID + scheduler configurados")
     print("[OK] CuotaGo esta listo para iniciar.")
     return 0

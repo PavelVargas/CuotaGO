@@ -62,9 +62,9 @@
       <small>{{ period_payment_count }} movimiento{% if period_payment_count != 1 %}s{% endif %}</small>
     </article>
     <article class="report-kpi-v19 profit">
-      <span>Ganancia esperada</span>
-      <strong>{{ money(profit_expected) }}</strong>
-      <small>En acuerdos con costo registrado</small>
+      <span>Margen de ganancia</span>
+      <strong>{{ '%.2f'|format(profit_margin_percent) }}%</strong>
+      <small>Ganancia esperada: {{ money(profit_expected) }}</small>
     </article>
   </div>
 
@@ -122,6 +122,7 @@
       <div class="report-money-stack-v19">
         <div><span>Total acordado</span><strong>{{ money(financed_total) }}</strong></div>
         <div><span>Capital registrado</span><strong>{{ money(capital_total) }}</strong></div>
+        <div class="profit"><span>Margen de ganancia</span><strong>{{ '%.2f'|format(profit_margin_percent) }}%</strong></div>
         <div class="success"><span>Capital recuperado · estimado</span><strong>{{ money(capital_recovered) }}</strong></div>
         <div><span>Capital pendiente · estimado</span><strong>{{ money(capital_pending) }}</strong></div>
         <div class="profit"><span>Ganancia cobrada · estimada</span><strong>{{ money(profit_realized) }}</strong></div>
@@ -144,10 +145,20 @@
       <div class="report-metric-list-v19 compact">
         <div><span>Unidades disponibles</span><strong>{{ inventory_available_units }}</strong></div>
         <div><span>Comprometidas</span><strong>{{ inventory_committed_units }}</strong></div>
-        <div><span>Valor disponible</span><strong>{{ money(inventory_available_value) }}</strong></div>
+        <div><span>Valor a costo</span><strong>{{ money(inventory_available_value) }}</strong></div>
+        <div><span>Venta estimada</span><strong>{{ money(inventory_sale_value) }}</strong></div>
+        <div class="success"><span>Ganancia potencial</span><strong>{{ money(inventory_potential_profit) }}</strong></div>
       </div>
     </section>
   </div>
+
+  <section class="surface report-panel-v19 report-purchases-v20">
+    <div class="report-section-head-v19"><div><span class="eyebrow">COMPRAS · {{ period_label|upper }}</span><h2>Inversión en inventario</h2></div><a class="report-inline-link-v20" href="{{ url_for('main.purchases') }}">Ver compras</a></div>
+    <div class="report-purchases-summary-v20">
+      <div><span>Invertido</span><strong>{{ money(purchases_period_invested) }}</strong></div>
+      <div class="profit"><span>Ganancia potencial</span><strong>{{ money(purchases_period_expected_profit) }}</strong></div>
+    </div>
+  </section>
 
   <section class="surface report-panel-v19 report-activity-v19">
     <div class="report-section-head-v19">

@@ -1,8 +1,17 @@
-# CuotaGo MOBILE PWA v1.13.0 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.14.0 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
+
+## Cambios v1.14.0
+
+- **Nuevo módulo Compras:** registra producto, cantidad, proveedor, fecha, costo unitario y precio objetivo de venta. La compra aumenta automáticamente la existencia.
+- **Costo y venta separados:** Inventario ahora distingue cuánto costó cada unidad de cuánto se venderá, mostrando margen estimado por producto.
+- **Margen precargado en Acuerdos:** al elegir un producto, CuotaGo toma el costo registrado y usa el precio objetivo para precargar el porcentaje de ganancia; todavía puede ajustarse para un acuerdo específico.
+- **Rentabilidad en Reportes:** el panel muestra margen de ganancia, ganancia esperada, valor del inventario a costo, venta estimada, ganancia potencial e inversión del periodo en Compras.
+- **Compatibilidad con datos anteriores:** `estimated_value` conserva el costo/base histórico usado por los acuerdos existentes; `sale_price` agrega el precio objetivo sin romper contratos previos.
+- **Superadmin:** al vaciar/eliminar una empresa también se limpia el historial de Compras y se puede limpiar ese módulo de forma independiente.
 
 ## Cambios v1.13.0
 
@@ -62,7 +71,7 @@ Primero ejecuta `COMPROBAR_POSTGRES.bat`. Si muestra PostgreSQL OK, inicia norma
 Esta es la forma más rápida para comenzar.
 
 1. Descomprime el ZIP.
-2. Entra a la carpeta de CuotaGo v1.13.0.
+2. Entra a la carpeta de CuotaGo v1.14.0.
 3. Haz doble clic en `INICIAR_WINDOWS.bat`.
 4. El script crea `venv`, instala dependencias, comprueba `.env` y la base de datos, y arranca la aplicación.
 5. Abre `http://127.0.0.1:5000`.
@@ -142,7 +151,7 @@ El `Dockerfile` arranca con Gunicorn y escucha el puerto entregado en `PORT`. Pa
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.13.0
+APP_VERSION=1.14.0
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -181,7 +190,7 @@ Debe terminar mostrando:
 ```text
 [OK] .env cargado
 [OK] Base de datos accesible: ...
-[OK] App: CuotaGo v1.13.0
+[OK] App: CuotaGo v1.14.0
 [OK] CuotaGo esta listo para iniciar.
 ```
 

@@ -9,7 +9,7 @@ from cuotago import create_app
 from cuotago.extensions import db
 from cuotago.models import (
     AdminAuditLog, Asset, Client, Contract, Installment, Organization, OrganizationSubscription,
-    PushNotificationLog, PushSubscription, SubscriptionPayment, SubscriptionPlan, User,
+    Purchase, PushNotificationLog, PushSubscription, SubscriptionPayment, SubscriptionPlan, User,
 )
 
 
@@ -658,7 +658,7 @@ def test_remembered_authenticated_session_can_open_modules_without_resume_redire
     with client.session_transaction() as session:
         session['_fresh'] = False
 
-    for path in ['/contracts', '/collections', '/notifications', '/clients', '/assets', '/calendar', '/reports', '/settings']:
+    for path in ['/contracts', '/collections', '/notifications', '/clients', '/purchases', '/assets', '/calendar', '/reports', '/settings']:
         response = client.get(path, follow_redirects=False)
         assert response.status_code == 200, f"{path} redirected unexpectedly to {response.headers.get('Location')}"
 
@@ -821,6 +821,48 @@ def test_contract_can_be_deleted_and_inventory_is_released(client, app):
         assert asset.status == 'available'
 
 
+def test_purchase_registers_cost_sale_price_and_stock(client, app):
+    register(client)
+    response = client.post(
+        '/purchases/new',
+        data={
+            'asset_name': 'iPhone Compra',
+            'asset_kind': 'phone',
+            'quantity': '3',
+            'unit_cost': '40000',
+            'unit_sale_price': '55000',
+            'purchase_date': date.today().isoformat(),
+            'supplier': 'Proveedor Demo',
+        },
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert b'Compra registrada' in response.data
+    with app.app_context():
+        asset = Asset.query.filter_by(name='iPhone Compra').one()
+        purchase = Purchase.query.one()
+        assert asset.quantity_total == 3
+        assert asset.estimated_value == Decimal('40000.00')
+        assert asset.sale_price == Decimal('55000.00')
+        assert purchase.total_cost == Decimal('120000.00')
+        assert purchase.expected_profit == Decimal('45000.00')
+        assert purchase.margin_percent == Decimal('37.50')
+
+
+def test_purchase_existing_asset_uses_weighted_cost_and_adds_stock(client, app):
+    register(client)
+    client.post('/assets/new', data={'kind':'phone','name':'Stock base','quantity_total':'2','estimated_value':'100','sale_price':'150'}, follow_redirects=True)
+    with app.app_context():
+        asset_id = Asset.query.filter_by(name='Stock base').one().id
+    response = client.post('/purchases/new', data={'asset_id':asset_id,'quantity':'2','unit_cost':'200','unit_sale_price':'300','purchase_date':date.today().isoformat()}, follow_redirects=True)
+    assert response.status_code == 200
+    with app.app_context():
+        asset = db.session.get(Asset, asset_id)
+        assert asset.quantity_total == 4
+        assert asset.estimated_value == Decimal('150.00')
+        assert asset.sale_price == Decimal('300.00')
+
+
 def test_reports_v19_has_two_column_mobile_kpis_and_core_business_sections():
     from pathlib import Path
     template = Path('cuotago/templates/reports/index.html').read_text(encoding='utf-8')
@@ -828,6 +870,7 @@ def test_reports_v19_has_two_column_mobile_kpis_and_core_business_sections():
     main = Path('cuotago/main.py').read_text(encoding='utf-8')
 
     assert 'report-kpi-grid-v19' in template
+    assert 'Margen de ganancia' in template
     assert 'Ganancia esperada' in template
     assert 'Capital recuperado' in template
     assert 'MORA' in template
@@ -858,8 +901,8 @@ def test_reminders_v20_compacts_dashboard_and_adds_dedicated_view():
     assert 'reminder-v20-row' in reminders
     assert '.home-reminder-button{' in css
     assert '.reminders-page-v20{' in css
-    assert '-ui-v25' in base
-    assert "1.13.0-ui-v25" in sw
+    assert '-ui-v27' in base
+    assert "1.14.0-ui-v27" in sw
 
 
 
@@ -875,4 +918,4 @@ def test_overdue_push_repeats_outside_app_without_notification_pileup():
     assert 'Recordatorio de cobro' in push
     assert 'replaceKey' in push
     assert 'getNotifications()' in worker
-    assert "1.13.0-ui-v25" in worker
+    assert "1.14.0-ui-v27" in worker
