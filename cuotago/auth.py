@@ -1,8 +1,10 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
+from datetime import datetime
+
 from flask_login import confirm_login, current_user, login_fresh, login_user, logout_user
 
 from .extensions import db
-from .models import Organization, User
+from .models import Organization, OrganizationSubscription, User
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -32,7 +34,12 @@ def login():
         if not user or not user.check_password(password):
             flash("Correo o contraseña incorrectos.", "error")
             return render_template("auth/login.html", email=email)
+        if not user.is_enabled:
+            flash("Esta cuenta fue deshabilitada. Contacta al administrador.", "error")
+            return render_template("auth/login.html", email=email)
 
+        user.last_login_at = datetime.utcnow()
+        db.session.commit()
         login_user(user, remember=remember)
         next_url = request.args.get("next", "")
         if next_url.startswith("/") and not next_url.startswith("//"):
@@ -96,9 +103,10 @@ def register():
             )
 
         org = Organization(name=business_name, currency="DOP")
-        user = User(organization=org, name=name, email=email, role="owner")
+        user = User(organization=org, name=name, email=email, role="owner", is_enabled=True, last_login_at=datetime.utcnow())
         user.set_password(password)
-        db.session.add_all([org, user])
+        subscription = OrganizationSubscription(organization=org, status="pending")
+        db.session.add_all([org, user, subscription])
         db.session.commit()
         login_user(user)
         flash("Tu cuenta está lista. Ya puedes empezar.", "success")

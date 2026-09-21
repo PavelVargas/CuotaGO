@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Nueva empresa · Superadmin{% endblock %}
+{% block body_class %}superadmin-shell{% endblock %}
+{% block content %}
+<section class="content-page admin-console admin-form-page">
+  <header class="admin-console-head compact">
+    <div class="admin-console-title"><a class="icon-btn" href="{{ url_for('admin.dashboard') }}" aria-label="Volver">{{ icon('back', 20) }}</a><div><span class="eyebrow">SUPERADMIN</span><h1>Nueva empresa</h1><p>Crea el negocio, su propietario y la suscripción inicial en un solo paso.</p></div></div>
+  </header>
+  {% include 'admin/_nav.html' %}
+  <form class="surface admin-editor-card" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="admin-card-title"><div><span class="eyebrow">EMPRESA</span><h2>Datos principales</h2></div><span class="admin-step-chip">1</span></div>
+    <div class="admin-form-grid two">
+      <label class="field"><span>Nombre del negocio</span><input name="business_name" required value="{{ request.form.get('business_name','') }}" autocomplete="organization"></label>
+      <label class="field"><span>Propietario</span><input name="owner_name" required value="{{ request.form.get('owner_name','') }}" autocomplete="name"></label>
+      <label class="field"><span>Correo de acceso</span><input type="email" name="email" required value="{{ request.form.get('email','') }}" autocomplete="email"></label>
+      <label class="field"><span>Contraseña inicial</span><input type="password" name="password" minlength="8" required autocomplete="new-password"><small>El valor no se guarda en el historial del superadmin.</small></label>
+    </div>
+    <div class="admin-card-divider"></div>
+    <div class="admin-card-title"><div><span class="eyebrow">SUSCRIPCIÓN</span><h2>Configuración inicial</h2></div><span class="admin-step-chip">2</span></div>
+    <div class="admin-form-grid three">
+      <label class="field"><span>Plan</span><select name="plan_id"><option value="">Sin plan por ahora</option>{% for plan in plans %}<option value="{{ plan.id }}" {{ 'selected' if request.form.get('plan_id') == plan.id|string }}>{{ plan.name }} · {{ plan.currency }} {{ '{:,.2f}'.format(plan.price) }}</option>{% endfor %}</select></label>
+      <label class="field"><span>Estado</span><select name="status">{% for value in ['pending','trial','active','past_due','suspended'] %}<option value="{{ value }}" {{ 'selected' if request.form.get('status','pending') == value }}>{{ status_labels[value] }}</option>{% endfor %}</select></label>
+      <label class="field"><span>Vencimiento</span><input type="date" name="current_period_end" value="{{ request.form.get('current_period_end','') }}"><small>Si eliges un plan activo y lo dejas vacío, se calcula el primer periodo.</small></label>
+      <label class="field"><span>Precio personalizado</span><input type="number" step="0.01" min="0" name="amount_override" value="{{ request.form.get('amount_override','') }}" placeholder="Usar precio del plan"></label>
+    </div>
+    <div class="admin-form-actions"><a class="btn btn-secondary" href="{{ url_for('admin.dashboard') }}">Cancelar</a><button class="btn btn-primary" type="submit">Crear empresa</button></div>
+  </form>
+</section>
+{% endblock %}

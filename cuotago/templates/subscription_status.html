@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Estado de suscripción · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page subscription-block-page narrow-page">
+  <section class="surface subscription-block-card">
+    <span class="subscription-block-icon">{{ icon('wallet', 30) }}</span>
+    <span class="eyebrow">SUSCRIPCIÓN</span>
+    <h1>{{ status_label }}</h1>
+    {% if effective_status == 'suspended' %}<p>El acceso de esta empresa fue suspendido por administración.</p>{% elif effective_status == 'cancelled' %}<p>La suscripción de esta empresa está cancelada.</p>{% else %}<p>El periodo de acceso de esta empresa terminó.</p>{% endif %}
+    {% if subscription and subscription.plan %}<div class="subscription-block-meta"><span>Plan <b>{{ subscription.plan.name }}</b></span>{% if subscription.current_period_end %}<span>Vencimiento <b>{{ subscription.current_period_end.strftime('%d/%m/%Y') }}</b></span>{% endif %}</div>{% endif %}
+    <p class="subscription-block-help">Contacta al administrador de CuotaGo para renovar o revisar el estado. Tus datos permanecen guardados.</p>
+    <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-secondary" type="submit">Cerrar sesión</button></form>
+  </section>
+</section>
+{% endblock %}

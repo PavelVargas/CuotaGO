@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from flask_login import UserMixin
@@ -21,6 +21,12 @@ class Organization(db.Model):
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
 
     users = db.relationship("User", back_populates="organization", cascade="all, delete-orphan")
+    subscription = db.relationship(
+        "OrganizationSubscription",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
 
 
 class User(UserMixin, db.Model):
@@ -32,6 +38,8 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(160), nullable=False, unique=True, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(30), nullable=False, default="owner")
+    is_enabled = db.Column(db.Boolean, nullable=False, default=True, index=True)
+    last_login_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
 
     organization = db.relationship("Organization", back_populates="users")
@@ -42,6 +50,10 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    @property
+    def is_active(self):
+        return bool(self.is_enabled)
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -49,6 +61,116 @@ def load_user(user_id):
         return db.session.get(User, int(user_id))
     except (TypeError, ValueError):
         return None
+
+
+class SubscriptionPlan(db.Model):
+    __tablename__ = "subscription_plans"
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), nullable=False, unique=True, index=True)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    currency = db.Column(db.String(8), nullable=False, default="DOP")
+    billing_interval_months = db.Column(db.Integer, nullable=False, default=1)
+    is_active = db.Column(db.Boolean, nullable=False, default=True, index=True)
+    created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
+    updated_at = db.Column(db.DateTime, default=now_utc_naive, onupdate=now_utc_naive, nullable=False)
+
+    subscriptions = db.relationship("OrganizationSubscription", back_populates="plan")
+
+
+class OrganizationSubscription(db.Model):
+    __tablename__ = "organization_subscriptions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(
+        db.Integer, db.ForeignKey("organizations.id"), nullable=False, unique=True, index=True
+    )
+    plan_id = db.Column(db.Integer, db.ForeignKey("subscription_plans.id"), nullable=True, index=True)
+    status = db.Column(db.String(24), nullable=False, default="pending", index=True)
+    amount_override = db.Column(db.Numeric(12, 2))
+    current_period_start = db.Column(db.Date)
+    current_period_end = db.Column(db.Date, index=True)
+    grace_ends_at = db.Column(db.Date)
+    notes = db.Column(db.Text)
+    last_payment_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
+    updated_at = db.Column(db.DateTime, default=now_utc_naive, onupdate=now_utc_naive, nullable=False)
+
+    organization = db.relationship("Organization", back_populates="subscription")
+    plan = db.relationship("SubscriptionPlan", back_populates="subscriptions")
+    payments = db.relationship(
+        "SubscriptionPayment",
+        back_populates="subscription",
+        cascade="all, delete-orphan",
+        order_by="SubscriptionPayment.paid_at.desc()",
+    )
+
+    @property
+    def effective_amount(self):
+        if self.amount_override is not None:
+            return Decimal(str(self.amount_override or 0))
+        if self.plan is not None:
+            return Decimal(str(self.plan.price or 0))
+        return Decimal("0.00")
+
+    @property
+    def effective_status(self):
+        status = (self.status or "pending").strip().lower()
+        if status in {"suspended", "cancelled"}:
+            return status
+        today = date.today()
+        if self.current_period_end and self.current_period_end < today:
+            if self.grace_ends_at and self.grace_ends_at >= today:
+                return "past_due"
+            return "expired"
+        return status
+
+    @property
+    def days_remaining(self):
+        if not self.current_period_end:
+            return None
+        return (self.current_period_end - date.today()).days
+
+
+class SubscriptionPayment(db.Model):
+    __tablename__ = "subscription_payments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    subscription_id = db.Column(
+        db.Integer, db.ForeignKey("organization_subscriptions.id"), nullable=False, index=True
+    )
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
+    currency = db.Column(db.String(8), nullable=False, default="DOP")
+    method = db.Column(db.String(30), nullable=False, default="cash")
+    reference = db.Column(db.String(120))
+    note = db.Column(db.String(240))
+    period_start = db.Column(db.Date)
+    period_end = db.Column(db.Date)
+    previous_period_start = db.Column(db.Date)
+    previous_period_end = db.Column(db.Date)
+    previous_status = db.Column(db.String(24))
+    paid_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
+    created_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    voided_at = db.Column(db.DateTime, index=True)
+    voided_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    void_reason = db.Column(db.String(240))
+
+    subscription = db.relationship("OrganizationSubscription", back_populates="payments")
+
+
+class AdminAuditLog(db.Model):
+    __tablename__ = "admin_audit_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    actor_user_id = db.Column(db.Integer, nullable=True, index=True)
+    organization_id = db.Column(db.Integer, nullable=True, index=True)
+    action = db.Column(db.String(60), nullable=False, index=True)
+    target_type = db.Column(db.String(40), nullable=False, default="organization")
+    target_id = db.Column(db.String(80))
+    summary = db.Column(db.String(240), nullable=False)
+    detail = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
 
 
 class Client(db.Model):

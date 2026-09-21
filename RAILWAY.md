@@ -1,4 +1,4 @@
-# CuotaGo v1.12.1 en Railway
+# CuotaGo v1.13.0 en Railway
 
 Esta carpeta esta preparada para Railway con PostgreSQL.
 
@@ -39,7 +39,7 @@ Agrega estas variables en el servicio WEB de CuotaGo:
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.12.1
+APP_VERSION=1.13.0
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -97,9 +97,21 @@ Las notificaciones Push con la PWA cerrada requieren HTTPS y que el usuario conc
 
 ## 7. Superadmin
 
-Al arrancar, si `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD` estan configurados, CuotaGo crea o actualiza esa cuenta con rol `superadmin`. Ese usuario entra a `/superadmin`, desde donde puede vaciar Cobros, Acuerdos, Bienes, Clientes, Alertas, dispositivos Push, vaciar una empresa conservando sus usuarios o eliminar la empresa completa.
+Al arrancar, si `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD` estan configurados, CuotaGo crea o actualiza esa cuenta con rol `superadmin`. El panel `/superadmin` ahora incluye:
 
+- directorio de empresas con búsqueda y filtros;
+- alta de empresas y propietarios;
+- planes de suscripción editables y archivables;
+- estados de suscripción, vencimiento y gracia;
+- registro, historial y anulación auditable de pagos de suscripción;
+- extensión manual de días;
+- creación/edición de usuarios, bloqueo/habilitación y restablecimiento de contraseña;
+- exportación CSV;
+- auditoría de acciones administrativas;
+- mantenimiento de módulos, vaciado completo y eliminación definitiva con confirmación reforzada.
 
-## Actualización v1.12.1
+Las suscripciones `suspended`, `cancelled` o vencidas fuera del periodo de gracia redirigen al cliente a una pantalla de estado de suscripción. Sus datos no se borran. Las cuentas `pending`, `trial`, `active` y `past_due` continúan teniendo acceso.
 
-Esta versión no agrega columnas nuevas. Solo cambia la UX del plan de pago, el launcher móvil/escritorio y el resumen de inicio. La misma base PostgreSQL de Railway es compatible.
+## Actualización v1.13.0
+
+Esta actualización es **hacia adelante y no borra datos existentes**. `db.create_all()` crea las tablas nuevas `subscription_plans`, `organization_subscriptions`, `subscription_payments` y `admin_audit_logs`. Para instalaciones PostgreSQL existentes, el arranque agrega de forma segura `users.is_enabled` y `users.last_login_at` con `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`. Las empresas que ya existían aparecen como **Sin configurar** hasta que el superadmin les asigne una suscripción; no quedan bloqueadas por ese motivo.

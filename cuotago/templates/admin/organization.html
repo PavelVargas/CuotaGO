@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}{{ organization.name }} · Superadmin{% endblock %}
+{% block body_class %}superadmin-shell{% endblock %}
+{% block content %}
+<section class="content-page admin-console admin-company-page">
+  <header class="admin-console-head compact">
+    <div class="admin-console-title">
+      <a class="icon-btn" href="{{ url_for('admin.dashboard') }}" aria-label="Volver">{{ icon('back', 20) }}</a>
+      <span class="admin-company-avatar admin-company-avatar-lg">{{ organization.name[:1]|upper }}</span>
+      <div><span class="eyebrow">EMPRESA #{{ organization.id }}</span><h1>{{ organization.name }}</h1><p>Suscripción, usuarios, datos y soporte administrativo.</p></div>
+    </div>
+    <span class="admin-status admin-status-{{ status_tones.get(effective_status,'neutral') }} admin-status-large">{{ status_labels.get(effective_status,effective_status) }}</span>
+  </header>
+
+  {% include 'admin/_nav.html' %}
+
+  <section class="admin-company-summary">
+    <article class="admin-company-summary-main surface">
+      <div><span class="eyebrow">SUSCRIPCIÓN</span><h2>{{ subscription.plan.name if subscription and subscription.plan else 'Sin plan asignado' }}</h2><p>{% if subscription and subscription.current_period_end %}Vence el {{ subscription.current_period_end.strftime('%d/%m/%Y') }}{% else %}No tiene una fecha de vencimiento configurada.{% endif %}</p></div>
+      <div class="admin-company-summary-price"><span>Precio</span><strong>{{ subscription.plan.currency if subscription and subscription.plan else organization.currency }} {{ '{:,.2f}'.format(subscription.effective_amount if subscription else 0) }}</strong><small>{% if subscription and subscription.amount_override is not none %}Personalizado{% elif subscription and subscription.plan %}Precio del plan{% else %}Sin precio{% endif %}</small></div>
+    </article>
+    <div class="admin-compact-kpis">
+      <div><span>Usuarios</span><strong>{{ counts.users }}</strong></div><div><span>Clientes</span><strong>{{ counts.clients }}</strong></div><div><span>Bienes</span><strong>{{ counts.assets }}</strong></div><div><span>Acuerdos</span><strong>{{ counts.contracts }}</strong></div><div><span>Push</span><strong>{{ counts.push_devices }}</strong></div>
+    </div>
+  </section>
+
+  <div class="admin-company-layout">
+    <div class="admin-company-primary">
+      <section class="surface admin-editor-card" id="subscription">
+        <div class="admin-section-head"><div><span class="eyebrow">SUSCRIPCIÓN</span><h2>Plan y estado</h2><p>Controla el acceso comercial y las fechas del periodo.</p></div></div>
+        <form method="post" action="{{ url_for('admin.update_subscription', organization_id=organization.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="admin-form-grid three">
+            <label class="field"><span>Plan</span><select name="plan_id"><option value="">Sin plan</option>{% for plan in plans %}<option value="{{ plan.id }}" {{ 'selected' if subscription and subscription.plan_id == plan.id }} {{ 'disabled' if not plan.is_active and (not subscription or subscription.plan_id != plan.id) }}>{{ plan.name }}{% if not plan.is_active %} · archivado{% endif %}</option>{% endfor %}</select></label>
+            <label class="field"><span>Estado administrativo</span><select name="status">{% for value in ['pending','trial','active','past_due','suspended','cancelled'] %}<option value="{{ value }}" {{ 'selected' if subscription and subscription.status == value or (not subscription and value == 'pending') }}>{{ status_labels[value] }}</option>{% endfor %}</select><small>Vencida se calcula automáticamente por fecha.</small></label>
+            <label class="field"><span>Precio personalizado</span><input type="number" step="0.01" min="0" name="amount_override" value="{{ subscription.amount_override if subscription and subscription.amount_override is not none else '' }}" placeholder="Usar precio del plan"></label>
+            <label class="field"><span>Inicio del periodo</span><input type="date" name="current_period_start" value="{{ subscription.current_period_start.isoformat() if subscription and subscription.current_period_start else '' }}"></label>
+            <label class="field"><span>Vencimiento</span><input type="date" name="current_period_end" value="{{ subscription.current_period_end.isoformat() if subscription and subscription.current_period_end else '' }}"></label>
+            <label class="field"><span>Gracia hasta</span><input type="date" name="grace_ends_at" value="{{ subscription.grace_ends_at.isoformat() if subscription and subscription.grace_ends_at else '' }}"><small>Durante la gracia no se bloquea el acceso.</small></label>
+          </div>
+          <label class="field admin-notes-field"><span>Nota interna</span><textarea name="notes" rows="3" placeholder="Solo visible para superadmin">{{ subscription.notes if subscription and subscription.notes else '' }}</textarea></label>
+          <div class="admin-form-actions"><button class="btn btn-primary" type="submit">Guardar suscripción</button></div>
+        </form>
+        <div class="admin-quick-actions">
+          <span>Extender rápidamente</span>
+          {% for days in [7,30,90] %}<form method="post" action="{{ url_for('admin.extend_subscription', organization_id=organization.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="days" value="{{ days }}"><button type="submit">+{{ days }} días</button></form>{% endfor %}
+          <form class="admin-custom-extension" method="post" action="{{ url_for('admin.extend_subscription', organization_id=organization.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="number" min="1" max="3650" name="days" value="30" aria-label="Días"><button type="submit">Aplicar</button></form>
+        </div>
+      </section>
+
+      <section class="surface admin-editor-card" id="billing">
+        <div class="admin-section-head"><div><span class="eyebrow">COBROS</span><h2>Registrar pago de suscripción</h2><p>El pago queda en historial y renueva el periodo seleccionado.</p></div></div>
+        <form method="post" action="{{ url_for('admin.record_subscription_payment', organization_id=organization.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="admin-form-grid three">
+            <label class="field"><span>Monto recibido</span><input type="number" step="0.01" min="0.01" name="amount" placeholder="{{ subscription.effective_amount if subscription else '' }}"></label>
+            <label class="field"><span>Periodo cubierto</span><select name="months">{% for months in [1,2,3,6,12] %}<option value="{{ months }}" {{ 'selected' if (subscription and subscription.plan and subscription.plan.billing_interval_months == months) or (months == 1 and not subscription) }}>{{ months }} mes{{ '' if months == 1 else 'es' }}</option>{% endfor %}</select></label>
+            <label class="field"><span>Método</span><select name="method"><option value="cash">Efectivo</option><option value="transfer">Transferencia</option><option value="card">Tarjeta</option><option value="other">Otro</option></select></label>
+            <label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="No. transferencia / recibo"></label>
+            <label class="field admin-field-span-2"><span>Nota</span><input name="note" maxlength="240" placeholder="Opcional"></label>
+          </div>
+          <div class="admin-form-actions"><button class="btn btn-primary" type="submit">Registrar pago y renovar</button></div>
+        </form>
+        <div class="admin-payment-history">
+          <div class="admin-subsection-title"><strong>Historial de pagos</strong><small>{{ payments|length }} mostrado{{ '' if payments|length == 1 else 's' }}</small></div>
+          {% if payments %}
+          <div class="admin-data-list">
+            {% for payment in payments %}
+            <div class="admin-data-row {{ 'is-voided' if payment.voided_at }}">
+              <div><strong>{{ payment.currency }} {{ '{:,.2f}'.format(payment.amount) }} {% if payment.voided_at %}<span class="admin-inline-void">ANULADO</span>{% endif %}</strong><small>{{ payment.method|capitalize }}{% if payment.reference %} · {{ payment.reference }}{% endif %}{% if payment.voided_at and payment.void_reason %} · {{ payment.void_reason }}{% endif %}</small></div>
+              <div class="admin-data-row-right"><strong>{{ payment.paid_at.strftime('%d/%m/%Y') }}</strong><small>{% if payment.period_start and payment.period_end %}{{ payment.period_start.strftime('%d/%m') }} → {{ payment.period_end.strftime('%d/%m/%Y') }}{% endif %}</small>{% if not payment.voided_at %}<details class="admin-payment-void"><summary>Anular</summary><form method="post" action="{{ url_for('admin.void_subscription_payment', organization_id=organization.id, payment_id=payment.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input name="reason" required minlength="3" maxlength="240" placeholder="Motivo"><button type="submit">Confirmar</button></form></details>{% endif %}</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}<p class="admin-muted-copy">Todavía no se han registrado pagos de la suscripción.</p>{% endif %}
+        </div>
+      </section>
+
+      <section class="surface admin-editor-card" id="users">
+        <div class="admin-section-head"><div><span class="eyebrow">ACCESO</span><h2>Usuarios de la empresa</h2><p>Soporte de cuentas sin entrar a la información operativa del cliente.</p></div></div>
+        <div class="admin-user-list">
+          {% for user in users %}
+          <article class="admin-user-row">
+            <span class="admin-user-avatar">{{ user.name[:1]|upper }}</span>
+            <div class="admin-user-copy"><strong>{{ user.name }}</strong><small>{{ user.email }}</small><span>{{ user.role|capitalize }} · {% if user.last_login_at %}Último acceso {{ user.last_login_at.strftime('%d/%m/%Y %H:%M') }}{% else %}Sin acceso registrado{% endif %}</span></div>
+            <span class="admin-status admin-status-{{ 'success' if user.is_enabled else 'danger' }}">{{ 'Habilitado' if user.is_enabled else 'Bloqueado' }}</span>
+            <form method="post" action="{{ url_for('admin.toggle_user', organization_id=organization.id, user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-secondary admin-mini-btn" type="submit">{{ 'Bloquear' if user.is_enabled else 'Habilitar' }}</button></form>
+            <details class="admin-user-reset"><summary>Gestionar usuario</summary><div class="admin-user-manage-grid"><form method="post" action="{{ url_for('admin.update_user', organization_id=organization.id, user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input name="name" value="{{ user.name }}" required aria-label="Nombre"><input type="email" name="email" value="{{ user.email }}" required aria-label="Correo"><select name="role" aria-label="Rol"><option value="staff" {{ 'selected' if user.role == 'staff' }}>Usuario</option><option value="owner" {{ 'selected' if user.role == 'owner' }}>Propietario</option></select><button type="submit">Guardar perfil</button></form><form method="post" action="{{ url_for('admin.reset_user_password', organization_id=organization.id, user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="password" name="password" minlength="8" required placeholder="Nueva contraseña temporal"><button type="submit">Cambiar contraseña</button></form></div></details>
+          </article>
+          {% endfor %}
+        </div>
+        <details class="admin-add-user">
+          <summary>+ Agregar usuario</summary>
+          <form method="post" action="{{ url_for('admin.create_user', organization_id=organization.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="admin-form-grid four"><label class="field"><span>Nombre</span><input name="name" required></label><label class="field"><span>Correo</span><input type="email" name="email" required></label><label class="field"><span>Contraseña inicial</span><input type="password" name="password" minlength="8" required></label><label class="field"><span>Rol</span><select name="role"><option value="staff">Usuario</option><option value="owner">Propietario</option></select></label></div>
+            <div class="admin-form-actions"><button class="btn btn-primary" type="submit">Crear usuario</button></div>
+          </form>
+        </details>
+      </section>
+    </div>
+
+    <aside class="admin-company-sidebar">
+      <section class="surface admin-side-card" id="company">
+        <div class="admin-section-head"><div><span class="eyebrow">EMPRESA</span><h2>Ficha</h2></div></div>
+        <form method="post" action="{{ url_for('admin.update_company', organization_id=organization.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="field"><span>Nombre</span><input name="name" required value="{{ organization.name }}"></label><div class="admin-form-actions"><button class="btn btn-secondary" type="submit">Guardar nombre</button></div></form>
+        <dl class="admin-info-list"><div><dt>ID</dt><dd>#{{ organization.id }}</dd></div><div><dt>Creada</dt><dd>{{ organization.created_at.strftime('%d/%m/%Y') }}</dd></div><div><dt>Moneda</dt><dd>{{ organization.currency }}</dd></div></dl>
+      </section>
+
+      <section class="surface admin-side-card" id="activity">
+        <div class="admin-section-head"><div><span class="eyebrow">AUDITORÍA</span><h2>Últimos cambios</h2></div></div>
+        {% if recent_activity %}<div class="admin-activity-list compact">{% for log in recent_activity %}<div class="admin-activity-row"><span class="admin-activity-dot"></span><div><strong>{{ log.summary }}</strong><small>{{ log.created_at.strftime('%d/%m %H:%M') }}</small></div></div>{% endfor %}</div>{% else %}<p class="admin-muted-copy">Sin actividad administrativa.</p>{% endif %}
+      </section>
+    </aside>
+  </div>
+
+  <section class="surface admin-maintenance" id="maintenance">
+    <div class="admin-section-head"><div><span class="eyebrow">MANTENIMIENTO</span><h2>Datos y acciones sensibles</h2><p>Las operaciones de borrado están fuera del listado principal y requieren escribir el nombre exacto de la empresa.</p></div><span class="admin-danger-badge">Zona sensible</span></div>
+    <div class="admin-maintenance-grid">
+      <form class="admin-danger-card warning" method="post" action="{{ url_for('admin.clear_module', organization_id=organization.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div><strong>Limpiar un módulo</strong><p>Elimina solo una categoría de datos manteniendo consistencia.</p></div>
+        <label class="field"><span>Módulo</span><select name="module"><option value="collections">Cobros y pagos</option><option value="contracts">Acuerdos</option><option value="assets">Bienes</option><option value="clients">Clientes</option><option value="notifications">Historial de alertas</option><option value="push_devices">Dispositivos Push</option></select></label>
+        <label class="field"><span>Escribe “{{ organization.name }}”</span><input name="confirm_name" required autocomplete="off"></label>
+        <button class="btn btn-secondary" type="submit">Limpiar módulo</button>
+      </form>
+      <form class="admin-danger-card danger" method="post" action="{{ url_for('admin.reset_company', organization_id=organization.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div><strong>Vaciar empresa</strong><p>Borra clientes, bienes, acuerdos, cobros, alertas y Push. Conserva usuarios, empresa y suscripción.</p></div>
+        <label class="field"><span>Escribe “{{ organization.name }}”</span><input name="confirm_name" required autocomplete="off"></label>
+        <button class="btn btn-danger" type="submit">Vaciar datos operativos</button>
+      </form>
+      <form class="admin-danger-card critical" method="post" action="{{ url_for('admin.delete_company', organization_id=organization.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div><strong>Eliminar empresa</strong><p>Borra definitivamente la empresa, usuarios, suscripción y todos sus datos. El evento queda en auditoría.</p></div>
+        <label class="field"><span>Escribe “{{ organization.name }}”</span><input name="confirm_name" required autocomplete="off"></label>
+        <label class="admin-confirm-check"><input type="checkbox" name="confirm_delete" value="yes" required><span>Entiendo que no se puede deshacer.</span></label>
+        <button class="btn btn-danger" type="submit">Eliminar permanentemente</button>
+      </form>
+    </div>
+  </section>
+</section>
+{% endblock %}

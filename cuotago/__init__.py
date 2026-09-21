@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, send_from_directory
+from flask import Flask, flash, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask_login import current_user, logout_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy import text
 
@@ -27,6 +28,14 @@ def _ensure_feature_schema(app):
         "ALTER TABLE installments ADD COLUMN IF NOT EXISTS late_fee_paid NUMERIC(12,2) NOT NULL DEFAULT 0",
         "ALTER TABLE installments ADD COLUMN IF NOT EXISTS principal_paid_at TIMESTAMP NULL",
         "ALTER TABLE payments ADD COLUMN IF NOT EXISTS late_fee_amount NUMERIC(12,2) NOT NULL DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN NOT NULL DEFAULT TRUE",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP NULL",
+        "ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS previous_period_start DATE NULL",
+        "ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS previous_period_end DATE NULL",
+        "ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS previous_status VARCHAR(24) NULL",
+        "ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS voided_at TIMESTAMP NULL",
+        "ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS voided_by_user_id INTEGER NULL",
+        "ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS void_reason VARCHAR(240) NULL",
     ]
     if db.engine.dialect.name != "postgresql":
         return
@@ -106,6 +115,30 @@ def create_app(test_config=None):
     app.register_blueprint(main_bp)
     app.register_blueprint(push_bp)
     app.register_blueprint(admin_bp)
+
+    @app.before_request
+    def enforce_account_and_subscription_state():
+        if not current_user.is_authenticated:
+            return None
+        if not getattr(current_user, "is_enabled", True):
+            logout_user()
+            flash("Tu cuenta fue deshabilitada. Contacta al administrador.", "error")
+            return redirect(url_for("auth.login"))
+        if getattr(current_user, "role", "") == "superadmin":
+            return None
+        subscription = getattr(current_user.organization, "subscription", None)
+        if subscription is None or subscription.effective_status not in {"suspended", "cancelled", "expired"}:
+            return None
+        if request.endpoint in {"main.subscription_status", "auth.logout", "static", "service_worker", "offline", "healthz"}:
+            return None
+        if request.path.startswith("/api/"):
+            return jsonify({
+                "ok": False,
+                "error": "subscription_inactive",
+                "status": subscription.effective_status,
+                "redirect": url_for("main.subscription_status"),
+            }), 403
+        return redirect(url_for("main.subscription_status"))
 
     @app.get("/healthz")
     def healthz():

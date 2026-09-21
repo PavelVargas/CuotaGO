@@ -7,7 +7,10 @@ import pytest
 
 from cuotago import create_app
 from cuotago.extensions import db
-from cuotago.models import Asset, Client, Contract, Installment, Organization, PushNotificationLog, PushSubscription, User
+from cuotago.models import (
+    AdminAuditLog, Asset, Client, Contract, Installment, Organization, OrganizationSubscription,
+    PushNotificationLog, PushSubscription, SubscriptionPayment, SubscriptionPlan, User,
+)
 
 
 @pytest.fixture()
@@ -59,6 +62,8 @@ def test_register_login_and_dashboard(client, app):
     assert b"Acuerdos" in response.data
     with app.app_context():
         assert User.query.count() == 1
+        assert OrganizationSubscription.query.count() == 1
+        assert OrganizationSubscription.query.one().status == "pending"
 
 
 def test_create_contract_and_register_payment(client, app):
@@ -286,7 +291,11 @@ def test_superadmin_can_clear_company_data(client, app):
     with app.app_context():
         target_org = User.query.filter_by(email='pavel@example.com').one().organization_id
 
-    response = client.post(f'/superadmin/organizations/{target_org}/reset', follow_redirects=True)
+    response = client.post(
+        f'/superadmin/organizations/{target_org}/reset',
+        data={'confirm_name': 'Préstamos Demo'},
+        follow_redirects=True,
+    )
     assert response.status_code == 200
     assert b'quedo vacia' in response.data or b'qued\xc3\xb3 vac\xc3\xada' in response.data
     with app.app_context():
@@ -294,6 +303,86 @@ def test_superadmin_can_clear_company_data(client, app):
         assert Client.query.filter_by(organization_id=target_org).count() == 0
         assert Asset.query.filter_by(organization_id=target_org).count() == 0
         assert Contract.query.filter_by(organization_id=target_org).count() == 0
+
+
+def test_superadmin_manages_plans_subscription_payment_and_audit(client, app):
+    register(client)
+    with app.app_context():
+        target = User.query.filter_by(email='pavel@example.com').one().organization
+        target_id = target.id
+        admin_org = Organization(name='Admin CuotaGo', currency='DOP')
+        admin = User(organization=admin_org, name='Admin', email='admin2@example.com', role='superadmin', is_enabled=True)
+        admin.set_password('superadmin12345')
+        db.session.add_all([admin_org, admin])
+        db.session.commit()
+
+    client.post('/logout')
+    client.post('/login', data={'email': 'admin2@example.com', 'password': 'superadmin12345'}, follow_redirects=True)
+    create_plan = client.post('/superadmin/plans', data={
+        'name': 'Mensual', 'price': '3000', 'currency': 'DOP', 'billing_interval_months': '1'
+    }, follow_redirects=True)
+    assert create_plan.status_code == 200
+    with app.app_context():
+        plan = SubscriptionPlan.query.filter_by(name='Mensual').one()
+        plan_id = plan.id
+
+    update = client.post(f'/superadmin/organizations/{target_id}/subscription', data={
+        'plan_id': str(plan_id), 'status': 'active', 'amount_override': '',
+        'current_period_start': date.today().isoformat(),
+        'current_period_end': (date.today() + timedelta(days=29)).isoformat(),
+        'grace_ends_at': '', 'notes': 'Cliente mensual',
+    }, follow_redirects=True)
+    assert update.status_code == 200
+
+    payment = client.post(f'/superadmin/organizations/{target_id}/subscription/payment', data={
+        'amount': '3000', 'months': '1', 'method': 'transfer', 'reference': 'TEST-001'
+    }, follow_redirects=True)
+    assert payment.status_code == 200
+    with app.app_context():
+        subscription = OrganizationSubscription.query.filter_by(organization_id=target_id).one()
+        assert subscription.plan_id == plan_id
+        assert subscription.status == 'active'
+        subscription_payment = SubscriptionPayment.query.filter_by(subscription_id=subscription.id).one()
+        payment_id = subscription_payment.id
+        assert AdminAuditLog.query.filter_by(organization_id=target_id).count() >= 2
+
+    voided = client.post(
+        f'/superadmin/organizations/{target_id}/subscription/payments/{payment_id}/void',
+        data={'reason': 'Pago registrado por error'},
+        follow_redirects=True,
+    )
+    assert voided.status_code == 200
+    with app.app_context():
+        subscription_payment = db.session.get(SubscriptionPayment, payment_id)
+        assert subscription_payment.voided_at is not None
+        assert subscription_payment.void_reason == 'Pago registrado por error'
+
+
+def test_suspended_subscription_blocks_company_but_not_logout(client, app):
+    register(client)
+    with app.app_context():
+        subscription = OrganizationSubscription.query.one()
+        subscription.status = 'suspended'
+        db.session.commit()
+
+    response = client.get('/contracts', follow_redirects=True)
+    assert response.status_code == 200
+    assert b'Estado de suscripci' in response.data or b'Suspendida' in response.data
+    logout = client.post('/logout', follow_redirects=False)
+    assert logout.status_code in {302, 303}
+
+
+def test_superadmin_dashboard_has_professional_admin_sections():
+    from pathlib import Path
+    html = Path('cuotago/templates/admin/index.html').read_text(encoding='utf-8')
+    organization = Path('cuotago/templates/admin/organization.html').read_text(encoding='utf-8')
+    assert 'MRR estimado' in html
+    assert 'Centro de administración' in html
+    assert 'Registrar pago de suscripción' in organization
+    assert 'Historial de pagos' in organization
+    assert 'Zona sensible' in organization
+    assert 'confirm_name' in organization
+
 
 
 def test_delayed_push_route_exists_in_source():
@@ -694,8 +783,8 @@ def test_reminders_v20_compacts_dashboard_and_adds_dedicated_view():
     assert 'reminder-v20-row' in reminders
     assert '.home-reminder-button{' in css
     assert '.reminders-page-v20{' in css
-    assert '-ui-v20' in base
-    assert "1.12.1-ui-v20" in sw
+    assert '-ui-v22' in base
+    assert "1.13.0-ui-v22" in sw
 
 
 
@@ -711,4 +800,4 @@ def test_overdue_push_repeats_outside_app_without_notification_pileup():
     assert 'Recordatorio de cobro' in push
     assert 'replaceKey' in push
     assert 'getNotifications()' in worker
-    assert "1.12.1-ui-v21" in worker
+    assert "1.13.0-ui-v22" in worker

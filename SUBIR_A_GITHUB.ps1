@@ -39,7 +39,7 @@ try { git rev-parse --verify HEAD *> $null } catch { $hasHead = $false }
 
 if (-not $hasHead -or $status) {
     git add .
-    git commit -m "CuotaGo v1.12.1 - cuotas automaticas y launcher 4 por fila y wizard de acuerdos"
+    git commit -m "CuotaGo v1.13.0 - superadmin profesional y suscripciones"
 }
 
 git branch -M main

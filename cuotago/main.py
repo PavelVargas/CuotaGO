@@ -1333,6 +1333,28 @@ def reports():
     )
 
 
+@main_bp.get("/subscription-status")
+@login_required
+def subscription_status():
+    subscription = getattr(current_user.organization, "subscription", None)
+    effective_status = subscription.effective_status if subscription else "pending"
+    labels = {
+        "pending": "Sin configurar",
+        "trial": "Prueba",
+        "active": "Activa",
+        "past_due": "Pago pendiente",
+        "expired": "Vencida",
+        "suspended": "Suspendida",
+        "cancelled": "Cancelada",
+    }
+    return render_template(
+        "subscription_status.html",
+        subscription=subscription,
+        effective_status=effective_status,
+        status_label=labels.get(effective_status, effective_status.title()),
+    )
+
+
 @main_bp.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
