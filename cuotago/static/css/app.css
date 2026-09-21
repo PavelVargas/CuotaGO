@@ -2896,9 +2896,10 @@ body.app-authenticated .page-shell>*{
   body.dashboard-home .home-reminder-pill{min-height:25px}
 }
 
-/* v1.13 · superadmin profesional: suscripciones, planes, auditoria y soporte */
-.superadmin-shell .page-shell{max-width:1260px}
-.admin-console{max-width:1180px;padding-bottom:34px}
+/* v1.13.1 · superadmin centrado y mejor balanceado en escritorio */
+.superadmin-shell .page-shell{width:100%;max-width:1320px;margin:0 auto;padding-left:max(18px,var(--safe-left));padding-right:max(18px,var(--safe-right))}
+.superadmin-shell .content-page{max-width:none;padding-left:0;padding-right:0}
+.admin-console{width:100%;max-width:1240px;margin:0 auto;padding-bottom:34px}
 .admin-console-head{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:12px}
 .admin-console-head.compact{margin-bottom:10px}
 .admin-console-title{min-width:0;display:flex;align-items:center;gap:12px}
@@ -3122,3 +3123,52 @@ html[data-theme="dark"] .admin-nav a.is-active{background:var(--surface-3);color
 @media(max-width:620px){.admin-payment-void form{justify-content:flex-end}.admin-payment-void input{width:112px}}
 .admin-user-manage-grid{margin-top:6px;display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:6px}.admin-user-manage-grid form{margin:0;display:flex;gap:5px}.admin-user-manage-grid input,.admin-user-manage-grid select{min-width:0;min-height:33px;border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:5px 7px;font-size:7.5px}.admin-user-manage-grid form:first-child input{flex:1}.admin-user-manage-grid select{width:92px}.admin-user-manage-grid button{min-height:33px;border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:5px 8px;font-size:7px;font-weight:750;white-space:nowrap}
 @media(max-width:620px){.admin-user-manage-grid{grid-template-columns:1fr}.admin-user-manage-grid form{flex-wrap:wrap}.admin-user-manage-grid input{flex:1 1 120px!important}.admin-user-manage-grid select{flex:0 0 90px}.admin-user-manage-grid button{flex:1 1 auto}}
+
+/* v1.13.0 · ui-v24 · Superadmin: centered workspace on wide desktop screens.
+   The admin console used to inherit a narrow desktop shell, leaving a large
+   empty area on the right. Keep the content aligned to the viewport center
+   and let operational tables use the available width without stretching. */
+@media (min-width:821px){
+  body.superadmin-shell .page-shell{
+    width:100%;
+    max-width:none;
+    margin-inline:0;
+    padding-left:clamp(28px,3.25vw,64px);
+    padding-right:clamp(28px,3.25vw,64px);
+  }
+  body.superadmin-shell .content-page{
+    width:100%;
+    max-width:none;
+    margin-inline:0;
+  }
+  body.superadmin-shell .admin-console{
+    width:min(1500px,100%);
+    max-width:1500px;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+  body.superadmin-shell .topbar-inner{
+    width:min(1500px,calc(100% - clamp(56px,6.5vw,128px)));
+    max-width:1500px;
+    margin-left:auto;
+    margin-right:auto;
+    padding-left:0;
+    padding-right:0;
+  }
+}
+
+@media (min-width:1500px){
+  body.superadmin-shell .admin-console-head{
+    padding-inline:2px;
+  }
+  body.superadmin-shell .admin-overview-grid{
+    gap:10px;
+  }
+  body.superadmin-shell .admin-directory,
+  body.superadmin-shell .admin-activity-preview,
+  body.superadmin-shell .admin-editor-card,
+  body.superadmin-shell .admin-side-card,
+  body.superadmin-shell .admin-maintenance{
+    padding:16px;
+  }
+}
