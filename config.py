@@ -77,3 +77,5 @@ class Config:
     PUSH_SCHEDULER_ENABLED = _bool_env("PUSH_SCHEDULER_ENABLED", True)
     PUSH_CHECK_INTERVAL_MINUTES = max(1, int(os.getenv("PUSH_CHECK_INTERVAL_MINUTES", "5")))
     PUSH_ALERT_START_HOUR = min(23, max(0, int(os.getenv("PUSH_ALERT_START_HOUR", "8"))))
+    PUSH_ALERT_END_HOUR = min(24, max(1, int(os.getenv("PUSH_ALERT_END_HOUR", "22"))))
+    PUSH_OVERDUE_REPEAT_HOURS = min(24, max(1, int(os.getenv("PUSH_OVERDUE_REPEAT_HOURS", "4"))))

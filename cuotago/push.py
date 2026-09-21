@@ -149,7 +149,7 @@ def _schedule_test_push(app, subscription_id, delay_seconds=10):
     threading.Thread(target=worker, name=f"cuotago-push-test-{subscription_id}", daemon=True).start()
     return delay_seconds
 
-def overdue_payload(installment):
+def overdue_payload(installment, reminder=False):
     contract = installment.contract
     currency = "DOP"
     try:
@@ -161,11 +161,19 @@ def overdue_payload(installment):
         pass
 
     return {
-        "type": "overdue",
-        "title": "Pago atrasado",
-        "body": f"{contract.client.full_name} no ha pagado {_money(installment.remaining, currency)}. Vencio el {installment.due_date.strftime('%d/%m')}",
-        "url": f"/contracts/{contract.id}#pay",
-        "tag": f"cuotago-overdue-{installment.id}",
+        "type": "overdue-reminder" if reminder else "overdue",
+        "title": "Recordatorio de cobro" if reminder else "Pago atrasado",
+        "body": (
+            f"Ojo: {contract.client.full_name} todavia te debe {_money(installment.remaining, currency)}. "
+            f"Vencio el {installment.due_date.strftime('%d/%m')}."
+            if reminder
+            else f"{contract.client.full_name} no ha pagado {_money(installment.remaining, currency)}. "
+                 f"Vencio el {installment.due_date.strftime('%d/%m')}"
+        ),
+        # Each repeated reminder gets a fresh notification tag so the operating
+        # system alerts again even when the previous reminder used the same debt.
+        "tag": f"cuotago-overdue-{installment.id}-{int(time.time())}" if reminder else f"cuotago-overdue-{installment.id}",
+        "replaceKey": f"overdue-{installment.id}",
         "installmentId": installment.id,
         "contractId": contract.id,
         "clientName": contract.client.full_name,
@@ -203,10 +211,15 @@ def scan_overdue_and_notify(app):
 
     tz = ZoneInfo(app.config.get("APP_TIMEZONE", "America/Santo_Domingo"))
     now_local = datetime.now(tz)
-    if now_local.hour < int(app.config.get("PUSH_ALERT_START_HOUR", 8)):
+    start_hour = int(app.config.get("PUSH_ALERT_START_HOUR", 8))
+    end_hour = int(app.config.get("PUSH_ALERT_END_HOUR", 22))
+    if now_local.hour < start_hour or now_local.hour >= end_hour:
         return 0
 
     today_local = now_local.date()
+    now_utc = datetime.utcnow()
+    repeat_hours = max(1, int(app.config.get("PUSH_OVERDUE_REPEAT_HOURS", 4)))
+    repeat_after = timedelta(hours=repeat_hours)
     with app.app_context():
         due_today = (
             Installment.query.join(Contract)
@@ -256,11 +269,12 @@ def scan_overdue_and_notify(app):
             fees_changed = _sync_installment_late_fee(installment, today_local) or fees_changed
             if installment.remaining <= Decimal("0.009"):
                 continue
-            exists = PushNotificationLog.query.filter_by(
+            reminder_log = PushNotificationLog.query.filter_by(
                 installment_id=installment.id,
                 event_type="overdue",
             ).first()
-            if exists:
+            is_repeat = reminder_log is not None
+            if reminder_log and reminder_log.sent_at and (now_utc - reminder_log.sent_at) < repeat_after:
                 continue
             active_count = PushSubscription.query.filter_by(
                 organization_id=installment.contract.organization_id,
@@ -269,13 +283,23 @@ def scan_overdue_and_notify(app):
             if not active_count:
                 continue
 
-            sent = send_payload_to_org(app, installment.contract.organization_id, overdue_payload(installment))
+            sent = send_payload_to_org(
+                app,
+                installment.contract.organization_id,
+                overdue_payload(installment, reminder=is_repeat),
+            )
             if sent:
-                db.session.add(PushNotificationLog(
-                    organization_id=installment.contract.organization_id,
-                    installment_id=installment.id,
-                    event_type="overdue",
-                ))
+                if reminder_log is None:
+                    reminder_log = PushNotificationLog(
+                        organization_id=installment.contract.organization_id,
+                        installment_id=installment.id,
+                        event_type="overdue",
+                    )
+                    db.session.add(reminder_log)
+                else:
+                    # Keep one row per debt and move sent_at forward. This gives
+                    # recurring reminders without growing the log table forever.
+                    reminder_log.sent_at = now_utc
                 try:
                     db.session.commit()
                     sent_events += 1
@@ -321,7 +345,13 @@ def start_push_scheduler(app):
     scheduler.start()
     _scheduler = scheduler
     atexit.register(lambda: scheduler.shutdown(wait=False) if scheduler.running else None)
-    app.logger.info("Push de cobros activo cada %s minuto(s), incluso con la PWA cerrada.", interval)
+    app.logger.info(
+        "Push de cobros activo: revision cada %s minuto(s), recordatorio de atrasos cada %s hora(s) entre %s:00 y %s:00.",
+        interval,
+        app.config.get("PUSH_OVERDUE_REPEAT_HOURS", 4),
+        app.config.get("PUSH_ALERT_START_HOUR", 8),
+        app.config.get("PUSH_ALERT_END_HOUR", 22),
+    )
 
 
 @push_bp.get("/api/push/config")

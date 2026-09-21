@@ -152,12 +152,18 @@ PUSH_NOTIFICATIONS_ENABLED=1
 PUSH_SCHEDULER_ENABLED=1
 PUSH_CHECK_INTERVAL_MINUTES=5
 PUSH_ALERT_START_HOUR=8
+PUSH_ALERT_END_HOUR=22
+PUSH_OVERDUE_REPEAT_HOURS=4
 VAPID_SUBJECT=mailto:admin@cuotago.app
 VAPID_PUBLIC_KEY=<copiar del .env incluido>
 VAPID_PRIVATE_KEY_B64=<copiar de tu .env local>
 ```
 
 En producción conviene reemplazar la `SECRET_KEY` del ZIP por una clave exclusiva del servidor y mantenerla únicamente en las variables privadas del hosting.
+
+### Recordatorios Push de cobros vencidos
+
+CuotaGo revisa las deudas cada `PUSH_CHECK_INTERVAL_MINUTES` minutos. Una cuota que vence hoy genera un aviso normal; cuando ya está vencida, el cobrador recibe un recordatorio repetido mientras siga pendiente. Por defecto se repite cada `PUSH_OVERDUE_REPEAT_HOURS=4` horas, únicamente entre `PUSH_ALERT_START_HOUR=8` y `PUSH_ALERT_END_HOUR=22`. Al registrar el pago, la cuota deja de ser candidata y los recordatorios paran automáticamente. El mismo registro de Push se reutiliza, por lo que no crece una fila nueva en la base de datos por cada repetición.
 
 ## Comprobar la instalación
 

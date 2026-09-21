@@ -1,4 +1,4 @@
-const VERSION = '1.12.1-ui-v20';
+const VERSION = '1.12.1-ui-v21';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const RUNTIME_CACHE = `cuotago-runtime-${VERSION}`;
 const CORE = [
@@ -48,18 +48,36 @@ self.addEventListener('push', (event) => {
       url: payload.url || '/notifications',
       type: payload.type || 'general',
       contractId: payload.contractId || null,
+      installmentId: payload.installmentId || null,
+      replaceKey: payload.replaceKey || null,
     },
   };
 
   // Keep the first notification payload deliberately conservative. Safari/iOS
   // ignores several Chromium-only fields and older versions can reject a
   // notification when unsupported options are mixed together.
-  const showSystemNotification = self.registration.showNotification(title, basicOptions)
-    .catch(() => self.registration.showNotification(title, {
-      body: basicOptions.body,
-      icon: basicOptions.icon,
-      data: basicOptions.data,
-    }));
+  const showSystemNotification = (async () => {
+    // Repeated debt reminders must alert again, but should not leave a pile of
+    // duplicate cards in the notification center. Close the older card for the
+    // same debt before showing the fresh reminder.
+    if (basicOptions.data.replaceKey) {
+      try {
+        const previous = await self.registration.getNotifications();
+        previous.forEach((notification) => {
+          if (notification.data?.replaceKey === basicOptions.data.replaceKey) notification.close();
+        });
+      } catch (_) {}
+    }
+    try {
+      return await self.registration.showNotification(title, basicOptions);
+    } catch (_) {
+      return self.registration.showNotification(title, {
+        body: basicOptions.body,
+        icon: basicOptions.icon,
+        data: basicOptions.data,
+      });
+    }
+  })();
 
   const tellOpenWindows = self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
     clients.forEach((client) => client.postMessage({ type: 'CUOTAGO_PUSH', payload }));

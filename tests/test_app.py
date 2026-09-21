@@ -697,3 +697,18 @@ def test_reminders_v20_compacts_dashboard_and_adds_dedicated_view():
     assert '-ui-v20' in base
     assert "1.12.1-ui-v20" in sw
 
+
+
+def test_overdue_push_repeats_outside_app_without_notification_pileup():
+    from pathlib import Path
+    push = Path('cuotago/push.py').read_text(encoding='utf-8')
+    config = Path('config.py').read_text(encoding='utf-8')
+    worker = Path('cuotago/static/service-worker.js').read_text(encoding='utf-8')
+    assert 'PUSH_OVERDUE_REPEAT_HOURS' in config
+    assert 'PUSH_ALERT_END_HOUR' in config
+    assert 'repeat_after = timedelta(hours=repeat_hours)' in push
+    assert 'reminder_log.sent_at = now_utc' in push
+    assert 'Recordatorio de cobro' in push
+    assert 'replaceKey' in push
+    assert 'getNotifications()' in worker
+    assert "1.12.1-ui-v21" in worker
