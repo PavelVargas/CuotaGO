@@ -1,6 +1,5 @@
-const VERSION = '1.16.0-ui-v34';
+const VERSION = '1.17.0-ui-v35';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
-const RUNTIME_CACHE = `cuotago-runtime-${VERSION}`;
 const CORE = [
   '/offline',
   '/static/css/app.css',
@@ -16,29 +15,34 @@ const CORE = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(STATIC_CACHE).then((cache) => cache.addAll(CORE)));
+  event.waitUntil((async () => {
+    const cache = await caches.open(STATIC_CACHE);
+    await Promise.all(CORE.map(async (path) => {
+      const response = await fetch(path, { cache: 'reload' });
+      if (response.ok) await cache.put(path, response.clone());
+    }));
+  })());
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => Promise.all(
-      keys.filter((key) => key.startsWith('cuotago-') && ![STATIC_CACHE, RUNTIME_CACHE].includes(key)).map((key) => caches.delete(key))
-    ))
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((key) => key.startsWith('cuotago-') && key !== STATIC_CACHE).map((key) => caches.delete(key)));
+    if (self.registration.navigationPreload) {
+      try { await self.registration.navigationPreload.enable(); } catch (_) {}
+    }
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('push', (event) => {
   let payload = {};
-  try {
-    payload = event.data ? event.data.json() : {};
-  } catch (_) {
-    payload = { body: event.data ? event.data.text() : '' };
-  }
+  try { payload = event.data ? event.data.json() : {}; }
+  catch (_) { payload = { body: event.data ? event.data.text() : '' }; }
 
   const title = payload.title || 'CuotaGo';
-  const basicOptions = {
+  const options = {
     body: payload.body || 'Tienes una alerta de cobro.',
     icon: '/static/icons/icon-192.png',
     badge: '/static/icons/favicon-64.png',
@@ -53,78 +57,76 @@ self.addEventListener('push', (event) => {
     },
   };
 
-  // Keep the first notification payload deliberately conservative. Safari/iOS
-  // ignores several Chromium-only fields and older versions can reject a
-  // notification when unsupported options are mixed together.
   const showSystemNotification = (async () => {
-    // Repeated debt reminders must alert again, but should not leave a pile of
-    // duplicate cards in the notification center. Close the older card for the
-    // same debt before showing the fresh reminder.
-    if (basicOptions.data.replaceKey) {
+    if (options.data.replaceKey) {
       try {
         const previous = await self.registration.getNotifications();
         previous.forEach((notification) => {
-          if (notification.data?.replaceKey === basicOptions.data.replaceKey) notification.close();
+          if (notification.data?.replaceKey === options.data.replaceKey) notification.close();
         });
       } catch (_) {}
     }
-    try {
-      return await self.registration.showNotification(title, basicOptions);
-    } catch (_) {
-      return self.registration.showNotification(title, {
-        body: basicOptions.body,
-        icon: basicOptions.icon,
-        data: basicOptions.data,
-      });
-    }
+    try { return await self.registration.showNotification(title, options); }
+    catch (_) { return self.registration.showNotification(title, { body: options.body, icon: options.icon, data: options.data }); }
   })();
 
   const tellOpenWindows = self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
     clients.forEach((client) => client.postMessage({ type: 'CUOTAGO_PUSH', payload }));
   });
-
   event.waitUntil(Promise.allSettled([showSystemNotification, tellOpenWindows]));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const target = event.notification.data?.url || '/notifications';
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if ('focus' in client) {
-          client.navigate?.(target);
-          return client.focus();
-        }
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    for (const client of clientList) {
+      if ('focus' in client) {
+        client.navigate?.(target);
+        return client.focus();
       }
-      return self.clients.openWindow ? self.clients.openWindow(target) : undefined;
-    })
-  );
+    }
+    return self.clients.openWindow ? self.clients.openWindow(target) : undefined;
+  }));
 });
+
+const fetchWithTimeout = async (request, timeoutMs = 10000, preloadResponse = null) => {
+  const preloaded = preloadResponse ? await preloadResponse.catch(() => null) : null;
+  if (preloaded) return preloaded;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch(request, { signal: controller.signal }); }
+  finally { clearTimeout(timer); }
+};
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
-
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  // Financial/tenant HTML is never persisted in a runtime cache. Navigation
+  // preload only removes service-worker startup latency and still comes from
+  // the live server. Offline falls back to a neutral shell instead of stale money.
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => caches.match('/offline')));
+    event.respondWith(fetchWithTimeout(request, 10000, event.preloadResponse).catch(() => caches.match('/offline')));
     return;
   }
 
   if (url.pathname.startsWith('/static/')) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((response) => {
-          if (!response || response.status !== 200 || response.type !== 'basic') return response;
-          const copy = response.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, copy));
-          return response;
-        });
-      })
-    );
+    event.respondWith((async () => {
+      const cached = await caches.match(request, { ignoreSearch: true });
+      const network = fetch(request, { cache: 'no-cache' }).then((response) => {
+        if (response && response.ok && response.type === 'basic') {
+          caches.open(STATIC_CACHE).then((cache) => cache.put(request, response.clone()));
+        }
+        return response;
+      }).catch(() => null);
+      if (cached) {
+        event.waitUntil(network);
+        return cached;
+      }
+      return (await network) || Response.error();
+    })());
   }
 });

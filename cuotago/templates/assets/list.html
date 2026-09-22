@@ -8,7 +8,7 @@
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
       <div><span class="eyebrow">INVENTARIO</span><h1>Inventario</h1><p>Productos, existencias y precios de un vistazo.</p></div>
     </div>
-    <a class="btn btn-primary inventory-new-button" href="{{ url_for('main.asset_new') }}">+ Nuevo</a>
+    {% if can('inventory.manage') %}<a class="btn btn-primary inventory-new-button" href="{{ url_for('main.asset_new') }}">+ Nuevo</a>{% endif %}
   </div>
 
   <div class="toolbar inventory-toolbar">
@@ -22,15 +22,15 @@
         <option value="sold" {{ 'selected' if status=='sold' }}>Vendidos</option>
       </select>
     </form>
-    <span class="result-count">{{ assets|length }} producto{{ 's' if assets|length != 1 }}</span>
+    <span class="result-count">{{ pagination.total }} producto{{ 's' if pagination.total != 1 }}</span>
   </div>
 
   <div class="inventory-list">
     {% for asset in assets %}
-      <a class="inventory-row inventory-product-card" href="{{ url_for('main.asset_edit', asset_id=asset.id) }}">
+      <{% if can('inventory.manage') %}a href="{{ url_for('main.asset_edit', asset_id=asset.id) }}"{% else %}div{% endif %} class="inventory-row inventory-product-card">
         <span class="inventory-row-media">
           {% if asset.image_mime %}
-            <img src="{{ url_for('main.asset_image', asset_id=asset.id) }}" alt="{{ asset.name }}" loading="lazy">
+            <img src="{{ url_for('main.asset_image', asset_id=asset.id, thumb=1, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}" loading="lazy">
           {% else %}
             <span class="inventory-row-icon {{ 'accent-blue' if asset.kind=='car' else 'accent-purple' if asset.kind=='phone' else 'accent-teal' }}">
               {{ icon('car' if asset.kind in ['car','motorcycle'] else 'phone' if asset.kind=='phone' else 'inventory', 24) }}
@@ -51,10 +51,11 @@
         </span>
 
         <span class="inventory-row-chevron" aria-hidden="true">›</span>
-      </a>
+      </{% if can('inventory.manage') %}a{% else %}div{% endif %}>
     {% else %}
-      <div class="surface empty-state full-grid"><span class="empty-icon">{{ icon('box', 34) }}</span><h3>No hay productos registrados</h3><p>Agrega tu primer producto para controlar existencias y ventas a crédito.</p><a class="btn btn-primary" href="{{ url_for('main.asset_new') }}">Registrar producto</a></div>
+      <div class="surface empty-state full-grid"><span class="empty-icon">{{ icon('box', 34) }}</span><h3>No hay productos registrados</h3><p>Agrega tu primer producto para controlar existencias y ventas a crédito.</p>{% if can('inventory.manage') %}<a class="btn btn-primary" href="{{ url_for('main.asset_new') }}">Registrar producto</a>{% endif %}</div>
     {% endfor %}
   </div>
+  {% if pagination.pages > 1 %}<nav class="simple-pagination-v16" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.assets', page=pagination.prev_num, q=q, status=status) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.assets', page=pagination.next_num, q=q, status=status) }}"{% endif %}>Siguiente</a></nav>{% endif %}
 </section>
 {% endblock %}

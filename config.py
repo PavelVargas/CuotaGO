@@ -35,7 +35,7 @@ def normalize_database_url(url: str) -> str:
 
 class Config:
     APP_NAME = os.getenv("APP_NAME", "CuotaGo")
-    APP_VERSION = os.getenv("APP_VERSION", "1.16.0")
+    APP_VERSION = os.getenv("APP_VERSION", "1.17.0")
     APP_ENV = os.getenv("APP_ENV", "local").strip().lower()
     APP_CURRENCY = os.getenv("APP_CURRENCY", "DOP")
     APP_TIMEZONE = os.getenv("APP_TIMEZONE", "America/Santo_Domingo")
@@ -48,7 +48,12 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = normalize_database_url(os.getenv("DATABASE_URL", ""))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": max(60, int(os.getenv("DB_POOL_RECYCLE", "300"))),
+        "pool_size": max(1, int(os.getenv("DB_POOL_SIZE", "5"))),
+        "max_overflow": max(0, int(os.getenv("DB_MAX_OVERFLOW", "5"))),
+    }
 
     DEBUG = _bool_env("FLASK_DEBUG", False)
     AUTO_CREATE_DB = _bool_env("AUTO_CREATE_DB", True)
@@ -57,10 +62,24 @@ class Config:
     REMEMBER_COOKIE_HTTPONLY = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
-    SESSION_COOKIE_SECURE = _bool_env("COOKIE_SECURE", False)
+    SESSION_COOKIE_SECURE = _bool_env("COOKIE_SECURE", APP_ENV not in {"local", "development", "test"})
     REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
 
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+
+    # Static assets are fingerprinted with APP_VERSION in templates. Let browsers
+    # keep them aggressively; /service-worker.js is explicitly no-cache.
+    SEND_FILE_MAX_AGE_DEFAULT = 31536000
+
+    # Compress HTML/JSON/CSS/JS over mobile networks.
+    COMPRESS_MIMETYPES = [
+        "text/html", "text/css", "application/javascript", "application/json",
+        "image/svg+xml", "text/plain",
+    ]
+    COMPRESS_LEVEL = 6
+    COMPRESS_MIN_SIZE = 1024
+
+    SLOW_REQUEST_MS = max(100, int(os.getenv("SLOW_REQUEST_MS", "800")))
 
     # Cuenta maestra opcional. En Railway configura estas variables para crear/actualizar
     # automáticamente un superadmin. No se usan credenciales por defecto en producción.

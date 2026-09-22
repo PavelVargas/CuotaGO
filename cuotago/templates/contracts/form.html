@@ -3,7 +3,8 @@
 {% block title %}Nuevo acuerdo &middot; {{ app_name }}{% endblock %}
 {% block content %}
 {% set client_mode = 'existing' if form.get('client_id') else ('new' if form.get('client_name') else ('existing' if clients else 'new')) %}
-{% set asset_mode = 'existing' if form.get('asset_id') else ('new' if form.get('asset_name') else ('existing' if assets else 'new')) %}
+{% set allow_new_asset = can('inventory.manage') %}
+{% set asset_mode = 'existing' if not allow_new_asset else ('existing' if form.get('asset_id') else ('new' if form.get('asset_name') else ('existing' if assets else 'new'))) %}
 <section class="content-page narrow-page agreement-wizard-page">
   <div class="page-head simple-page-head wizard-page-head">
     <div class="page-head-left">
@@ -24,6 +25,7 @@
 
   <form method="post" class="agreement-wizard" id="contractForm" data-client-mode="{{ client_mode }}" data-asset-mode="{{ asset_mode }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="request_key" value="{{ form.get('request_key', '') }}">
 
     <section class="wizard-panel is-active" data-wizard-step="1">
       <div class="wizard-panel-head">
@@ -37,8 +39,9 @@
       </div>
 
       <div class="wizard-fields" data-client-fields="existing">
-        <label class="field">
+        <label class="field smart-select-field-v17">
           <span>Selecciona el cliente *</span>
+          <input class="smart-select-search-v17" type="search" autocomplete="off" enterkeyhint="search" placeholder="Escribe nombre, teléfono o documento" data-remote-select="{{ url_for('main.client_lookup_api') }}" data-remote-target="clientSelect">
           <select name="client_id" id="clientSelect">
             <option value="">Seleccionar...</option>
             {% for client in clients %}
@@ -60,17 +63,19 @@
     <section class="wizard-panel" data-wizard-step="2" hidden>
       <div class="wizard-panel-head">
         <span class="wizard-panel-icon">{{ icon('inventory', 25) }}</span>
-        <div><span>Paso 2 de 4</span><h2>&iquest;Que vas a entregar?</h2><p>Elige algo del inventario o registra un articulo nuevo.</p></div>
+        <div><span>Paso 2 de 4</span><h2>&iquest;Que vas a entregar?</h2><p>{{ 'Elige algo del inventario.' if not allow_new_asset else 'Elige algo del inventario o registra un articulo nuevo.' }}</p></div>
       </div>
 
-      <div class="choice-buttons two" role="group" aria-label="Tipo de articulo">
+      <div class="choice-buttons {{ 'two' if allow_new_asset else '' }}" role="group" aria-label="Tipo de articulo">
         <button type="button" data-asset-mode="existing" {{ 'disabled' if not assets }}>Del inventario</button>
-        <button type="button" data-asset-mode="new">+ Articulo nuevo</button>
+        {% if allow_new_asset %}<button type="button" data-asset-mode="new">+ Articulo nuevo</button>{% endif %}
       </div>
+      {% if not assets and not allow_new_asset %}<p class="wizard-inline-note-v16">No hay artículos disponibles. Pide a un supervisor que registre inventario.</p>{% endif %}
 
       <div class="wizard-fields" data-asset-fields="existing">
-        <label class="field">
+        <label class="field smart-select-field-v17">
           <span>Articulo *</span>
+          <input class="smart-select-search-v17" type="search" autocomplete="off" enterkeyhint="search" placeholder="Escribe artículo, IMEI, placa o serial" data-remote-select="{{ url_for('main.asset_lookup_api') }}" data-remote-target="assetSelect" data-remote-kind="asset">
           <select name="asset_id" id="assetSelect">
             <option value="">Seleccionar...</option>
             {% for asset in assets %}
@@ -159,12 +164,14 @@
         <summary>Mas opciones</summary>
         <div class="wizard-more-body">
           <div class="form-grid two compact-grid">
-            <label class="field"><span>Inicial</span><input id="downPayment" type="number" step="0.01" min="0" name="down_payment" value="{{ form.get('down_payment','0') }}" placeholder="0" inputmode="decimal"></label>
-            <div class="initial-payment-options" id="initialPaymentOptions" hidden>
-              <label class="field"><span>Cómo recibiste la inicial</span><select name="down_payment_method"><option value="cash">Efectivo</option><option value="transfer">Transferencia</option><option value="deposit">Depósito</option><option value="card">Tarjeta</option><option value="other">Otro</option></select></label>
-              <label class="field"><span>Referencia <small>(opcional)</small></span><input name="down_payment_reference" maxlength="120" placeholder="Transferencia, depósito…"></label>
-            </div>
+            <label class="field"><span>Inicial</span><input id="downPayment" type="number" step="0.01" min="0" name="down_payment" value="{{ form.get('down_payment','0') }}" placeholder="0" inputmode="decimal"><small>Si colocas una inicial, CuotaGo genera su recibo automáticamente.</small></label>
             <label class="field"><span>Fecha de entrega</span><input id="startDate" type="date" name="start_date" value="{{ form.get('start_date', default_start) }}"></label>
+            <div class="field-span-2 down-payment-meta" data-down-payment-meta hidden>
+              <div class="form-grid two compact-grid">
+                <label class="field"><span>Método de la inicial</span><select name="down_payment_method"><option value="cash" {{ 'selected' if form.get('down_payment_method','cash')=='cash' }}>Efectivo</option><option value="transfer" {{ 'selected' if form.get('down_payment_method')=='transfer' }}>Transferencia</option><option value="deposit" {{ 'selected' if form.get('down_payment_method')=='deposit' }}>Depósito</option><option value="card" {{ 'selected' if form.get('down_payment_method')=='card' }}>Tarjeta</option><option value="other" {{ 'selected' if form.get('down_payment_method')=='other' }}>Otro</option></select></label>
+                <label class="field"><span>Referencia <small>(opcional)</small></span><input name="down_payment_reference" maxlength="120" value="{{ form.get('down_payment_reference','') }}" placeholder="Transferencia, depósito..."></label>
+              </div>
+            </div>
             <label class="field"><span>Mora por día <small>(opcional)</small></span><input id="dailyLateInterest" type="number" step="0.01" min="0" name="daily_late_interest" value="{{ form.get('daily_late_interest','0') }}" placeholder="0" inputmode="decimal"><small>Puedes crear el acuerdo sin mora y activarla más adelante.</small></label>
             <label class="field field-span-2"><span>Nota</span><textarea name="notes" id="contractNotes" rows="2" placeholder="Opcional">{{ form.get('notes','') }}</textarea></label>
           </div>
@@ -217,15 +224,12 @@
   const dailyLateInterest = document.getElementById('dailyLateInterest');
   const total = document.getElementById('totalAmount');
   const down = document.getElementById('downPayment');
-  const initialPaymentOptions = document.getElementById('initialPaymentOptions');
+  const downPaymentMeta = document.querySelector('[data-down-payment-meta]');
   const installment = document.getElementById('installmentAmount');
   const startDate = document.getElementById('startDate');
   const firstDue = document.getElementById('firstDueDate');
   const preview = document.getElementById('schedulePreview');
   const money = new Intl.NumberFormat('es-DO', {style:'currency', currency:'DOP', minimumFractionDigits:0, maximumFractionDigits:2});
-  const syncInitialOptions = () => { if (initialPaymentOptions) initialPaymentOptions.hidden = Number(down?.value || 0) <= 0; };
-  down?.addEventListener('input', syncInitialOptions);
-  syncInitialOptions();
 
   let currentStep = 1;
   let clientMode = form.dataset.clientMode || (clientSelect?.options?.length > 1 ? 'existing' : 'new');
@@ -237,6 +241,9 @@
   const currentAsset = () => assetSelect?.selectedOptions?.[0] || null;
   const selectedFrequency = () => document.querySelector('input[name="frequency"]:checked')?.value || 'monthly';
   const selectedDealType = () => document.querySelector('input[name="deal_type"]:checked')?.value || 'credit_sale';
+  const syncDownPaymentMeta = () => { if (downPaymentMeta) downPaymentMeta.hidden = !(Number(down?.value || 0) > 0); };
+  down?.addEventListener('input', syncDownPaymentMeta);
+  syncDownPaymentMeta();
 
   const setClientMode = (mode) => {
     clientMode = mode;

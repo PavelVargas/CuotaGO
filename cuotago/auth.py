@@ -1,53 +1,65 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from datetime import datetime, timedelta
 import hashlib
 
 from flask_login import confirm_login, current_user, login_fresh, login_user, logout_user
 
 from .extensions import db
-from .models import LoginAttempt, Organization, OrganizationSubscription, User
+from .models import AuthRateLimit, Organization, OrganizationSubscription, User
 
 auth_bp = Blueprint("auth", __name__)
 
 
-def _login_fingerprint(email):
-    forwarded = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-    ip = forwarded or request.remote_addr or "unknown"
-    raw = f"{email}|{ip}".encode("utf-8", "ignore")
+LOGIN_WINDOW_MINUTES = 15
+LOGIN_MAX_ATTEMPTS = 6
+LOGIN_BLOCK_MINUTES = 15
+
+
+def _login_rate_key(email):
+    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown").split(",", 1)[0].strip()
+    secret = current_app.config.get("SECRET_KEY", "")
+    raw = f"{email.lower()}|{ip}|{secret}".encode("utf-8", "ignore")
     return hashlib.sha256(raw).hexdigest()
 
 
-def _login_attempt(email):
-    fingerprint = _login_fingerprint(email)
-    return LoginAttempt.query.filter_by(fingerprint=fingerprint).first(), fingerprint
-
-
-def _login_is_blocked(email):
-    attempt, _ = _login_attempt(email)
-    return bool(attempt and attempt.blocked_until and attempt.blocked_until > datetime.utcnow())
-
-
-def _register_failed_login(email):
+def _login_rate_state(email):
     now = datetime.utcnow()
-    attempt, fingerprint = _login_attempt(email)
-    if attempt is None:
-        attempt = LoginAttempt(fingerprint=fingerprint, failed_count=0, window_started_at=now)
-        db.session.add(attempt)
-    if not attempt.window_started_at or now - attempt.window_started_at > timedelta(minutes=15):
-        attempt.window_started_at = now
-        attempt.failed_count = 0
-        attempt.blocked_until = None
-    attempt.failed_count += 1
-    if attempt.failed_count >= 7:
-        attempt.blocked_until = now + timedelta(minutes=15)
+    key_hash = _login_rate_key(email)
+    row = AuthRateLimit.query.filter_by(key_hash=key_hash).first()
+    if not row:
+        return True, None
+    if row.blocked_until and row.blocked_until > now:
+        minutes = max(1, int((row.blocked_until - now).total_seconds() // 60) + 1)
+        return False, minutes
+    if now - row.window_started_at > timedelta(minutes=LOGIN_WINDOW_MINUTES):
+        row.attempts = 0
+        row.window_started_at = now
+        row.blocked_until = None
+        db.session.commit()
+    return True, None
+
+
+def _record_login_failure(email):
+    now = datetime.utcnow()
+    key_hash = _login_rate_key(email)
+    row = AuthRateLimit.query.filter_by(key_hash=key_hash).first()
+    if row is None:
+        row = AuthRateLimit(key_hash=key_hash, attempts=0, window_started_at=now)
+        db.session.add(row)
+    elif now - row.window_started_at > timedelta(minutes=LOGIN_WINDOW_MINUTES):
+        row.attempts = 0
+        row.window_started_at = now
+        row.blocked_until = None
+    row.attempts += 1
+    if row.attempts >= LOGIN_MAX_ATTEMPTS:
+        row.blocked_until = now + timedelta(minutes=LOGIN_BLOCK_MINUTES)
     db.session.commit()
 
 
-def _clear_failed_logins(email):
-    attempt, _ = _login_attempt(email)
-    if attempt is not None:
-        db.session.delete(attempt)
-        db.session.commit()
+def _clear_login_failures(email):
+    key_hash = _login_rate_key(email)
+    AuthRateLimit.query.filter_by(key_hash=key_hash).delete(synchronize_session=False)
+    db.session.commit()
 
 
 def _safe_next(default_endpoint="main.dashboard"):
@@ -71,22 +83,23 @@ def login():
         password = request.form.get("password", "")
         remember = request.form.get("remember") == "on"
 
-        if _login_is_blocked(email):
-            flash("Demasiados intentos. Intenta nuevamente en unos minutos.", "error")
+        allowed, retry_minutes = _login_rate_state(email)
+        if not allowed:
+            flash(f"Demasiados intentos. Intenta de nuevo en {retry_minutes} min.", "error")
             return render_template("auth/login.html", email=email), 429
 
         user = User.query.filter_by(email=email).first()
         if not user or not user.check_password(password):
-            _register_failed_login(email)
+            _record_login_failure(email)
             flash("Correo o contraseña incorrectos.", "error")
             return render_template("auth/login.html", email=email)
         if not user.is_enabled:
             flash("Esta cuenta fue deshabilitada. Contacta al administrador.", "error")
             return render_template("auth/login.html", email=email)
 
-        _clear_failed_logins(email)
         user.last_login_at = datetime.utcnow()
         db.session.commit()
+        _clear_login_failures(email)
         login_user(user, remember=remember)
         next_url = request.args.get("next", "")
         if next_url.startswith("/") and not next_url.startswith("//"):

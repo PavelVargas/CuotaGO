@@ -18,7 +18,7 @@
         <img
           data-asset-photo-preview
           {% if not (asset and asset.image_mime) %}hidden{% endif %}
-          {% if asset and asset.image_mime %}src="{{ url_for('main.asset_image', asset_id=asset.id) }}"{% endif %}
+          {% if asset and asset.image_mime %}src="{{ url_for('main.asset_image', asset_id=asset.id, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}"{% endif %}
           alt="Vista previa del producto"
         >
         <span class="asset-photo-placeholder" data-asset-photo-placeholder {% if asset and asset.image_mime %}hidden{% endif %}>{{ icon('inventory', 30) }}</span>

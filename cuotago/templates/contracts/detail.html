@@ -12,7 +12,7 @@
   </div>
 
   <section class="surface balance-card simple-balance-card">
-    <div class="balance-top"><div><span>Saldo pendiente</span><strong>{{ money(contract.balance) }}</strong></div><div class="progress-number">{{ '%.0f'|format(contract.progress_percent) }}%</div></div>
+    <div class="balance-top"><div><span>{{ 'Saldo registrado' if contract.status == 'cancelled' else 'Saldo pendiente' }}</span><strong>{{ money(contract.balance) }}</strong></div><div class="progress-number">{{ '%.0f'|format(contract.progress_percent) }}%</div></div>
     <div class="progress-track big"><span style="width: {{ contract.progress_percent }}%"></span></div>
     <div class="balance-metrics compact-balance-metrics">
       <div><small>Total</small><strong>{{ money(contract.total_amount) }}</strong></div>
@@ -22,9 +22,7 @@
     </div>
   </section>
 
-  {% if contract.status == 'voided' %}<div class="surface voided-contract-note"><strong>Acuerdo anulado</strong><span>{{ contract.void_reason or 'Sin motivo registrado' }}{% if contract.voided_at %} · {{ contract.voided_at.strftime('%d/%m/%Y') }}{% endif %}</span></div>{% endif %}
-
-  {% if contract.status == 'active' and can('collections.collect') %}
+  {% if contract.status == 'active' and can('payments.record') %}
   {% set suggested_payment = contract.next_installment.remaining if contract.next_installment else contract.balance %}
   <div class="contract-payment-launch" id="pay">
     <div class="contract-payment-primary-actions">
@@ -55,6 +53,7 @@
       <form method="post" action="{{ url_for('main.contract_pay', contract_id=contract.id) }}" class="form-stack quick-payment-form payment-dialog-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="payment_kind" value="payment" data-payment-kind-input>
+        <input type="hidden" name="request_key" value="{{ payment_request_key }}" data-payment-request-key>
         <input type="hidden" name="show_receipt" value="1">
         <label class="field payment-amount-field">
           <span>Monto recibido</span>
@@ -81,6 +80,14 @@
   </dialog>
   {% endif %}
 
+  {% if contract.status == 'cancelled' %}
+  <section class="surface contract-cancelled-note-v16">
+    <div>{{ icon('shield',20) }}<span><strong>Acuerdo anulado</strong><small>El historial de cobros y recibos se conserva.</small></span></div>
+    {% if contract.cancel_reason %}<p>{{ contract.cancel_reason }}</p>{% endif %}
+    {% if contract.cancelled_at %}<time>{{ contract.cancelled_at.strftime('%d/%m/%Y %H:%M') }}</time>{% endif %}
+  </section>
+  {% endif %}
+
   <section class="surface schedule-card simple-schedule-card">
     <div class="section-heading"><div><span class="eyebrow">CUOTAS</span><h2>Calendario</h2></div><span>{{ frequency_label(contract.frequency) }}</span></div>
     <div class="installment-list">
@@ -89,9 +96,9 @@
         <div class="installment-seq">{{ installment.sequence }}</div>
         <div class="installment-date"><strong>{{ installment.due_date.strftime('%d/%m/%Y') }}</strong><small>{% if installment.is_paid %}Pagada{% elif installment.due_date < today %}Vencida{% elif installment.due_date == today %}Vence hoy{% else %}Pendiente{% endif %}</small></div>
         <div class="installment-value"><strong>{{ money(installment.remaining if not installment.is_paid else installment.amount + installment.late_fee_amount) }}</strong>{% if installment.late_fee_remaining > 0 %}<small class="late-fee-copy">incluye {{ money(installment.late_fee_remaining) }} de interés</small>{% elif installment.paid_amount and installment.paid_amount > 0 and not installment.is_paid %}<small>abonado {{ money(installment.paid_amount) }}</small>{% endif %}</div>
-        {% if contract.status == 'active' and not installment.is_paid and can('collections.collect') %}
+        {% if contract.status == 'active' and not installment.is_paid and can('payments.record') %}
         <button class="btn btn-ghost btn-sm quick-pay-button" type="button" data-open-payment data-payment-kind="payment" data-payment-amount="{{ installment.remaining }}">Cobrar</button>
-        {% elif installment.is_paid %}<span class="paid-check">✓</span>{% else %}<span class="paid-check muted-check">—</span>{% endif %}
+        {% else %}<span class="paid-check">✓</span>{% endif %}
       </div>
       {% else %}<div class="empty-inline">No hay cuotas pendientes.</div>{% endfor %}
     </div>
@@ -134,7 +141,8 @@
   </details>
   {% endif %}
 
-  {% if can('contracts.manage') %}<details class="surface advanced-options detail-more agreement-management">
+  {% if can('contracts.modify') or can('contracts.cancel') %}
+  <details class="surface advanced-options detail-more agreement-management">
     <summary>Administrar acuerdo</summary>
     <div class="advanced-options-body agreement-management-body">
       <div class="agreement-management-row">
@@ -146,24 +154,32 @@
           <small>Este acuerdo no cobra mora. Puedes activarla cuando la necesites.</small>
           {% endif %}
         </div>
-        {% if contract.status == 'active' and contract.daily_late_interest <= 0 %}
+        {% if contract.status == 'active' and contract.daily_late_interest <= 0 and can('contracts.modify') %}
         <button class="btn btn-secondary btn-sm" type="button" data-contract-dialog-open="lateFeeDialog">Agregar mora</button>
         {% endif %}
       </div>
-      {% if contract.status == 'active' and contract.next_installment %}
+      {% if contract.status == 'active' and contract.next_installment and can('contracts.modify') %}
       <div class="agreement-management-row" id="manage">
         <div><strong>Reprogramar cuotas</strong><small>Cambia próxima fecha, frecuencia y cantidad de cuotas. Los pagos ya hechos se conservan.</small></div>
         <button class="btn btn-secondary btn-sm" type="button" data-contract-dialog-open="rescheduleDialog">Reprogramar</button>
       </div>
       {% endif %}
-      {% if contract.status != 'voided' %}<div class="agreement-management-row danger-row">
-        <div><strong>{{ 'Anular acuerdo' if contract.payments or contract.down_payment > 0 else 'Eliminar acuerdo' }}</strong><small>{% if contract.payments or contract.down_payment > 0 %}Conserva pagos, recibos y cuotas; solo deja el acuerdo fuera de operación.{% else %}Solo está disponible porque todavía no existe dinero registrado.{% endif %}</small></div>
-        <button class="btn btn-danger-soft btn-sm" type="button" data-contract-dialog-open="deleteContractDialog">{{ 'Anular' if contract.payments or contract.down_payment > 0 else 'Eliminar' }}</button>
-      </div>{% endif %}
+      {% if contract.status == 'active' and can('contracts.cancel') %}
+      <div class="agreement-management-row danger-row">
+        {% if contract.payments %}
+        <div><strong>Anular acuerdo</strong><small>Libera el artículo, pero conserva pagos, recibos y auditoría.</small></div>
+        <button class="btn btn-danger-soft btn-sm" type="button" data-contract-dialog-open="deleteContractDialog">Anular</button>
+        {% else %}
+        <div><strong>Eliminar acuerdo</strong><small>Disponible porque todavía no tiene movimientos monetarios.</small></div>
+        <button class="btn btn-danger-soft btn-sm" type="button" data-contract-dialog-open="deleteContractDialog">Eliminar</button>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
-  </details>{% endif %}
+  </details>
+  {% endif %}
 
-  {% if can('contracts.manage') and contract.status == 'active' and contract.next_installment %}
+  {% if contract.status == 'active' and contract.next_installment and can('contracts.modify') %}
   <dialog class="payment-dialog compact-contract-dialog" id="rescheduleDialog" aria-labelledby="rescheduleDialogTitle">
     <div class="payment-dialog-sheet">
       <div class="payment-dialog-handle" aria-hidden="true"></div>
@@ -182,7 +198,7 @@
   </dialog>
   {% endif %}
 
-  {% if can('contracts.manage') and contract.status == 'active' and contract.daily_late_interest <= 0 %}
+  {% if contract.status == 'active' and contract.daily_late_interest <= 0 and can('contracts.modify') %}
   <dialog class="payment-dialog compact-contract-dialog" id="lateFeeDialog" aria-labelledby="lateFeeDialogTitle">
     <div class="payment-dialog-sheet">
       <div class="payment-dialog-handle" aria-hidden="true"></div>
@@ -199,21 +215,27 @@
   </dialog>
   {% endif %}
 
-  {% if can('contracts.manage') and contract.status != 'voided' %}<dialog class="payment-dialog compact-contract-dialog" id="deleteContractDialog" aria-labelledby="deleteContractDialogTitle">
+  {% if contract.status == 'active' and can('contracts.cancel') %}
+  <dialog class="payment-dialog compact-contract-dialog" id="deleteContractDialog" aria-labelledby="deleteContractDialogTitle">
     <div class="payment-dialog-sheet">
       <div class="payment-dialog-handle" aria-hidden="true"></div>
       <div class="payment-dialog-head">
-        <div><span class="eyebrow text-danger">{{ 'ANULAR' if contract.payments or contract.down_payment > 0 else 'ELIMINAR' }}</span><h2 id="deleteContractDialogTitle">{{ '¿Anular este acuerdo?' if contract.payments or contract.down_payment > 0 else '¿Eliminar este acuerdo?' }}</h2><p>{% if contract.payments or contract.down_payment > 0 %}El historial financiero se conservará completo y el artículo volverá a quedar disponible.{% else %}No hay pagos registrados, así que puede eliminarse de forma segura.{% endif %}</p></div>
+        {% if contract.payments %}
+        <div><span class="eyebrow text-danger">ANULAR</span><h2 id="deleteContractDialogTitle">¿Anular este acuerdo?</h2><p>Los pagos y recibos no se borrarán. El artículo volverá a quedar disponible.</p></div>
+        {% else %}
+        <div><span class="eyebrow text-danger">ELIMINAR</span><h2 id="deleteContractDialogTitle">¿Eliminar este acuerdo?</h2><p>No tiene pagos registrados, por eso puede eliminarse sin afectar el historial financiero.</p></div>
+        {% endif %}
         <button class="payment-dialog-close" type="button" data-contract-dialog-close aria-label="Cerrar">×</button>
       </div>
       <form method="post" action="{{ url_for('main.contract_delete', contract_id=contract.id) }}" class="form-stack">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="delete-contract-note"><strong>{{ contract.client.full_name }}</strong><span>{{ contract.asset.name }} · {{ contract.code }}</span></div>
-        {% if contract.payments or contract.down_payment > 0 %}<label class="field"><span>Motivo</span><input name="reason" maxlength="240" required placeholder="Ej. acuerdo cancelado por el cliente"></label>{% endif %}
-        <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>Cancelar</button><button class="btn btn-danger" type="submit">{{ 'Sí, anular' if contract.payments or contract.down_payment > 0 else 'Sí, eliminar' }}</button></div>
+        {% if contract.payments %}<label class="field"><span>Motivo de la anulación</span><input name="reason" maxlength="240" required placeholder="Ej. cliente devolvió el artículo"></label>{% endif %}
+        <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>Volver</button><button class="btn btn-danger" type="submit">{{ 'Anular acuerdo' if contract.payments else 'Eliminar acuerdo' }}</button></div>
       </form>
     </div>
-  </dialog>{% endif %}
+  </dialog>
+  {% endif %}
 </section>
 {% endblock %}
 {% block scripts %}

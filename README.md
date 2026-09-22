@@ -1,8 +1,21 @@
-# CuotaGo MOBILE PWA v1.16.0 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.17.0 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
+
+
+## Cambios v1.17.0 — PWA, rendimiento y UX
+
+- **PWA más nativa:** navigation preload, caché segura solo para estáticos, splash de arranque una sola vez por sesión instalada, transiciones ligeras y estados de conexión discretos.
+- **Búsqueda rápida global:** desde la barra superior abre una hoja de búsqueda sin sacar al usuario de la pantalla; busca clientes, acuerdos, recibos y artículos respetando permisos.
+- **Protección contra doble toque:** acuerdos y pagos usan claves idempotentes en servidor y los formularios bloquean envíos repetidos visualmente sin añadir confirmaciones innecesarias.
+- **Rendimiento PostgreSQL:** nuevos índices compuestos para cartera, cuotas, pagos, promesas, compras, inventario y auditoría; pool de conexiones configurable y `Server-Timing` para medir endpoints.
+- **Listados grandes:** clientes/acuerdos usan paginación; calendario carga el mes mediante API y limita resultados extremos.
+- **Imágenes optimizadas:** las fotos de inventario se validan, orientan y convierten a WebP; las listas sirven miniaturas pequeñas en vez de cargar la foto completa.
+- **Transferencia más ligera:** compresión HTTP para HTML/JSON/CSS/JS y caché anual de assets versionados.
+- **UX calmada:** mayor legibilidad en launcher, acciones avanzadas plegadas, búsqueda rápida, feedback de guardado y sin añadir módulos innecesarios.
+- **Integridad financiera preservada:** acuerdos con pagos y gastos se anulan en vez de eliminarse físicamente; reportes/backup excluyen movimientos anulados sin borrar la auditoría.
 
 
 ## Cambios v1.15.0
@@ -87,7 +100,7 @@ Primero ejecuta `COMPROBAR_POSTGRES.bat`. Si muestra PostgreSQL OK, inicia norma
 Esta es la forma más rápida para comenzar.
 
 1. Descomprime el ZIP.
-2. Entra a la carpeta de CuotaGo v1.16.0.
+2. Entra a la carpeta de CuotaGo v1.17.0.
 3. Haz doble clic en `INICIAR_WINDOWS.bat`.
 4. El script crea `venv`, instala dependencias, comprueba `.env` y la base de datos, y arranca la aplicación.
 5. Abre `http://127.0.0.1:5000`.
@@ -167,7 +180,7 @@ El `Dockerfile` arranca con Gunicorn y escucha el puerto entregado en `PORT`. Pa
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.16.0
+APP_VERSION=1.15.0
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -206,7 +219,7 @@ Debe terminar mostrando:
 ```text
 [OK] .env cargado
 [OK] Base de datos accesible: ...
-[OK] App: CuotaGo v1.16.0
+[OK] App: CuotaGo v1.17.0
 [OK] CuotaGo esta listo para iniciar.
 ```
 
@@ -330,19 +343,3 @@ flask --app app notify-overdue
 - Las fechas de cobro usan la zona horaria configurada de la app.
 
 > En iPhone, una PWA en HTTP local puede mostrar alertas **dentro de CuotaGo** y reproducir sonido despues de una interaccion del usuario. Las notificaciones del sistema con la app cerrada siguen requiriendo HTTPS/Web Push y el sonido final lo controla iOS.
-
-
-## CuotaGo 1.16.0 — endurecimiento y UX
-
-- Roles operativos: propietario, administrador, cobrador, vendedor, usuario y consulta. El Inicio oculta módulos no asignados y las rutas sensibles validan permisos en servidor.
-- Acuerdos con dinero ya no se eliminan: se anulan conservando cuotas, pagos, recibos, usuario, fecha y motivo.
-- La inicial se registra como un pago real con método, referencia y recibo, manteniendo compatibilidad con acuerdos antiguos.
-- Búsqueda global desde la barra superior por cliente, teléfono, documento, acuerdo, artículo/IMEI y recibo.
-- Estado de cuenta y recibos tienen PDF generado en servidor; en móviles compatibles se comparten como archivo mediante la hoja nativa (WhatsApp incluido).
-- Respaldo ZIP desde Ajustes con clientes, acuerdos, pagos, inventario y gastos en CSV.
-- Protección de login por intentos, cookies seguras en producción, CSP/HSTS y página 403 amigable.
-- Migraciones DDL existentes quedan registradas en `schema_migrations` y dejan de ejecutarse repetidamente en cada arranque.
-- Listados de clientes, acuerdos y gastos usan paginación; Reportes precarga relaciones y filtra gastos/compras por período.
-- Corregido el splash oscuro de iOS y aumentada la legibilidad de etiquetas del launcher móvil.
-
-Las operaciones financieras siguen requiriendo conexión. CuotaGo evita confirmar pagos offline para no crear recibos duplicados o estados divergentes; la PWA conserva su shell offline y recuperación de conexión.

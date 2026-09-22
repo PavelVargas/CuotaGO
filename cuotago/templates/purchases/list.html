@@ -8,7 +8,7 @@
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
       <div><span class="eyebrow">COMPRAS</span><h1>Órdenes de compra</h1><p>Controla proveedores, cantidades y cuánto capital entró al inventario.</p></div>
     </div>
-    <a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">+ Nueva orden</a>
+    {% if can('purchases.manage') %}<a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">+ Nueva orden</a>{% endif %}
   </div>
 
   <div class="purchase-kpis purchase-kpis-v22">
@@ -46,7 +46,7 @@
       {% endfor %}
     </div>
     {% else %}
-      <div class="empty-state"><span class="empty-icon">{{ icon('home-purchases', 34) }}</span><h3>Aún no hay órdenes</h3><p>Registra una compra y CuotaGo actualizará costo y existencia del inventario.</p><a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">Crear primera orden</a></div>
+      <div class="empty-state"><span class="empty-icon">{{ icon('home-purchases', 34) }}</span><h3>Aún no hay órdenes</h3><p>Registra una compra y CuotaGo actualizará costo y existencia del inventario.</p>{% if can('purchases.manage') %}<a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">Crear primera orden</a>{% endif %}</div>
     {% endif %}
   </section>
 </section>

@@ -22,6 +22,7 @@
       <button class="ios-switch theme-toggle-switch" type="button" role="switch" aria-checked="false" data-theme-toggle-switch aria-label="Modo oscuro"><i></i></button>
     </div>
 
+    {% if can('collections.view') %}
     <label class="settings-switch-row">
       <span class="settings-row-icon">{{ icon('bell', 20) }}</span>
       <span class="settings-row-copy"><strong>Alertas dentro de CuotaGo</strong><small data-local-alert-status>Activadas</small></span>
@@ -46,31 +47,15 @@
       </span>
       <button class="btn settings-test-button" type="button" data-notification-demo>Probar</button>
     </div>
+    {% endif %}
   </section>
 
-  {% if can('audit.view') %}
-  <a class="surface settings-audit-link-v15" href="{{ url_for('main.audit_log') }}">
-    <span class="settings-row-icon">{{ icon('shield',20) }}</span>
-    <span><strong>Auditoría</strong><small>Revisa pagos, acuerdos, promesas, reprogramaciones y gastos.</small></span>
-    <b>›</b>
-  </a>
-  {% endif %}
-
-
-  {% if can('team.manage') %}
-  <a class="surface settings-audit-link-v15" href="{{ url_for('main.team_settings') }}">
-    <span class="settings-row-icon">{{ icon('users',20) }}</span>
-    <span><strong>Equipo y permisos</strong><small>Cobradores, vendedores y accesos administrativos.</small></span>
-    <b>›</b>
-  </a>
-  {% endif %}
-
-  {% if can('backup.export') %}
-  <a class="surface settings-audit-link-v15" href="{{ url_for('main.backup_export') }}">
-    <span class="settings-row-icon">{{ icon('download',20) }}</span>
-    <span><strong>Exportar respaldo</strong><small>Descarga clientes, acuerdos, pagos, inventario y gastos en un ZIP.</small></span>
-    <b>›</b>
-  </a>
+  {% if can('team.manage') or can('audit.view') or can('data.export') %}
+  <section class="settings-business-tools-v16">
+    {% if can('team.manage') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.team_settings') }}"><span class="settings-row-icon">{{ icon('users',20) }}</span><span><strong>Equipo</strong><small>Roles simples para que cada persona vea solo lo necesario.</small></span><b>›</b></a>{% endif %}
+    {% if can('audit.view') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.audit_log') }}"><span class="settings-row-icon">{{ icon('shield',20) }}</span><span><strong>Auditoría</strong><small>Pagos, acuerdos, reprogramaciones, gastos y cambios sensibles.</small></span><b>›</b></a>{% endif %}
+    {% if can('data.export') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.export_business_data') }}"><span class="settings-row-icon">{{ icon('download',20) }}</span><span><strong>Descargar respaldo</strong><small>ZIP con clientes, acuerdos, pagos, inventario, gastos y auditoría.</small></span><b>↓</b></a>{% endif %}
+  </section>
   {% endif %}
 
   <form method="post" class="surface settings-account-card">
@@ -80,12 +65,17 @@
       <small>Datos básicos del negocio.</small>
     </div>
     <div class="settings-account-grid">
-      <label class="field"><span>Negocio</span><input name="business_name" value="{{ current_user.organization.name }}" required autocomplete="organization" {{ 'readonly' if not can('settings.manage') }}></label>
-      <label class="field"><span>Tu nombre</span><input name="name" value="{{ current_user.name }}" required autocomplete="name" {{ 'readonly' if not can('settings.manage') }}></label>
-      <label class="field"><span>Moneda</span><select name="currency" {{ 'disabled' if not can('settings.manage') }}><option value="DOP" {{ 'selected' if current_user.organization.currency=='DOP' }}>DOP · Peso dominicano</option><option value="USD" {{ 'selected' if current_user.organization.currency=='USD' }}>USD · Dólar</option><option value="EUR" {{ 'selected' if current_user.organization.currency=='EUR' }}>EUR · Euro</option></select></label>
+      <label class="field"><span>Negocio</span><input name="business_name" value="{{ current_user.organization.name }}" {% if not can('team.manage') %}disabled{% else %}required{% endif %} autocomplete="organization"></label>
+      <label class="field"><span>Tu nombre</span><input name="name" value="{{ current_user.name }}" required autocomplete="name"></label>
+      <label class="field"><span>Moneda</span><select name="currency" {% if not can('team.manage') %}disabled{% endif %}><option value="DOP" {{ 'selected' if current_user.organization.currency=='DOP' }}>DOP · Peso dominicano</option><option value="USD" {{ 'selected' if current_user.organization.currency=='USD' }}>USD · Dólar</option><option value="EUR" {{ 'selected' if current_user.organization.currency=='EUR' }}>EUR · Euro</option></select></label>
       <label class="field"><span>Correo</span><input value="{{ current_user.email }}" disabled></label>
     </div>
-    {% if can('settings.manage') %}<div class="settings-save-row"><button class="btn btn-primary" type="submit">Guardar cambios</button></div>{% endif %}
+    <div class="settings-save-row"><button class="btn btn-primary" type="submit">Guardar cambios</button></div>
   </form>
+
+  <details class="surface settings-password-v16">
+    <summary><span class="settings-row-icon">{{ icon('shield',20) }}</span><span><strong>Contraseña</strong><small>Cámbiala sin salir de tu cuenta.</small></span><b>›</b></summary>
+    <form method="post" action="{{ url_for('main.settings_password') }}" class="form-stack settings-password-form-v16"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="field"><span>Contraseña actual</span><input type="password" name="current_password" required autocomplete="current-password"></label><label class="field"><span>Nueva contraseña</span><input type="password" name="new_password" minlength="8" required autocomplete="new-password"></label><label class="field"><span>Repetir nueva contraseña</span><input type="password" name="confirm_password" minlength="8" required autocomplete="new-password"></label><button class="btn btn-primary" type="submit">Actualizar contraseña</button></form>
+  </details>
 </section>
 {% endblock %}

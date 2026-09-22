@@ -8,7 +8,7 @@
       <a class="icon-btn" href="{{ url_for('main.clients') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
       <div><span class="eyebrow">CLIENTE</span><h1>{{ client.full_name }}</h1><p>{{ client.phone or 'Sin teléfono' }}{% if client.document_id %} · {{ client.document_id }}{% endif %}</p></div>
     </div>
-    <a class="btn btn-secondary btn-sm" href="{{ url_for('main.client_edit', client_id=client.id) }}">Editar</a>
+    {% if can('clients.manage') %}<a class="btn btn-secondary btn-sm" href="{{ url_for('main.client_edit', client_id=client.id) }}">Editar</a>{% endif %}
   </div>
 
   <section class="surface client-risk-card risk-{{ risk.level }}">
@@ -25,27 +25,26 @@
 
   <div class="client-action-strip">
     {% if statement_wa_link(client) %}<a class="btn btn-whatsapp" target="_blank" rel="noopener" href="{{ statement_wa_link(client) }}">{{ icon('whatsapp',18) }} Enviar estado</a>{% endif %}
-    <a class="btn btn-secondary" href="#promises">Promesa de pago</a>
-    <a class="btn btn-secondary" href="#notes">Agregar nota</a>
+    {% if can('collections.manage') %}<a class="btn btn-secondary" href="#promises">Promesa de pago</a><a class="btn btn-secondary" href="#notes">Agregar nota</a>{% endif %}
   </div>
 
   <section class="surface client-section" id="promises">
     <div class="section-heading"><div><span class="eyebrow">COBRANZA</span><h2>Promesas de pago</h2></div><span>{{ promises|length }}</span></div>
-    <form method="post" action="{{ url_for('main.client_promise_add', client_id=client.id) }}" class="inline-business-form promise-form-v15">
+    {% if can('collections.manage') %}<form method="post" action="{{ url_for('main.client_promise_add', client_id=client.id) }}" class="inline-business-form promise-form-v15">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label class="field"><span>Fecha prometida</span><input type="date" name="promised_date" min="{{ today.isoformat() }}" required></label>
       <label class="field"><span>Monto</span><input type="number" name="amount" min="0.01" step="0.01" inputmode="decimal" required></label>
       <label class="field"><span>Acuerdo</span><select name="contract_id"><option value="">General</option>{% for contract in contracts if contract.status == 'active' %}<option value="{{ contract.id }}">{{ contract.code }} · {{ contract.asset.name }}</option>{% endfor %}</select></label>
       <label class="field promise-note-field"><span>Nota</span><input name="note" maxlength="240" placeholder="Ej. cobra el viernes"></label>
       <button class="btn btn-primary" type="submit">Guardar promesa</button>
-    </form>
+    </form>{% endif %}
     <div class="promise-list-v15">
       {% for promise in promises %}
       <div class="promise-row-v15 status-{{ promise.status }}">
         <div><strong>{{ money(promise.amount) }}</strong><small>{{ promise.promised_date.strftime('%d/%m/%Y') }}{% if promise.contract %} · {{ promise.contract.code }}{% endif %}{% if promise.created_by_user_id and actors.get(promise.created_by_user_id) %} · {{ actors.get(promise.created_by_user_id) }}{% endif %}{% if promise.note %} · {{ promise.note }}{% endif %}</small></div>
-        <span class="promise-status">{% if promise.status == 'fulfilled' %}Cumplida{% elif promise.status == 'broken' %}Incumplida{% else %}Pendiente{% endif %}</span>
+        <span class="promise-status">{% if promise.status == 'fulfilled' %}Cumplida{% elif promise.status == 'broken' %}Incumplida{% elif promise.status == 'cancelled' %}Cancelada{% else %}Pendiente{% endif %}</span>
         {% if promise.status != 'fulfilled' %}
-        <form method="post" action="{{ url_for('main.promise_status', promise_id=promise.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="fulfilled"><button class="text-link" type="submit">Cumplida</button></form>
+        {% if can('collections.manage') %}<form method="post" action="{{ url_for('main.promise_status', promise_id=promise.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="fulfilled"><button class="text-link" type="submit">Cumplida</button></form>{% endif %}
         {% endif %}
       </div>
       {% else %}<div class="empty-inline">No hay promesas registradas.</div>{% endfor %}
@@ -54,11 +53,11 @@
 
   <section class="surface client-section" id="notes">
     <div class="section-heading"><div><span class="eyebrow">SEGUIMIENTO</span><h2>Notas de cobranza</h2></div></div>
-    <form method="post" action="{{ url_for('main.client_note_add', client_id=client.id) }}" class="note-compose-v15">
+    {% if can('collections.manage') %}<form method="post" action="{{ url_for('main.client_note_add', client_id=client.id) }}" class="note-compose-v15">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <textarea name="body" rows="2" maxlength="2000" placeholder="Ej. Cliente indicó que pagará el viernes..." required></textarea>
       <button class="btn btn-primary btn-sm" type="submit">Guardar nota</button>
-    </form>
+    </form>{% endif %}
     <div class="client-note-list-v15">{% for note in notes[:8] %}<div><p>{{ note.body }}</p><small>{{ note.created_at.strftime('%d/%m/%Y %H:%M') }}{% if note.created_by_user_id and actors.get(note.created_by_user_id) %} · {{ actors.get(note.created_by_user_id) }}{% endif %}</small></div>{% else %}<div class="empty-inline">Sin notas todavía.</div>{% endfor %}</div>
   </section>
 

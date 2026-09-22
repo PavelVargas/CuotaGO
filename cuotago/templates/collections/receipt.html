@@ -5,10 +5,14 @@
 <section class="content-page receipt-page-v15">
   <div class="page-head no-print">
     <div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.contract_detail', contract_id=contract.id) }}">{{ icon('back',22) }}</a><div><h1>Pago registrado</h1><p>{{ receipt_code }}</p></div></div>
-    <div class="statement-buttons-v15">{% if whatsapp_url %}<a class="btn btn-whatsapp" target="_blank" rel="noopener" href="{{ whatsapp_url }}">{{ icon('whatsapp',18) }} Mensaje</a>{% endif %}<a class="btn btn-primary" href="{{ url_for('main.payment_receipt_pdf', payment_id=payment.id) }}" data-share-pdf data-share-title="Recibo {{ receipt_code }}">Compartir PDF</a><button class="btn btn-secondary" onclick="window.print()" type="button">Imprimir</button></div>
+    <div class="statement-buttons-v15">
+      <button class="btn btn-primary" type="button" data-share-pdf data-share-url="{{ url_for('main.payment_receipt_pdf', payment_id=payment.id) }}" data-share-name="recibo-{{ receipt_code }}.pdf" data-share-title="Recibo {{ receipt_code }}">{{ icon('download',18) }} Compartir PDF</button>
+      {% if whatsapp_url %}<a class="btn btn-whatsapp" target="_blank" rel="noopener" href="{{ whatsapp_url }}">{{ icon('whatsapp',18) }} WhatsApp</a>{% endif %}
+      <button class="btn btn-ghost" onclick="window.print()" type="button">Imprimir</button>
+    </div>
   </div>
   <article class="surface printable-document-v15 receipt-document-v15">
-    <header class="receipt-brand-v15"><span class="receipt-check-v15">✓</span><div><span class="eyebrow">RECIBO DE PAGO</span><h1>{{ money(payment.amount) }}</h1><small>{{ receipt_code }}</small></div></header>
+    <header class="receipt-brand-v15"><span class="receipt-check-v15">✓</span><div><span class="eyebrow">RECIBO DE {{ 'INICIAL' if payment.payment_kind == 'down_payment' else 'ABONO' if payment.payment_kind == 'advance' else 'PAGO' }}</span><h1>{{ money(payment.amount) }}</h1><small>{{ receipt_code }}</small></div></header>
     <dl class="receipt-details-v15">
       <div><dt>Cliente</dt><dd>{{ contract.client.full_name }}</dd></div>
       <div><dt>Acuerdo</dt><dd>{{ contract.code }}</dd></div>

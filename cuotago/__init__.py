@@ -1,13 +1,13 @@
 from pathlib import Path
-import hashlib
+import time
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_from_directory, url_for
 from flask_login import current_user, logout_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy import text
 
 from config import Config
-from .extensions import csrf, db, login_manager
+from .extensions import compress, csrf, db, login_manager
 
 
 def _ensure_feature_schema(app):
@@ -136,11 +136,6 @@ def _ensure_feature_schema(app):
         "CREATE INDEX IF NOT EXISTS ix_expenses_organization_id ON expenses (organization_id)",
         "CREATE INDEX IF NOT EXISTS ix_expenses_expense_date ON expenses (expense_date)",
         "CREATE INDEX IF NOT EXISTS ix_expenses_category ON expenses (category)",
-        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS voided_at TIMESTAMP NULL",
-        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS voided_by_user_id INTEGER NULL",
-        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS void_reason VARCHAR(240) NULL",
-        "CREATE INDEX IF NOT EXISTS ix_expenses_voided_at ON expenses (voided_at)",
-        "CREATE INDEX IF NOT EXISTS ix_expenses_voided_by_user_id ON expenses (voided_by_user_id)",
         """CREATE TABLE IF NOT EXISTS tenant_audit_logs (
             id SERIAL PRIMARY KEY,
             organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -157,20 +152,6 @@ def _ensure_feature_schema(app):
         "CREATE INDEX IF NOT EXISTS ix_tenant_audit_logs_action ON tenant_audit_logs (action)",
         "CREATE INDEX IF NOT EXISTS ix_tenant_audit_logs_entity_type ON tenant_audit_logs (entity_type)",
         "CREATE INDEX IF NOT EXISTS ix_tenant_audit_logs_created_at ON tenant_audit_logs (created_at)",
-        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS voided_at TIMESTAMP NULL",
-        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS voided_by_user_id INTEGER NULL",
-        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS void_reason VARCHAR(240) NULL",
-        "CREATE INDEX IF NOT EXISTS ix_contracts_voided_by_user_id ON contracts (voided_by_user_id)",
-        """CREATE TABLE IF NOT EXISTS login_attempts (
-            id SERIAL PRIMARY KEY,
-            fingerprint VARCHAR(190) NOT NULL,
-            failed_count INTEGER NOT NULL DEFAULT 0,
-            window_started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            blocked_until TIMESTAMP NULL,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )""",
-        "CREATE INDEX IF NOT EXISTS ix_login_attempts_fingerprint ON login_attempts (fingerprint)",
-        "CREATE INDEX IF NOT EXISTS ix_login_attempts_blocked_until ON login_attempts (blocked_until)",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN NOT NULL DEFAULT TRUE",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP NULL",
         "ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS previous_period_start DATE NULL",
@@ -182,21 +163,99 @@ def _ensure_feature_schema(app):
     ]
     if db.engine.dialect.name != "postgresql":
         return
+
+    hardening_statements = [
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP NULL",
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS cancelled_by_user_id INTEGER NULL",
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS cancel_reason VARCHAR(240)",
+        "CREATE INDEX IF NOT EXISTS ix_contracts_cancelled_at ON contracts (cancelled_at)",
+        "CREATE INDEX IF NOT EXISTS ix_contracts_cancelled_by_user_id ON contracts (cancelled_by_user_id)",
+        "CREATE INDEX IF NOT EXISTS ix_contracts_org_status_created ON contracts (organization_id, status, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_clients_org_name ON clients (organization_id, full_name)",
+        "CREATE INDEX IF NOT EXISTS ix_installments_contract_due ON installments (contract_id, due_date)",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS voided_at TIMESTAMP NULL",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS voided_by_user_id INTEGER NULL",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS void_reason VARCHAR(240) NULL",
+        "CREATE INDEX IF NOT EXISTS ix_expenses_voided_at ON expenses (voided_at)",
+        "CREATE INDEX IF NOT EXISTS ix_expenses_voided_by_user_id ON expenses (voided_by_user_id)",
+        "CREATE INDEX IF NOT EXISTS ix_expenses_org_date ON expenses (organization_id, expense_date DESC)",
+        """CREATE TABLE IF NOT EXISTS auth_rate_limits (
+            id SERIAL PRIMARY KEY,
+            key_hash VARCHAR(64) NOT NULL UNIQUE,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            window_started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            blocked_until TIMESTAMP NULL,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )""",
+        "CREATE INDEX IF NOT EXISTS ix_auth_rate_limits_key_hash ON auth_rate_limits (key_hash)",
+        "CREATE INDEX IF NOT EXISTS ix_auth_rate_limits_blocked_until ON auth_rate_limits (blocked_until)",
+        # Convert every legacy initial into a normal auditable payment.  The
+        # original contracts.down_payment value remains as plan metadata.
+        """INSERT INTO payments (contract_id, amount, late_fee_amount, method, reference, payment_kind, receipt_code, created_by_user_id, note, paid_at)
+        SELECT c.id, c.down_payment, 0, 'other', NULL, 'down_payment',
+               'CGI-LEGACY-' || c.organization_id::text || '-' || LPAD(c.id::text, 6, '0'),
+               NULL, 'Inicial migrada automáticamente', COALESCE(c.created_at, CURRENT_TIMESTAMP)
+        FROM contracts c
+        WHERE c.down_payment > 0
+          AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.contract_id = c.id AND p.payment_kind = 'down_payment')""",
+    ]
+
+    performance_statements = [
+        # v1.16 used ``voided`` internally. Some databases already carry the
+        # v116 migration marker, so v1.17 must heal that schema explicitly.
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP NULL",
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS cancelled_by_user_id INTEGER NULL",
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS cancel_reason VARCHAR(240)",
+        "CREATE INDEX IF NOT EXISTS ix_contracts_cancelled_at ON contracts (cancelled_at)",
+        "CREATE INDEX IF NOT EXISTS ix_contracts_cancelled_by_user_id ON contracts (cancelled_by_user_id)",
+        """DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='contracts' AND column_name='voided_at') THEN
+                EXECUTE 'UPDATE contracts SET status=''cancelled'', cancelled_at=COALESCE(cancelled_at, voided_at), cancelled_by_user_id=COALESCE(cancelled_by_user_id, voided_by_user_id), cancel_reason=COALESCE(cancel_reason, void_reason) WHERE status=''voided''';
+            END IF;
+        END $$""",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS voided_at TIMESTAMP NULL",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS voided_by_user_id INTEGER NULL",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS void_reason VARCHAR(240) NULL",
+        "CREATE INDEX IF NOT EXISTS ix_expenses_voided_at ON expenses (voided_at)",
+        "CREATE INDEX IF NOT EXISTS ix_expenses_voided_by_user_id ON expenses (voided_by_user_id)",
+        "ALTER TABLE assets ADD COLUMN IF NOT EXISTS image_thumb_data BYTEA",
+        "ALTER TABLE assets ADD COLUMN IF NOT EXISTS image_updated_at TIMESTAMP NULL",
+        "UPDATE assets SET image_updated_at = COALESCE(created_at, CURRENT_TIMESTAMP) WHERE image_data IS NOT NULL AND image_updated_at IS NULL",
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS request_key VARCHAR(64)",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS request_key VARCHAR(64)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_contracts_request_key ON contracts (request_key) WHERE request_key IS NOT NULL",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_payments_request_key ON payments (request_key) WHERE request_key IS NOT NULL",
+        "CREATE INDEX IF NOT EXISTS ix_contracts_org_client_status ON contracts (organization_id, client_id, status)",
+        "CREATE INDEX IF NOT EXISTS ix_contracts_org_asset_status ON contracts (organization_id, asset_id, status)",
+        "CREATE INDEX IF NOT EXISTS ix_installments_due_contract ON installments (due_date, contract_id)",
+        "CREATE INDEX IF NOT EXISTS ix_installments_open_due ON installments (due_date, contract_id, paid_amount, late_fee_paid)",
+        "CREATE INDEX IF NOT EXISTS ix_payments_contract_paid_at ON payments (contract_id, paid_at DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_payment_promises_org_status_date ON payment_promises (organization_id, status, promised_date)",
+        "CREATE INDEX IF NOT EXISTS ix_purchases_org_date ON purchases (organization_id, purchase_date DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_assets_org_status_created ON assets (organization_id, status, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_clients_org_phone ON clients (organization_id, phone)",
+        "CREATE INDEX IF NOT EXISTS ix_clients_org_document ON clients (organization_id, document_id)",
+        "CREATE INDEX IF NOT EXISTS ix_tenant_audit_org_created ON tenant_audit_logs (organization_id, created_at DESC)",
+    ]
+
     with db.engine.begin() as connection:
         connection.execute(text("""CREATE TABLE IF NOT EXISTS schema_migrations (
-            migration_key VARCHAR(80) PRIMARY KEY,
+            version VARCHAR(80) PRIMARY KEY,
             applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )"""))
-        applied = {row[0] for row in connection.execute(text("SELECT migration_key FROM schema_migrations"))}
-        for statement in statements:
-            migration_key = "ddl-" + hashlib.sha256(statement.encode("utf-8")).hexdigest()[:32]
-            if migration_key in applied:
-                continue
-            connection.execute(text(statement))
-            connection.execute(
-                text("INSERT INTO schema_migrations (migration_key) VALUES (:key) ON CONFLICT (migration_key) DO NOTHING"),
-                {"key": migration_key},
-            )
+        applied = {row[0] for row in connection.execute(text("SELECT version FROM schema_migrations"))}
+        if "2026-09-v115-features" not in applied:
+            for statement in statements:
+                connection.execute(text(statement))
+            connection.execute(text("INSERT INTO schema_migrations(version) VALUES ('2026-09-v115-features') ON CONFLICT DO NOTHING"))
+        if "2026-09-v116-hardening" not in applied:
+            for statement in hardening_statements:
+                connection.execute(text(statement))
+            connection.execute(text("INSERT INTO schema_migrations(version) VALUES ('2026-09-v116-hardening') ON CONFLICT DO NOTHING"))
+        if "2026-09-v117-performance-r2" not in applied:
+            for statement in performance_statements:
+                connection.execute(text(statement))
+            connection.execute(text("INSERT INTO schema_migrations(version) VALUES ('2026-09-v117-performance-r2') ON CONFLICT DO NOTHING"))
 
 
 def _ensure_superadmin(app):
@@ -260,6 +319,7 @@ def create_app(test_config=None):
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+    compress.init_app(app)
 
     from .auth import auth_bp
     from .main import main_bp
@@ -271,14 +331,9 @@ def create_app(test_config=None):
     app.register_blueprint(push_bp)
     app.register_blueprint(admin_bp)
 
-    from .permissions import ROLE_LABELS, has_permission
-
-    @app.context_processor
-    def inject_permission_helpers():
-        return {
-            "can": lambda permission: has_permission(current_user, permission),
-            "role_label": lambda role: ROLE_LABELS.get(role, role.title() if role else "Usuario"),
-        }
+    @app.before_request
+    def start_request_timer():
+        g.request_started_at = time.perf_counter()
 
     @app.before_request
     def enforce_account_and_subscription_state():
@@ -332,13 +387,33 @@ def create_app(test_config=None):
 
     @app.after_request
     def security_headers(response):
+        started = getattr(g, "request_started_at", None)
+        if started is not None:
+            duration_ms = max((time.perf_counter() - started) * 1000.0, 0.0)
+            response.headers.setdefault("Server-Timing", f"app;dur={duration_ms:.1f}")
+            threshold = float(current_app.config.get("SLOW_REQUEST_MS", 800) or 800)
+            if duration_ms >= threshold and request.endpoint not in {"static", "healthz", "service_worker"}:
+                current_app.logger.warning(
+                    "slow_request endpoint=%s method=%s path=%s status=%s duration_ms=%.1f",
+                    request.endpoint, request.method, request.path, response.status_code, duration_ms,
+                )
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-        response.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://wa.me https://api.whatsapp.com")
-        if request.is_secure:
+        response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'; "
+            "img-src 'self' data: blob:; media-src 'self'; connect-src 'self'; "
+            "font-src 'self' data: https://fonts.gstatic.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "script-src 'self' 'unsafe-inline'"
+        )
+        if current_app.config.get("APP_ENV") not in {"local", "development", "test"} and request.is_secure:
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        if current_user.is_authenticated and response.mimetype == "text/html":
+            response.headers.setdefault("Cache-Control", "private, no-store")
         return response
 
     @app.errorhandler(403)

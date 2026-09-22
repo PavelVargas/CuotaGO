@@ -1,47 +1,101 @@
+"""Simple role-based permissions for CuotaGo.
+
+Keep the UI calm: users choose a job role, not dozens of checkboxes.  Routes still
+check explicit permissions so hiding a button is never the security boundary.
+"""
 from functools import wraps
 
 from flask import abort
 from flask_login import current_user
 
+
 ROLE_LABELS = {
     "owner": "Propietario",
-    "admin": "Administrador",
+    "admin": "Administrador",  # legacy alias kept for existing databases
+    "manager": "Supervisor",
     "collector": "Cobrador",
-    "sales": "Vendedor",
-    "staff": "Usuario",
-    "viewer": "Consulta",
+    "seller": "Vendedor",
+    "sales": "Vendedor",  # v1.16 legacy alias
+    "staff": "Operador",
+    "viewer": "Consulta",  # v1.16 legacy alias
     "superadmin": "Superadmin",
 }
 
+ASSIGNABLE_ROLES = ("owner", "manager", "collector", "seller", "staff", "viewer")
+
+# Permissions are intentionally task-oriented.  This is easier to audit than
+# checking role names throughout controllers.
+ALL_PERMISSIONS = {
+    "clients.view", "clients.manage",
+    "inventory.view", "inventory.manage",
+    "purchases.view", "purchases.manage",
+    "contracts.view", "contracts.create", "contracts.modify", "contracts.cancel",
+    "collections.view", "collections.manage", "payments.view", "payments.record",
+    "expenses.view", "expenses.manage",
+    "reports.view", "audit.view", "data.export", "team.manage",
+}
+
 ROLE_PERMISSIONS = {
-    "owner": {"*"},
-    "admin": {
-        "clients.view", "clients.manage", "contracts.view", "contracts.create", "contracts.manage",
-        "collections.view", "collections.collect", "inventory.view", "inventory.manage", "purchases.view", "purchases.manage",
-        "reports.view", "expenses.view", "expenses.manage", "audit.view", "backup.export", "settings.manage", "team.manage",
-    },
+    "owner": ALL_PERMISSIONS,
+    "admin": ALL_PERMISSIONS,
+    "manager": ALL_PERMISSIONS - {"team.manage"},
     "collector": {
-        "clients.view", "clients.manage", "contracts.view", "collections.view", "collections.collect",
-        "reports.view", "inventory.view",
+        "clients.view", "contracts.view", "collections.view", "collections.manage",
+        "payments.view", "payments.record",
+    },
+    "seller": {
+        "clients.view", "clients.manage", "inventory.view",
+        "contracts.view", "contracts.create", "payments.view",
     },
     "sales": {
-        "clients.view", "clients.manage", "contracts.view", "contracts.create", "inventory.view", "purchases.view",
-        "collections.view",
+        "clients.view", "clients.manage", "inventory.view",
+        "contracts.view", "contracts.create", "payments.view",
+    },
+    "viewer": {
+        "clients.view", "inventory.view", "purchases.view", "contracts.view",
+        "collections.view", "payments.view", "reports.view",
     },
     "staff": {
-        "clients.view", "clients.manage", "contracts.view", "contracts.create", "collections.view", "collections.collect",
-        "inventory.view", "purchases.view", "reports.view",
+        "clients.view", "clients.manage", "inventory.view", "contracts.view", "contracts.create",
+        "collections.view", "collections.manage", "payments.view", "payments.record",
     },
-    "viewer": {"clients.view", "contracts.view", "collections.view", "inventory.view", "purchases.view", "reports.view"},
-    "superadmin": {"*"},
+    "superadmin": ALL_PERMISSIONS,
 }
+
+# Compatibility with v1.16 permission names.  New code uses the clearer
+# task-oriented names above, while existing sessions/tests keep working.
+PERMISSION_ALIASES = {
+    "contracts.manage": "contracts.modify",
+    "collections.collect": "payments.record",
+    "backup.export": "data.export",
+    "settings.manage": "team.manage",
+}
+
+MODULE_PERMISSIONS = {
+    "agreements": "contracts.view",
+    "collections": "collections.view",
+    "notifications": "collections.view",
+    "clients": "clients.view",
+    "purchases": "purchases.view",
+    "inventory": "inventory.view",
+    "calendar": "collections.view",
+    "reports": "reports.view",
+    "expenses": "expenses.view",
+    "documents": None,
+    "settings": None,
+}
+
+
+def role_label(role):
+    return ROLE_LABELS.get((role or "").strip().lower(), (role or "Usuario").capitalize())
 
 
 def has_permission(user, permission):
     if not user or not getattr(user, "is_authenticated", False):
         return False
-    permissions = ROLE_PERMISSIONS.get(getattr(user, "role", ""), set())
-    return "*" in permissions or permission in permissions
+    role = (getattr(user, "role", "") or "staff").strip().lower()
+    permission = PERMISSION_ALIASES.get(permission, permission)
+    return permission in ROLE_PERMISSIONS.get(role, set())
 
 
 def permission_required(permission):
@@ -53,3 +107,12 @@ def permission_required(permission):
             return view(*args, **kwargs)
         return wrapped
     return decorator
+
+
+def visible_modules(modules, user):
+    visible = []
+    for module in modules:
+        required = MODULE_PERMISSIONS.get(module.get("slug"))
+        if required is None or has_permission(user, required):
+            visible.append(module)
+    return visible

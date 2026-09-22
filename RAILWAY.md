@@ -1,4 +1,8 @@
-# CuotaGo v1.16.0 en Railway
+# CuotaGo v1.17.0 · Railway
+
+Esta versión mantiene las variables existentes y añade optimizaciones de PWA/rendimiento. Los índices y columnas nuevas se aplican mediante `schema_migrations` al iniciar contra PostgreSQL.
+
+# CuotaGo v1.15.0 en Railway
 
 Esta carpeta esta preparada para Railway con PostgreSQL.
 
@@ -39,7 +43,7 @@ Agrega estas variables en el servicio WEB de CuotaGo:
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.16.0
+APP_VERSION=1.15.0
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -130,7 +134,3 @@ Esta actualización es **hacia adelante y no borra datos existentes**. `db.creat
 - El Service Worker usa caché `1.15.0-ui-v33`.
 
 La actualización es hacia adelante: usa `CREATE TABLE IF NOT EXISTS` y `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`; no borra acuerdos ni pagos existentes.
-
-
-### Seguridad 1.16.0
-En Railway `SESSION_COOKIE_SECURE` se activa automáticamente. Solo usa `SESSION_COOKIE_SECURE=0` para desarrollo local por HTTP. La actualización crea/usa `schema_migrations` y aplica una sola vez las ampliaciones de esquema pendientes.

@@ -21,7 +21,7 @@
     {% endfor %}
   </div>
 
-  <section class="home-status">
+  {% if show_home_status %}<section class="home-status">
     <div class="status-kpis">
       <div><span>Por cobrar</span><strong>{{ money(receivable) }}</strong></div>
       <div><span>Vencido</span><strong class="text-danger">{{ money(overdue_total) }}</strong></div>
@@ -37,6 +37,6 @@
       <span class="home-reminder-pill"><span aria-hidden="true">✓</span>{{ reminder_count }} tarea{{ 's' if reminder_count != 1 }}</span>
       <span class="home-reminder-arrow" aria-hidden="true">›</span>
     </a>
-  </section>
+  </section>{% endif %}
 </section>
 {% endblock %}

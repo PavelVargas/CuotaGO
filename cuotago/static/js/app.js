@@ -120,7 +120,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = '1.16.0-ui-v34';
+  const APP_VERSION = '1.15.0-ui-v33';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -494,7 +494,7 @@
 
   let paymentAlertInterval = null;
   const startPaymentAlertWatcher = () => {
-    if (!document.body.classList.contains('app-authenticated')) return;
+    if (!document.body.classList.contains('app-authenticated') || document.body.dataset.canCollect !== '1') return;
     const shouldToast = () => !document.querySelector('[data-notifications-page]');
     pollPaymentAlerts({ showToast: shouldToast() });
     if (paymentAlertInterval) window.clearInterval(paymentAlertInterval);
@@ -951,16 +951,8 @@
 
   const setupPaymentCalendar = () => {
     const host = document.querySelector('[data-payment-calendar]');
-    const dataNode = document.getElementById('paymentCalendarEvents');
-    if (!host || !dataNode) return;
-
-    let events = [];
-    try {
-      events = JSON.parse(dataNode.textContent || '[]');
-    } catch (_) {
-      events = [];
-    }
-
+    if (!host) return;
+    const endpoint = host.dataset.calendarApi;
     const searchInput = host.querySelector('[data-calendar-search]');
     const clearButton = host.querySelector('[data-calendar-clear]');
     const grid = host.querySelector('[data-calendar-grid]');
@@ -971,10 +963,8 @@
     const dayItems = host.querySelector('[data-calendar-day-items]');
     const filterLabel = host.querySelector('[data-calendar-filter-label]');
     const visibleCount = host.querySelector('[data-calendar-visible-count]');
-    const pendingCount = host.querySelector('[data-calendar-pending-count]');
-    const nextDue = host.querySelector('[data-calendar-next-due]');
     const calendarSurface = host.querySelector('.real-calendar');
-    if (!grid || !monthLabel || !dayItems) return;
+    if (!endpoint || !grid || !monthLabel || !dayItems) return;
 
     const pad = (value) => String(value).padStart(2, '0');
     const isoFromDate = (value) => `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
@@ -982,289 +972,138 @@
       const [year, month, day] = String(value || '').split('-').map(Number);
       return new Date(year || 2000, (month || 1) - 1, day || 1);
     };
-    const normalize = (value) => String(value || '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '')
-      .trim();
     const titleCase = (value) => value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
     const monthFormatter = new Intl.DateTimeFormat('es-DO', { month: 'long', year: 'numeric' });
     const dayFormatter = new Intl.DateTimeFormat('es-DO', { weekday: 'long', day: 'numeric', month: 'long' });
-
     const todayIso = host.dataset.today || isoFromDate(new Date());
     const todayDate = dateFromIso(todayIso);
     let viewYear = todayDate.getFullYear();
     let viewMonth = todayDate.getMonth();
     let selectedIso = todayIso;
-    let query = '';
+    let events = [];
+    let requestId = 0;
+    const cache = new Map();
 
-    const getFilteredEvents = () => {
-      if (!query) return events;
-      return events.filter((item) => normalize([
-        item.client_name,
-        item.client_phone,
-        item.client_document,
-      ].join(' ')).includes(query));
-    };
-
-    const setPreferredDayForMonth = (filtered, preserveCurrent = false) => {
-      const prefix = `${viewYear}-${pad(viewMonth + 1)}-`;
-      if (preserveCurrent && selectedIso.startsWith(prefix)) return;
-      const firstPayment = filtered.find((item) => String(item.date).startsWith(prefix));
-      selectedIso = firstPayment?.date || `${viewYear}-${pad(viewMonth + 1)}-01`;
-    };
-
-    const updateSummary = (filtered) => {
-      const upcoming = filtered.find((item) => item.date >= todayIso);
-      if (visibleCount) visibleCount.textContent = String(filtered.length);
-      if (pendingCount) pendingCount.textContent = String(filtered.length);
-      if (nextDue) nextDue.textContent = upcoming?.date_label || '—';
-      if (filterLabel) {
-        const raw = searchInput?.value.trim() || '';
-        filterLabel.textContent = raw ? `Filtrando: ${raw}` : 'Todos los clientes';
-      }
-    };
-
+    const monthKey = () => `${viewYear}-${pad(viewMonth + 1)}`;
     const makeEmptyState = (title, copy) => {
       const empty = document.createElement('div');
       empty.className = 'calendar-day-empty';
       const mark = document.createElement('span');
-      mark.className = 'calendar-day-empty-mark';
-      mark.textContent = '•';
-      const heading = document.createElement('strong');
-      heading.textContent = title;
-      const text = document.createElement('span');
-      text.textContent = copy;
-      empty.append(mark, heading, text);
-      return empty;
+      mark.className = 'calendar-day-empty-mark'; mark.textContent = '•';
+      const heading = document.createElement('strong'); heading.textContent = title;
+      const text = document.createElement('span'); text.textContent = copy;
+      empty.append(mark, heading, text); return empty;
     };
 
-    const renderDayPanel = (filtered, byDate, monthEvents) => {
+    const loadMonth = async ({ force = false } = {}) => {
+      const q = searchInput?.value.trim() || '';
+      const key = `${monthKey()}|${q.toLowerCase()}`;
+      if (!force && cache.has(key)) { events = cache.get(key); return; }
+      const thisRequest = ++requestId;
+      grid.classList.add('is-loading');
+      host.setAttribute('aria-busy', 'true');
+      try {
+        const url = new URL(endpoint, location.origin);
+        url.searchParams.set('month', monthKey());
+        if (q) url.searchParams.set('q', q);
+        const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error(`Error ${response.status}`);
+        const data = await response.json();
+        if (thisRequest !== requestId) return;
+        events = Array.isArray(data.events) ? data.events : [];
+        cache.set(key, events);
+      } catch (_) {
+        if (thisRequest !== requestId) return;
+        events = [];
+        dayItems.replaceChildren(makeEmptyState('No pude cargar este mes', navigator.onLine ? 'Intenta nuevamente.' : 'Revisa tu conexión y vuelve a intentar.'));
+      } finally {
+        if (thisRequest === requestId) {
+          grid.classList.remove('is-loading');
+          host.removeAttribute('aria-busy');
+        }
+      }
+    };
+
+    const choosePreferredDay = (preserve = false) => {
+      const prefix = `${monthKey()}-`;
+      if (preserve && selectedIso.startsWith(prefix)) return;
+      selectedIso = events[0]?.date || `${monthKey()}-01`;
+    };
+
+    const renderDayPanel = (byDate) => {
       const selectedEvents = byDate.get(selectedIso) || [];
       const selectedDate = dateFromIso(selectedIso);
       if (dayTitle) dayTitle.textContent = titleCase(dayFormatter.format(selectedDate));
       if (dayCount) dayCount.textContent = `${selectedEvents.length} pago${selectedEvents.length === 1 ? '' : 's'}`;
       dayItems.replaceChildren();
-
-      if (selectedEvents.length) {
-        selectedEvents.forEach((item) => {
-          const link = document.createElement('a');
-          link.className = 'calendar-payment-item';
-          link.href = item.contract_url;
-
-          const paymentDot = document.createElement('span');
-          paymentDot.className = 'calendar-payment-dot';
-
-          const copy = document.createElement('div');
-          copy.className = 'calendar-payment-copy';
-          const name = document.createElement('strong');
-          name.textContent = item.client_name;
-          const meta = document.createElement('span');
-          meta.textContent = `${item.asset_name}${Number(item.quantity) > 1 ? ` · ${item.quantity} uds.` : ''} · cuota ${item.sequence}`;
-          copy.append(name, meta);
-          if (item.late_fee) {
-            const fee = document.createElement('small');
-            fee.className = 'calendar-payment-late';
-            fee.textContent = `Incluye ${item.late_fee} de interés`;
-            copy.append(fee);
-          }
-
-          const money = document.createElement('div');
-          money.className = 'calendar-payment-money';
-          const amount = document.createElement('strong');
-          amount.textContent = item.amount;
-          const code = document.createElement('small');
-          code.textContent = item.contract_code;
-          money.append(amount, code);
-          const chevron = document.createElement('span');
-          chevron.className = 'calendar-payment-chevron';
-          chevron.setAttribute('aria-hidden', 'true');
-          chevron.textContent = '›';
-          link.append(paymentDot, copy, money, chevron);
-          dayItems.append(link);
-        });
+      if (!selectedEvents.length) {
+        dayItems.append(makeEmptyState(events.length ? 'Sin pagos este día' : 'Sin pagos este mes', events.length ? 'Los días de pago aparecen marcados en naranja.' : 'No hay cuotas pendientes para este filtro.'));
         return;
       }
-
-      if (!filtered.length) {
-        dayItems.append(makeEmptyState('Sin resultados', 'No hay pagos pendientes para esa búsqueda.'));
-        return;
-      }
-
-      if (!monthEvents.length) {
-        const upcoming = filtered.find((item) => item.date >= `${viewYear}-${pad(viewMonth + 1)}-01`) || filtered[0];
-        const empty = makeEmptyState('Sin pagos este mes', 'Puedes ir directamente al próximo día de pago de este filtro.');
-        if (upcoming) {
-          const jump = document.createElement('button');
-          jump.type = 'button';
-          jump.className = 'calendar-jump-btn';
-          jump.textContent = `Ir al ${upcoming.date_label}`;
-          jump.addEventListener('click', () => {
-            const target = dateFromIso(upcoming.date);
-            viewYear = target.getFullYear();
-            viewMonth = target.getMonth();
-            selectedIso = upcoming.date;
-            render();
-          });
-          empty.append(jump);
-        }
-        dayItems.append(empty);
-        return;
-      }
-
-      dayItems.append(makeEmptyState('Sin pagos este día', 'Los días de pago aparecen marcados en naranja.'));
+      selectedEvents.forEach((item) => {
+        const link = document.createElement('a'); link.className = 'calendar-payment-item'; link.href = item.contract_url;
+        const dot = document.createElement('span'); dot.className = 'calendar-payment-dot';
+        const copy = document.createElement('div'); copy.className = 'calendar-payment-copy';
+        const name = document.createElement('strong'); name.textContent = item.client_name;
+        const meta = document.createElement('span'); meta.textContent = `${item.asset_name}${Number(item.quantity) > 1 ? ` · ${item.quantity} uds.` : ''} · cuota ${item.sequence}`;
+        copy.append(name, meta);
+        if (item.late_fee) { const fee=document.createElement('small'); fee.className='calendar-payment-late'; fee.textContent=`Incluye ${item.late_fee} de mora`; copy.append(fee); }
+        const money = document.createElement('div'); money.className='calendar-payment-money';
+        const amount=document.createElement('strong'); amount.textContent=item.amount;
+        const code=document.createElement('small'); code.textContent=item.contract_code; money.append(amount,code);
+        const arrow=document.createElement('span'); arrow.className='calendar-payment-chevron'; arrow.textContent='›'; arrow.setAttribute('aria-hidden','true');
+        link.append(dot,copy,money,arrow); dayItems.append(link);
+      });
     };
 
     const render = () => {
-      const filtered = getFilteredEvents();
-      updateSummary(filtered);
-
       const byDate = new Map();
-      filtered.forEach((item) => {
-        if (!byDate.has(item.date)) byDate.set(item.date, []);
-        byDate.get(item.date).push(item);
-      });
-
+      events.forEach((item) => { if (!byDate.has(item.date)) byDate.set(item.date, []); byDate.get(item.date).push(item); });
       const monthStart = new Date(viewYear, viewMonth, 1);
       const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
       const mondayOffset = (monthStart.getDay() + 6) % 7;
       const totalCells = Math.ceil((mondayOffset + daysInMonth) / 7) * 7;
       const gridStart = new Date(viewYear, viewMonth, 1 - mondayOffset);
-      const monthPrefix = `${viewYear}-${pad(viewMonth + 1)}-`;
-      const monthEvents = filtered.filter((item) => String(item.date).startsWith(monthPrefix));
-
       monthLabel.textContent = titleCase(monthFormatter.format(monthStart));
       if (monthSummary) {
-        const uniqueClients = new Set(monthEvents.map((item) => item.client_id)).size;
-        monthSummary.textContent = monthEvents.length
-          ? `${monthEvents.length} pago${monthEvents.length === 1 ? '' : 's'} · ${uniqueClients} cliente${uniqueClients === 1 ? '' : 's'}`
-          : 'Sin pagos en este mes';
+        const uniqueClients = new Set(events.map((item) => item.client_id)).size;
+        monthSummary.textContent = events.length ? `${events.length} pago${events.length===1?'':'s'} · ${uniqueClients} cliente${uniqueClients===1?'':'s'}` : 'Sin pagos en este mes';
       }
-
+      if (visibleCount) visibleCount.textContent = String(events.length);
+      if (filterLabel) filterLabel.textContent = searchInput?.value.trim() ? `Filtrando: ${searchInput.value.trim()}` : 'Todos los clientes';
       grid.replaceChildren();
-      for (let index = 0; index < totalCells; index += 1) {
-        const cellDate = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index);
-        const cellIso = isoFromDate(cellDate);
-        const cellEvents = byDate.get(cellIso) || [];
-        const isOutside = cellDate.getMonth() !== viewMonth;
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'real-calendar-day';
-        button.classList.toggle('is-outside', isOutside);
-        button.classList.toggle('is-today', cellIso === todayIso);
-        button.classList.toggle('is-selected', cellIso === selectedIso);
-        button.classList.toggle('has-payment', cellEvents.length > 0);
-        button.dataset.date = cellIso;
-        button.setAttribute('aria-label', `${titleCase(dayFormatter.format(cellDate))}${cellEvents.length ? `, ${cellEvents.length} pago${cellEvents.length === 1 ? '' : 's'}` : ''}`);
-
-        const number = document.createElement('span');
-        number.className = 'real-calendar-day-number';
-        number.textContent = String(cellDate.getDate());
-        button.append(number);
-
-        if (cellEvents.length) {
-          const due = document.createElement('span');
-          due.className = 'real-calendar-due';
-          const dot = document.createElement('i');
-          const label = document.createElement('span');
-          label.textContent = cellEvents.length === 1 ? 'Pago' : `${cellEvents.length} pagos`;
-          due.append(dot, label);
-          button.append(due);
-        }
-
-        button.addEventListener('click', () => {
-          selectedIso = cellIso;
-          if (isOutside) {
-            viewYear = cellDate.getFullYear();
-            viewMonth = cellDate.getMonth();
-          }
-          render();
-        });
+      for (let index=0; index<totalCells; index+=1) {
+        const cellDate=new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate()+index);
+        const cellIso=isoFromDate(cellDate); const cellEvents=byDate.get(cellIso)||[]; const outside=cellDate.getMonth()!==viewMonth;
+        const button=document.createElement('button'); button.type='button'; button.className='real-calendar-day';
+        button.classList.toggle('is-outside',outside); button.classList.toggle('is-today',cellIso===todayIso); button.classList.toggle('is-selected',cellIso===selectedIso); button.classList.toggle('has-payment',cellEvents.length>0);
+        button.setAttribute('aria-label',`${titleCase(dayFormatter.format(cellDate))}${cellEvents.length?`, ${cellEvents.length} pago${cellEvents.length===1?'':'s'}`:''}`);
+        const number=document.createElement('span'); number.className='real-calendar-day-number'; number.textContent=String(cellDate.getDate()); button.append(number);
+        if (cellEvents.length) { const due=document.createElement('span'); due.className='real-calendar-due'; const dot=document.createElement('i'); const label=document.createElement('span'); label.textContent=cellEvents.length===1?'Pago':`${cellEvents.length} pagos`; due.append(dot,label); button.append(due); }
+        button.addEventListener('click', async () => { selectedIso=cellIso; if (outside) { viewYear=cellDate.getFullYear(); viewMonth=cellDate.getMonth(); await loadMonth(); choosePreferredDay(true); } render(); });
         grid.append(button);
       }
-
-      renderDayPanel(filtered, byDate, monthEvents);
+      renderDayPanel(byDate);
     };
 
-    const animateCalendarSwipe = (delta) => {
-      const className = delta > 0 ? 'calendar-swipe-from-right' : 'calendar-swipe-from-left';
-      grid.classList.remove('calendar-swipe-from-right', 'calendar-swipe-from-left');
-      void grid.offsetWidth;
-      grid.classList.add(className);
-      grid.addEventListener('animationend', () => grid.classList.remove(className), { once: true });
-    };
+    const animate = (delta) => { const c=delta>0?'calendar-swipe-from-right':'calendar-swipe-from-left'; grid.classList.remove('calendar-swipe-from-right','calendar-swipe-from-left'); void grid.offsetWidth; grid.classList.add(c); grid.addEventListener('animationend',()=>grid.classList.remove(c),{once:true}); };
+    const shiftMonth = async (delta, doAnimate=false) => { const target=new Date(viewYear,viewMonth+delta,1); viewYear=target.getFullYear(); viewMonth=target.getMonth(); await loadMonth(); choosePreferredDay(); render(); if(doAnimate) animate(delta); };
+    host.querySelector('[data-calendar-prev]')?.addEventListener('click',()=>shiftMonth(-1));
+    host.querySelector('[data-calendar-next]')?.addEventListener('click',()=>shiftMonth(1));
+    host.querySelector('[data-calendar-today]')?.addEventListener('click',async()=>{viewYear=todayDate.getFullYear();viewMonth=todayDate.getMonth();selectedIso=todayIso;await loadMonth();render();});
 
-    const shiftCalendarMonth = (delta, { animate = false } = {}) => {
-      const target = new Date(viewYear, viewMonth + delta, 1);
-      viewYear = target.getFullYear();
-      viewMonth = target.getMonth();
-      setPreferredDayForMonth(getFilteredEvents());
-      render();
-      if (animate) animateCalendarSwipe(delta);
-    };
-
-    host.querySelector('[data-calendar-prev]')?.addEventListener('click', () => shiftCalendarMonth(-1));
-    host.querySelector('[data-calendar-next]')?.addEventListener('click', () => shiftCalendarMonth(1));
+    let searchTimer=0;
+    searchInput?.addEventListener('input',()=>{ if(clearButton) clearButton.hidden=!searchInput.value; clearTimeout(searchTimer); searchTimer=window.setTimeout(async()=>{await loadMonth({force:true});choosePreferredDay();render();},220); });
+    clearButton?.addEventListener('click',async()=>{if(searchInput)searchInput.value='';clearButton.hidden=true;await loadMonth();choosePreferredDay(true);searchInput?.focus();render();});
 
     if (calendarSurface) {
-      let swipeStartX = 0;
-      let swipeStartY = 0;
-      let trackingSwipe = false;
-      let suppressCalendarClickUntil = 0;
-
-      grid.addEventListener('click', (event) => {
-        if (Date.now() < suppressCalendarClickUntil) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-        }
-      }, true);
-
-      calendarSurface.addEventListener('touchstart', (event) => {
-        if (window.innerWidth > 719 || event.touches?.length !== 1) return;
-        const touch = event.touches[0];
-        swipeStartX = touch.clientX;
-        swipeStartY = touch.clientY;
-        trackingSwipe = true;
-      }, { passive: true });
-
-      calendarSurface.addEventListener('touchend', (event) => {
-        if (!trackingSwipe || window.innerWidth > 719 || event.changedTouches?.length !== 1) return;
-        trackingSwipe = false;
-        const touch = event.changedTouches[0];
-        const deltaX = touch.clientX - swipeStartX;
-        const deltaY = touch.clientY - swipeStartY;
-        if (Math.abs(deltaX) < 46 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) return;
-        suppressCalendarClickUntil = Date.now() + 360;
-        shiftCalendarMonth(deltaX < 0 ? 1 : -1, { animate: true });
-      }, { passive: true });
-
-      calendarSurface.addEventListener('touchcancel', () => { trackingSwipe = false; }, { passive: true });
+      let sx=0, sy=0, tracking=false;
+      calendarSurface.addEventListener('touchstart',(event)=>{if(window.innerWidth>719||event.touches?.length!==1)return; sx=event.touches[0].clientX;sy=event.touches[0].clientY;tracking=true;},{passive:true});
+      calendarSurface.addEventListener('touchend',(event)=>{if(!tracking||window.innerWidth>719||event.changedTouches?.length!==1)return;tracking=false;const dx=event.changedTouches[0].clientX-sx;const dy=event.changedTouches[0].clientY-sy;if(Math.abs(dx)<46||Math.abs(dx)<=Math.abs(dy)*1.15)return;shiftMonth(dx<0?1:-1,true);},{passive:true});
+      calendarSurface.addEventListener('touchcancel',()=>{tracking=false;},{passive:true});
     }
-    host.querySelector('[data-calendar-today]')?.addEventListener('click', () => {
-      viewYear = todayDate.getFullYear();
-      viewMonth = todayDate.getMonth();
-      selectedIso = todayIso;
-      render();
-    });
 
-    searchInput?.addEventListener('input', () => {
-      query = normalize(searchInput.value);
-      if (clearButton) clearButton.hidden = !searchInput.value;
-      setPreferredDayForMonth(getFilteredEvents());
-      render();
-    });
-    clearButton?.addEventListener('click', () => {
-      if (searchInput) searchInput.value = '';
-      query = '';
-      clearButton.hidden = true;
-      setPreferredDayForMonth(events, true);
-      searchInput?.focus();
-      render();
-    });
-
-    setPreferredDayForMonth(events, true);
-    render();
+    loadMonth().then(()=>{choosePreferredDay(true);render();});
   };
 
   const runNotificationDemo = async (button) => {
@@ -1423,6 +1262,164 @@
     });
   };
 
+  const setupPdfSharing = () => {
+    document.querySelectorAll('[data-share-pdf]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const url = button.dataset.shareUrl;
+        if (!url) return;
+        const original = button.innerHTML;
+        button.disabled = true;
+        try {
+          const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+          if (!response.ok) throw new Error('pdf');
+          const blob = await response.blob();
+          const name = button.dataset.shareName || 'documento.pdf';
+          const file = new File([blob], name, { type: 'application/pdf' });
+          if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+            await navigator.share({
+              title: button.dataset.shareTitle || 'Documento CuotaGo',
+              files: [file],
+            });
+          } else {
+            window.open(url, '_blank', 'noopener');
+          }
+        } catch (error) {
+          if (error?.name !== 'AbortError') window.open(url, '_blank', 'noopener');
+        } finally {
+          button.disabled = false;
+          button.innerHTML = original;
+        }
+      });
+    });
+  };
+
+
+
+  const setupGlobalQuickSearch = () => {
+    const dialog = document.getElementById('globalSearchDialog');
+    const input = document.getElementById('globalSearchInput');
+    const results = document.getElementById('globalSearchResults');
+    const hint = document.getElementById('globalSearchHint');
+    const close = document.getElementById('globalSearchClose');
+    const full = document.getElementById('globalSearchFull');
+    const triggers = Array.from(document.querySelectorAll('[data-global-search-open]'));
+    if (!dialog || !input || !results || !triggers.length) return;
+    let timer = 0;
+    let controller = null;
+
+    const render = (items = []) => {
+      results.replaceChildren();
+      if (!items.length) {
+        hint.hidden = false;
+        hint.textContent = input.value.trim().length >= 2 ? 'No encontré coincidencias.' : 'Escribe al menos 2 caracteres.';
+        return;
+      }
+      hint.hidden = true;
+      items.slice(0, 14).forEach((item) => {
+        const link = document.createElement('a');
+        link.className = 'quick-search-result-v17';
+        link.href = item.url;
+        const kind = document.createElement('span'); kind.textContent = item.kind || 'Resultado';
+        const copy = document.createElement('div');
+        const title = document.createElement('strong'); title.textContent = item.title || '';
+        const meta = document.createElement('small'); meta.textContent = item.meta || '';
+        const chevron = document.createElement('b'); chevron.textContent = '›'; chevron.setAttribute('aria-hidden','true');
+        copy.append(title, meta); link.append(kind, copy, chevron); results.append(link);
+      });
+    };
+
+    const search = async () => {
+      const q = input.value.trim();
+      if (full) full.href = `/search${q ? `?q=${encodeURIComponent(q)}` : ''}`;
+      if (q.length < 2) { controller?.abort(); render([]); return; }
+      controller?.abort(); controller = new AbortController();
+      hint.hidden = false; hint.textContent = 'Buscando…';
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(q)}`, {credentials:'same-origin', cache:'no-store', signal:controller.signal});
+        if (!response.ok) throw new Error('search');
+        const data = await response.json(); render(data.items || []);
+      } catch (error) {
+        if (error?.name !== 'AbortError') { hint.hidden = false; hint.textContent = 'No pude buscar ahora. Intenta de nuevo.'; }
+      }
+    };
+
+    const open = (event) => {
+      event?.preventDefault();
+      if (!dialog.open) dialog.showModal();
+      requestAnimationFrame(() => input.focus({preventScroll:true}));
+    };
+    triggers.forEach((trigger) => trigger.addEventListener('click', open));
+    close?.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
+    dialog.addEventListener('close', () => { controller?.abort(); });
+    input.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(search, 150); });
+    document.addEventListener('keydown', (event) => {
+      if ((event.key === '/' || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k')) && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) {
+        open(event);
+      }
+      if (event.key === 'Escape' && dialog.open) dialog.close();
+    });
+  };
+
+  const setupCalmFormGuard = () => {
+    document.querySelectorAll('form[method="post"], form[method="POST"]').forEach((form) => {
+      form.addEventListener('submit', (event) => {
+        if (form.dataset.submittingV17 === '1') { event.preventDefault(); return; }
+        if (event.defaultPrevented) return;
+        form.dataset.submittingV17 = '1';
+        form.classList.add('is-submitting-v17');
+        const submitter = event.submitter;
+        if (submitter) {
+          submitter.setAttribute('aria-busy', 'true');
+          const label = submitter.textContent?.trim();
+          if (label && label.length < 34) submitter.dataset.originalTextV17 = label;
+        }
+        // If browser validation/another handler cancels the navigation, unlock.
+        window.setTimeout(() => {
+          if (document.visibilityState === 'visible') {
+            form.dataset.submittingV17 = '0'; form.classList.remove('is-submitting-v17');
+            submitter?.removeAttribute('aria-busy');
+          }
+        }, 6000);
+      });
+    });
+    window.addEventListener('pageshow', () => {
+      document.querySelectorAll('form.is-submitting-v17').forEach((form) => {
+        form.dataset.submittingV17 = '0'; form.classList.remove('is-submitting-v17');
+        form.querySelectorAll('[aria-busy="true"]').forEach((node) => node.removeAttribute('aria-busy'));
+      });
+    });
+  };
+
+
+
+  const setupNativeNavigationMemory = () => {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'auto';
+    const key = `cuotago-scroll:${location.pathname}${location.search}`;
+    window.addEventListener('pagehide', () => {
+      try { sessionStorage.setItem(key, String(Math.round(window.scrollY || 0))); } catch (_) {}
+    });
+    window.addEventListener('pageshow', () => {
+      const nav = performance.getEntriesByType?.('navigation')?.[0];
+      if (nav?.type !== 'back_forward') return;
+      try {
+        const saved = Number(sessionStorage.getItem(key));
+        if (Number.isFinite(saved) && saved > 0) requestAnimationFrame(() => window.scrollTo({top:saved,left:0,behavior:'auto'}));
+      } catch (_) {}
+    });
+    document.addEventListener('click', (event) => {
+      const link = event.target.closest?.('a[href]');
+      if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (link.target && link.target !== '_self') return;
+      if (link.hasAttribute('download')) return;
+      let url;
+      try { url = new URL(link.href, location.href); } catch (_) { return; }
+      if (url.origin !== location.origin || (url.pathname === location.pathname && url.search === location.search && url.hash)) return;
+      document.body.classList.add('is-navigating-v17');
+    }, {capture:true});
+    window.addEventListener('pageshow', () => document.body.classList.remove('is-navigating-v17'));
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     setupRememberedLaunchGate();
     setupProfileMenu();
@@ -1431,6 +1428,10 @@
     setupPullToRefresh();
     setupPaymentCalendar();
     setupSuperadminControlCenter();
+    setupPdfSharing();
+    setupGlobalQuickSearch();
+    setupCalmFormGuard();
+    setupNativeNavigationMemory();
     applyTheme(document.body.classList.contains('auth-shell') ? 'light' : readTheme(), false);
 
     document.querySelectorAll('[data-theme-choice]').forEach((button) => {
@@ -1507,21 +1508,3 @@
   });
 
 })();
-
-// v1.16 · share generated PDFs through the native share sheet when available.
-document.addEventListener('click', async (event) => {
-  const link = event.target.closest('[data-share-pdf]');
-  if (!link || !navigator.share || !navigator.canShare) return;
-  event.preventDefault();
-  try {
-    const response = await fetch(link.href, {credentials: 'same-origin'});
-    if (!response.ok) throw new Error('pdf');
-    const blob = await response.blob();
-    const filename = (link.href.split('/').pop() || 'documento.pdf').replace(/\?.*$/, '');
-    const file = new File([blob], filename.endsWith('.pdf') ? filename : `${filename}.pdf`, {type: 'application/pdf'});
-    if (!navigator.canShare({files: [file]})) { window.location.href = link.href; return; }
-    await navigator.share({title: link.dataset.shareTitle || 'CuotaGo', files: [file]});
-  } catch (error) {
-    if (error?.name !== 'AbortError') window.location.href = link.href;
-  }
-});

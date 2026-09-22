@@ -34,6 +34,8 @@ from .models import (
     User,
 )
 
+from .permissions import ASSIGNABLE_ROLES
+
 admin_bp = Blueprint("admin", __name__, url_prefix="/superadmin")
 
 SUBSCRIPTION_STATUSES = ("pending", "trial", "active", "past_due", "suspended", "cancelled")
@@ -772,7 +774,7 @@ def create_user(organization_id):
         errors.append("Ese correo ya esta registrado.")
     if len(password) < 8:
         errors.append("La contrasena debe tener al menos 8 caracteres.")
-    if role not in {"owner", "admin", "collector", "sales", "staff", "viewer"}:
+    if role not in set(ASSIGNABLE_ROLES):
         errors.append("Rol no valido.")
     if errors:
         for error in errors:
@@ -813,7 +815,7 @@ def update_user(organization_id, user_id):
     existing = User.query.filter(User.email == email, User.id != user.id).first()
     if existing:
         errors.append("Ese correo ya pertenece a otra cuenta.")
-    if role not in {"owner", "admin", "collector", "sales", "staff", "viewer"}:
+    if role not in set(ASSIGNABLE_ROLES):
         errors.append("Rol no valido.")
     if user.role == "owner" and role != "owner":
         owner_count = User.query.filter_by(organization_id=organization.id, role="owner").count()

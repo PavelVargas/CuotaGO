@@ -1096,92 +1096,126 @@ def test_expense_enters_cash_flow_report(client, app):
         assert TenantAuditLog.query.filter_by(action='expense.created').count() == 1
 
 
-def test_initial_payment_creates_real_receipt(client, app):
+def test_v116_initial_is_a_real_payment_with_receipt(client, app):
     register(client)
+    client.post('/assets/new', data={
+        'kind': 'phone', 'name': 'Equipo Inicial', 'quantity_total': '1', 'estimated_value': '60000'
+    }, follow_redirects=True)
+    with app.app_context():
+        asset_id = Asset.query.filter_by(name='Equipo Inicial').one().id
     start = date.today()
-    response = client.post(
-        "/contracts/new",
-        data={
-            "client_name": "Inicial Real",
-            "asset_name": "Motor Inicial",
-            "asset_kind": "motorcycle",
-            "asset_stock_quantity": "1",
-            "quantity": "1",
-            "unit_price": "50000",
-            "profit_margin_percent": "0",
-            "down_payment": "10000",
-            "down_payment_method": "transfer",
-            "down_payment_reference": "TRX-123",
-            "installment_count": "4",
-            "frequency": "monthly",
-            "start_date": start.isoformat(),
-            "first_due_date": (start + timedelta(days=30)).isoformat(),
-        },
-        follow_redirects=True,
-    )
+    response = client.post('/contracts/new', data={
+        'client_name': 'Cliente Inicial', 'asset_id': asset_id, 'quantity': '1',
+        'deal_type': 'credit_sale', 'total_amount': '60000', 'down_payment': '10000',
+        'down_payment_method': 'transfer', 'down_payment_reference': 'INI-001',
+        'installment_count': '5', 'installment_amount': '10000', 'frequency': 'monthly',
+        'start_date': start.isoformat(), 'first_due_date': (start + timedelta(days=30)).isoformat(),
+    }, follow_redirects=True)
     assert response.status_code == 200
     with app.app_context():
         contract = Contract.query.one()
-        payment = Payment.query.filter_by(payment_kind="down_payment").one()
-        assert payment.amount == Decimal("10000.00")
-        assert payment.method == "transfer"
-        assert payment.reference == "TRX-123"
-        assert payment.receipt_code.startswith("CGP-")
-        assert contract.paid_total == Decimal("10000.00")
-        assert contract.balance == Decimal("40000.00")
+        payment = Payment.query.one()
+        assert payment.payment_kind == 'down_payment'
+        assert payment.method == 'transfer'
+        assert payment.reference == 'INI-001'
+        assert payment.receipt_code.startswith('CGI-')
+        assert contract.paid_total == Decimal('10000.00')
+        assert contract.balance == Decimal('50000.00')
+        payment_id = payment.id
+    pdf = client.get(f'/payments/{payment_id}/receipt.pdf')
+    assert pdf.status_code == 200
+    assert pdf.mimetype == 'application/pdf'
+    assert pdf.data.startswith(b'%PDF')
 
 
-def test_contract_with_money_is_voided_not_deleted(client, app):
+def test_v116_agreement_with_money_is_cancelled_not_deleted(client, app):
     register(client)
+    client.post('/assets/new', data={
+        'kind': 'phone', 'name': 'Equipo Historial', 'quantity_total': '1', 'estimated_value': '20000'
+    }, follow_redirects=True)
+    with app.app_context():
+        asset_id = Asset.query.filter_by(name='Equipo Historial').one().id
     start = date.today()
-    client.post(
-        "/contracts/new",
-        data={
-            "client_name": "Cliente Anulacion",
-            "asset_name": "Telefono Anulacion",
-            "asset_kind": "phone",
-            "asset_stock_quantity": "1",
-            "quantity": "1",
-            "unit_price": "30000",
-            "down_payment": "5000",
-            "installment_count": "5",
-            "frequency": "monthly",
-            "start_date": start.isoformat(),
-            "first_due_date": (start + timedelta(days=30)).isoformat(),
-        },
-        follow_redirects=True,
-    )
+    client.post('/contracts/new', data={
+        'client_name': 'Cliente Historial', 'asset_id': asset_id, 'quantity': '1',
+        'deal_type': 'credit_sale', 'total_amount': '20000', 'down_payment': '0',
+        'installment_count': '4', 'installment_amount': '5000', 'frequency': 'monthly',
+        'start_date': start.isoformat(), 'first_due_date': start.isoformat(),
+    }, follow_redirects=True)
     with app.app_context():
         contract_id = Contract.query.one().id
-        payment_count = Payment.query.count()
-    response = client.post(
-        f"/contracts/{contract_id}/delete",
-        data={"reason": "Cliente desistio"},
-        follow_redirects=True,
-    )
+    client.post(f'/contracts/{contract_id}/pay', data={
+        'amount': '5000', 'method': 'cash', 'payment_kind': 'payment'
+    }, follow_redirects=True)
+    response = client.post(f'/contracts/{contract_id}/delete', data={'reason': 'Acuerdo anulado por corrección'}, follow_redirects=True)
     assert response.status_code == 200
+    assert b'pagos y recibos' in response.data.lower()
     with app.app_context():
         contract = db.session.get(Contract, contract_id)
         assert contract is not None
-        assert contract.status == "voided"
-        assert contract.void_reason == "Cliente desistio"
-        assert Payment.query.count() == payment_count
+        assert contract.status == 'cancelled'
+        assert contract.cancel_reason == 'Acuerdo anulado por corrección'
+        assert Payment.query.filter_by(contract_id=contract_id).count() == 1
+        assert db.session.get(Asset, asset_id).available_quantity == 1
 
 
-def test_collector_cannot_create_contract_or_manage_expenses(client, app):
+def test_v116_roles_hide_sensitive_modules_and_enforce_routes(client, app):
     register(client)
     with app.app_context():
-        user = User.query.filter_by(email="pavel@example.com").one()
-        user.role = "collector"
+        user = User.query.filter_by(email='pavel@example.com').one()
+        user.role = 'seller'
         db.session.commit()
-    assert client.get("/contracts/new").status_code == 403
-    assert client.post("/expenses", data={"amount": "100"}).status_code == 403
-    assert client.get("/collections").status_code == 200
+    dashboard = client.get('/')
+    assert dashboard.status_code == 200
+    assert b'Reportes' not in dashboard.data
+    assert b'Gastos' not in dashboard.data
+    assert client.get('/clients').status_code == 200
+    assert client.get('/contracts/new').status_code == 200
+    assert client.get('/reports').status_code == 403
+    assert client.get('/expenses').status_code == 403
+    assert client.get('/purchases').status_code == 403
 
 
-def test_owner_can_export_backup(client):
-    register(client)
-    response = client.get("/backup/export.zip")
-    assert response.status_code == 200
-    assert response.mimetype == "application/zip"
-    assert response.data[:2] == b"PK"
+def test_v116_statement_has_real_pdf_and_hardening_assets():
+    from pathlib import Path
+    main = Path('cuotago/main.py').read_text(encoding='utf-8')
+    base = Path('cuotago/templates/base.html').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    sw = Path('cuotago/static/service-worker.js').read_text(encoding='utf-8')
+    init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
+    permissions = Path('cuotago/permissions.py').read_text(encoding='utf-8')
+    assert '@main_bp.get("/clients/<int:client_id>/statement.pdf")' in main
+    assert '@main_bp.get("/payments/<int:payment_id>/receipt.pdf")' in main
+    assert 'data-share-pdf' in Path('cuotago/templates/clients/statement.html').read_text(encoding='utf-8')
+    assert "1.17.0-ui-v35" in sw
+    assert '-dark.png' in base
+    assert 'schema_migrations' in init
+    assert 'Strict-Transport-Security' in init
+    assert 'Content-Security-Policy' in init
+    assert 'ROLE_PERMISSIONS' in permissions
+    assert '.topbar-search-v16' in css
+    assert 'font-size:11px!important' in css
+
+
+def test_v117_pwa_performance_and_calm_ux_are_wired():
+    from pathlib import Path
+    init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
+    main = Path('cuotago/main.py').read_text(encoding='utf-8')
+    base = Path('cuotago/templates/base.html').read_text(encoding='utf-8')
+    js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    sw = Path('cuotago/static/service-worker.js').read_text(encoding='utf-8')
+    models = Path('cuotago/models.py').read_text(encoding='utf-8')
+    requirements = Path('requirements.txt').read_text(encoding='utf-8')
+    assert 'navigationPreload.enable()' in sw
+    assert "1.17.0-ui-v35" in sw
+    assert 'data-global-search-open' in base
+    assert 'setupGlobalQuickSearch' in js
+    assert 'setupCalmFormGuard' in js
+    assert 'Server-Timing' in init
+    assert 'image_thumb_data' in models
+    assert 'request_key' in models
+    assert 'Flask-Compress' in requirements
+    assert 'Pillow' in requirements
+    assert 'expense.voided' in main
+    assert '.quick-search-dialog-v17' in css

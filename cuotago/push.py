@@ -14,10 +14,15 @@ from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
 
 from .extensions import db
-from .models import Contract, Installment, PushNotificationLog, PushSubscription
+from .models import Contract, Installment, PushNotificationLog, PushSubscription, User
+from .permissions import ROLE_PERMISSIONS, permission_required
 
 push_bp = Blueprint("push", __name__)
 log = logging.getLogger(__name__)
+COLLECTION_PUSH_ROLES = tuple(
+    role for role, permissions in ROLE_PERMISSIONS.items()
+    if role != "superadmin" and "collections.view" in permissions
+)
 _scheduler = None
 
 
@@ -115,10 +120,15 @@ def send_payload_to_subscription(app, subscription, payload):
 
 
 def send_payload_to_org(app, organization_id, payload):
-    subscriptions = PushSubscription.query.filter_by(
-        organization_id=organization_id,
-        is_active=True,
-    ).all()
+    subscriptions = (
+        PushSubscription.query.join(User, User.id == PushSubscription.user_id)
+        .filter(
+            PushSubscription.organization_id == organization_id,
+            PushSubscription.is_active.is_(True),
+            User.is_enabled.is_(True),
+            User.role.in_(COLLECTION_PUSH_ROLES),
+        ).all()
+    )
     sent = 0
     for subscription in subscriptions:
         if send_payload_to_subscription(app, subscription, payload):
@@ -356,6 +366,7 @@ def start_push_scheduler(app):
 
 @push_bp.get("/api/push/config")
 @login_required
+@permission_required("collections.view")
 def push_config():
     return jsonify({
         "enabled": _push_ready(current_app),
@@ -369,6 +380,7 @@ def push_config():
 
 @push_bp.post("/api/push/subscribe")
 @login_required
+@permission_required("collections.view")
 def push_subscribe():
     if not _push_ready(current_app):
         return jsonify({"ok": False, "message": "Las notificaciones push no estan configuradas en el servidor."}), 503
@@ -399,6 +411,7 @@ def push_subscribe():
 
 @push_bp.post("/api/push/unsubscribe")
 @login_required
+@permission_required("collections.view")
 def push_unsubscribe():
     data = request.get_json(silent=True) or {}
     endpoint = (data.get("endpoint") or "").strip()
@@ -413,6 +426,7 @@ def push_unsubscribe():
 
 @push_bp.get("/api/push/pending-alerts")
 @login_required
+@permission_required("collections.view")
 def push_pending_alerts():
     """Fallback visible mientras la app esta abierta si el navegador no logra crear Web Push."""
     tz = ZoneInfo(current_app.config.get("APP_TIMEZONE", "America/Santo_Domingo"))
@@ -439,6 +453,7 @@ def push_pending_alerts():
 
 @push_bp.post("/api/push/test")
 @login_required
+@permission_required("collections.view")
 def push_test():
     if not _push_ready(current_app):
         return jsonify({"ok": False, "message": "Push no esta configurado."}), 503
@@ -496,6 +511,7 @@ def push_test():
 
 @push_bp.post("/api/push/test-delayed")
 @login_required
+@permission_required("collections.view")
 def push_test_delayed():
     """Schedule a real push so the installed PWA can be backgrounded before delivery."""
     if not _push_ready(current_app):

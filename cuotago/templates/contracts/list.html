@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
-{% from 'macros/pagination.html' import pager %}
 {% block title %}Acuerdos · {{ app_name }}{% endblock %}
 {% block content %}
 <section class="content-page">
@@ -18,7 +17,7 @@
         <option value="">Todos</option>
         <option value="active" {{ 'selected' if status=='active' }}>Activos</option>
         <option value="completed" {{ 'selected' if status=='completed' }}>Completados</option>
-        <option value="voided" {{ 'selected' if status=='voided' }}>Anulados</option>
+        <option value="cancelled" {{ 'selected' if status=='cancelled' }}>Anulados</option>
       </select>
     </form>
     <span class="result-count">{{ pagination.total }} acuerdo{{ 's' if pagination.total != 1 }}</span>
@@ -40,6 +39,6 @@
     <div class="surface empty-state full-grid"><span class="empty-icon">{{ icon('contract', 34) }}</span><h3>Aún no hay acuerdos</h3><p>Crea el primero y {{ app_name }} generará automáticamente las fechas de pago.</p>{% if can('contracts.create') %}<a class="btn btn-primary" href="{{ url_for('main.contract_new') }}">Crear acuerdo</a>{% endif %}</div>
   {% endfor %}
   </div>
-  {{ pager(pagination) }}
+  {% if pagination.pages > 1 %}<nav class="simple-pagination-v16" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.contracts', page=pagination.prev_num, status=status) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.contracts', page=pagination.next_num, status=status) }}"{% endif %}>Siguiente</a></nav>{% endif %}
 </section>
 {% endblock %}
