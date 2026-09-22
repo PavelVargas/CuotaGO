@@ -238,6 +238,13 @@ def _ensure_feature_schema(app):
         "CREATE INDEX IF NOT EXISTS ix_tenant_audit_org_created ON tenant_audit_logs (organization_id, created_at DESC)",
     ]
 
+
+    billing_lock_statements = [
+        "ALTER TABLE organization_subscriptions ADD COLUMN IF NOT EXISTS billing_lock_enabled BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE organization_subscriptions ADD COLUMN IF NOT EXISTS billing_lock_started_at TIMESTAMP NULL",
+        "ALTER TABLE organization_subscriptions ADD COLUMN IF NOT EXISTS billing_lock_by_user_id INTEGER NULL",
+    ]
+
     with db.engine.begin() as connection:
         # Use a CuotaGo-owned ledger instead of the generic ``schema_migrations``
         # name. Existing installations may already have a table with that name
@@ -292,6 +299,10 @@ def _ensure_feature_schema(app):
             for statement in performance_statements:
                 connection.execute(text(statement))
             connection.execute(text("INSERT INTO cuotago_schema_migrations(version) VALUES ('2026-09-v117-performance-r2') ON CONFLICT DO NOTHING"))
+        if "2026-09-v1172-billing-lock" not in applied:
+            for statement in billing_lock_statements:
+                connection.execute(text(statement))
+            connection.execute(text("INSERT INTO cuotago_schema_migrations(version) VALUES ('2026-09-v1172-billing-lock') ON CONFLICT DO NOTHING"))
 
 
 def _ensure_superadmin(app):
@@ -382,15 +393,17 @@ def create_app(test_config=None):
         if getattr(current_user, "role", "") == "superadmin":
             return None
         subscription = getattr(current_user.organization, "subscription", None)
-        if subscription is None or subscription.effective_status not in {"suspended", "cancelled", "expired"}:
+        billing_lock = bool(subscription and getattr(subscription, "billing_lock_enabled", False))
+        inactive_status = subscription.effective_status if subscription else "pending"
+        if not billing_lock and (subscription is None or inactive_status not in {"suspended", "cancelled", "expired"}):
             return None
         if request.endpoint in {"main.subscription_status", "auth.logout", "static", "service_worker", "offline", "healthz"}:
             return None
         if request.path.startswith("/api/"):
             return jsonify({
                 "ok": False,
-                "error": "subscription_inactive",
-                "status": subscription.effective_status,
+                "error": "billing_locked" if billing_lock else "subscription_inactive",
+                "status": "billing_locked" if billing_lock else inactive_status,
                 "redirect": url_for("main.subscription_status"),
             }), 403
         return redirect(url_for("main.subscription_status"))

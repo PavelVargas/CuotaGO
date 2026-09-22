@@ -457,6 +457,40 @@ def test_suspended_subscription_blocks_company_but_not_logout(client, app):
     assert logout.status_code in {302, 303}
 
 
+def test_superadmin_can_toggle_monthly_billing_lock_and_company_is_fully_blocked(client, app):
+    register(client)
+    with app.app_context():
+        target_user = User.query.filter_by(email='pavel@example.com').one()
+        target_id = target_user.organization_id
+        admin_org = Organization(name='Admin Billing Lock', currency='DOP')
+        admin = User(organization=admin_org, name='Admin', email='billing-lock-admin@example.com', role='superadmin', is_enabled=True)
+        admin.set_password('superadmin12345')
+        db.session.add_all([admin_org, admin])
+        db.session.commit()
+
+    client.post('/logout')
+    client.post('/login', data={'email': 'billing-lock-admin@example.com', 'password': 'superadmin12345'}, follow_redirects=True)
+    locked = client.post(
+        f'/superadmin/organizations/{target_id}/subscription/billing-lock',
+        data={'enabled': '1'},
+        follow_redirects=True,
+    )
+    assert locked.status_code == 200
+    with app.app_context():
+        subscription = OrganizationSubscription.query.filter_by(organization_id=target_id).one()
+        assert subscription.billing_lock_enabled is True
+
+    client.post('/logout')
+    client.post('/login', data={'email': 'pavel@example.com', 'password': '12345678'}, follow_redirects=False)
+    blocked = client.get('/contracts', follow_redirects=True)
+    assert blocked.status_code == 200
+    assert 'Tu mensualidad está pendiente'.encode('utf-8') in blocked.data
+    direct_post = client.post('/clients/new', data={'full_name': 'No debe crearse'}, follow_redirects=False)
+    assert direct_post.status_code in {302, 303}
+    with app.app_context():
+        assert Client.query.filter_by(full_name='No debe crearse').count() == 0
+
+
 def test_superadmin_dashboard_has_professional_admin_sections():
     from pathlib import Path
     html = Path('cuotago/templates/admin/index.html').read_text(encoding='utf-8')

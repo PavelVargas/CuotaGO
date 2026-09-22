@@ -45,6 +45,7 @@ STATUS_LABELS = {
     "active": "Activa",
     "past_due": "Pago pendiente",
     "expired": "Vencida",
+    "billing_locked": "Bloqueada por mensualidad",
     "suspended": "Suspendida",
     "cancelled": "Cancelada",
 }
@@ -54,6 +55,7 @@ STATUS_TONES = {
     "active": "success",
     "past_due": "warning",
     "expired": "danger",
+    "billing_locked": "danger",
     "suspended": "danger",
     "cancelled": "muted",
 }
@@ -222,6 +224,8 @@ def _rows_for_organizations(organizations):
     for organization in organizations:
         subscription = organization.subscription
         effective_status = subscription.effective_status if subscription else "pending"
+        if subscription and subscription.billing_lock_enabled:
+            effective_status = "billing_locked"
         rows.append(
             {
                 "organization": organization,
@@ -512,6 +516,8 @@ def organization_detail(organization_id):
     organization = _organization_or_404(organization_id)
     subscription = organization.subscription
     effective_status = subscription.effective_status if subscription else "pending"
+    if subscription and subscription.billing_lock_enabled:
+        effective_status = "billing_locked"
     plans = SubscriptionPlan.query.order_by(SubscriptionPlan.is_active.desc(), SubscriptionPlan.price.asc()).all()
     counts = {
         "users": User.query.filter_by(organization_id=organization.id).count(),
@@ -541,7 +547,40 @@ def organization_detail(organization_id):
         users=users,
         payments=payments,
         recent_activity=recent_activity,
+        billing_lock_enabled=bool(subscription and subscription.billing_lock_enabled),
     )
+
+
+@admin_bp.post("/organizations/<int:organization_id>/subscription/billing-lock")
+@superadmin_required
+def toggle_billing_lock(organization_id):
+    organization = _organization_or_404(organization_id)
+    subscription = _subscription_or_create(organization)
+    enable = (request.form.get("enabled") or "1").strip() == "1"
+    subscription.billing_lock_enabled = enable
+    if enable:
+        subscription.billing_lock_started_at = datetime.utcnow()
+        subscription.billing_lock_by_user_id = current_user.id
+        action = "subscription.billing_lock_enabled"
+        summary = f"Bloqueo por mensualidad activado para {organization.name}."
+        message = "Bloqueo por mensualidad activado. Esa empresa ya no puede entrar al sistema."
+    else:
+        subscription.billing_lock_started_at = None
+        subscription.billing_lock_by_user_id = None
+        action = "subscription.billing_lock_disabled"
+        summary = f"Bloqueo por mensualidad retirado para {organization.name}."
+        message = "Bloqueo por mensualidad retirado. La empresa puede volver a entrar si su suscripción está vigente."
+    _audit(
+        action,
+        summary,
+        organization_id=organization.id,
+        target_type="subscription",
+        target_id=subscription.id,
+        detail=f"billing_lock_enabled={enable}",
+    )
+    db.session.commit()
+    flash(message, "success")
+    return redirect(url_for("admin.organization_detail", organization_id=organization.id, _anchor="subscription"))
 
 
 @admin_bp.post("/organizations/<int:organization_id>/profile")

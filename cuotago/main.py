@@ -2995,6 +2995,7 @@ def team_password(user_id):
 @login_required
 def subscription_status():
     subscription = getattr(current_user.organization, "subscription", None)
+    billing_lock_enabled = bool(subscription and getattr(subscription, "billing_lock_enabled", False))
     effective_status = subscription.effective_status if subscription else "pending"
     labels = {
         "pending": "Sin configurar",
@@ -3010,6 +3011,7 @@ def subscription_status():
         subscription=subscription,
         effective_status=effective_status,
         status_label=labels.get(effective_status, effective_status.title()),
+        billing_lock_enabled=billing_lock_enabled,
     )
 
 

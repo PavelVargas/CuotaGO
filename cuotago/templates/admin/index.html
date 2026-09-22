@@ -59,7 +59,7 @@
         <label class="admin-search-field">{{ icon('search', 17) }}<input name="q" value="{{ query_text }}" placeholder="Empresa, propietario o correo" autocomplete="off"></label>
         <select name="status" aria-label="Estado">
           <option value="all" {{ 'selected' if status_filter == 'all' }}>Todos los estados</option>
-          {% for value in ['active','trial','pending','past_due','expired','suspended','cancelled'] %}<option value="{{ value }}" {{ 'selected' if status_filter == value }}>{{ status_labels.get(value, value) }}</option>{% endfor %}
+          {% for value in ['active','trial','pending','past_due','expired','billing_locked','suspended','cancelled'] %}<option value="{{ value }}" {{ 'selected' if status_filter == value }}>{{ status_labels.get(value, value) }}</option>{% endfor %}
         </select>
         <select name="plan" aria-label="Plan"><option value="all" {{ 'selected' if plan_filter == 'all' }}>Todos los planes</option><option value="none" {{ 'selected' if plan_filter == 'none' }}>Sin plan</option>{% for plan in plans %}<option value="{{ plan.id }}" {{ 'selected' if plan_filter == plan.id|string }}>{{ plan.name }}</option>{% endfor %}</select>
         <select name="sort" aria-label="Orden"><option value="recent" {{ 'selected' if sort == 'recent' }}>Más recientes</option><option value="renewal" {{ 'selected' if sort == 'renewal' }}>Próxima renovación</option><option value="name" {{ 'selected' if sort == 'name' }}>Nombre A–Z</option><option value="status" {{ 'selected' if sort == 'status' }}>Estado</option></select>

@@ -1,16 +1,46 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
-{% block title %}Estado de suscripción · {{ app_name }}{% endblock %}
+{% block title %}Acceso pausado · {{ app_name }}{% endblock %}
+{% block body_class %}subscription-lock-screen{% endblock %}
 {% block content %}
-<section class="content-page subscription-block-page narrow-page">
-  <section class="surface subscription-block-card">
-    <span class="subscription-block-icon">{{ icon('wallet', 30) }}</span>
-    <span class="eyebrow">SUSCRIPCIÓN</span>
-    <h1>{{ status_label }}</h1>
-    {% if effective_status == 'suspended' %}<p>El acceso de esta empresa fue suspendido por administración.</p>{% elif effective_status == 'cancelled' %}<p>La suscripción de esta empresa está cancelada.</p>{% else %}<p>El periodo de acceso de esta empresa terminó.</p>{% endif %}
-    {% if subscription and subscription.plan %}<div class="subscription-block-meta"><span>Plan <b>{{ subscription.plan.name }}</b></span>{% if subscription.current_period_end %}<span>Vencimiento <b>{{ subscription.current_period_end.strftime('%d/%m/%Y') }}</b></span>{% endif %}</div>{% endif %}
-    <p class="subscription-block-help">Contacta al administrador de CuotaGo para renovar o revisar el estado. Tus datos permanecen guardados.</p>
-    <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-secondary" type="submit">Cerrar sesión</button></form>
+<section class="billing-lock-screen">
+  <div class="billing-lock-brand" aria-label="{{ app_name }}">
+    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="">
+    <strong>Cuota<span>Go</span></strong>
+  </div>
+
+  <section class="billing-lock-card" role="status">
+    <span class="billing-lock-icon">{{ icon('lock', 46) }}</span>
+    <span class="eyebrow">ACCESO PAUSADO</span>
+    {% if billing_lock_enabled or effective_status == 'expired' %}
+      <h1>Tu mensualidad está pendiente</h1>
+      <p>Para continuar usando CuotaGo, regulariza el pago de la mensualidad de <strong>{{ current_user.organization.name }}</strong>.</p>
+    {% elif effective_status == 'suspended' %}
+      <h1>Acceso temporalmente suspendido</h1>
+      <p>El acceso de <strong>{{ current_user.organization.name }}</strong> fue pausado por administración.</p>
+    {% elif effective_status == 'cancelled' %}
+      <h1>Suscripción cancelada</h1>
+      <p>La suscripción de <strong>{{ current_user.organization.name }}</strong> no está activa en este momento.</p>
+    {% else %}
+      <h1>{{ status_label }}</h1>
+      <p>La suscripción necesita revisión antes de continuar.</p>
+    {% endif %}
+
+    {% if subscription and subscription.plan %}
+    <div class="billing-lock-plan">
+      <span><small>Plan</small><strong>{{ subscription.plan.name }}</strong></span>
+      {% if subscription.effective_amount %}<span><small>Mensualidad</small><strong>{{ subscription.plan.currency }} {{ '{:,.2f}'.format(subscription.effective_amount) }}</strong></span>{% endif %}
+      {% if subscription.current_period_end %}<span><small>Venció</small><strong>{{ subscription.current_period_end.strftime('%d/%m/%Y') }}</strong></span>{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="billing-lock-safe">{{ icon('shield', 18) }}<p><strong>Tus datos están seguros.</strong><span>No se eliminó nada. Cuando la mensualidad sea renovada podrás continuar exactamente donde estabas.</span></p></div>
+
+    <p class="billing-lock-help">Contacta al administrador de CuotaGo para registrar o confirmar tu renovación.</p>
+    <form method="post" action="{{ url_for('auth.logout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-secondary" type="submit">Cerrar sesión</button>
+    </form>
   </section>
 </section>
 {% endblock %}

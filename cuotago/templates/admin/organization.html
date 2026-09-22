@@ -78,6 +78,18 @@
           {% for days in [7,30,90] %}<form method="post" action="{{ url_for('admin.extend_subscription', organization_id=organization.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="days" value="{{ days }}"><button type="submit">+{{ days }} días</button></form>{% endfor %}
           <form class="admin-custom-extension" method="post" action="{{ url_for('admin.extend_subscription', organization_id=organization.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="number" min="1" max="3650" name="days" value="30" aria-label="Días"><button type="submit">Aplicar</button></form>
         </div>
+        <div class="admin-billing-lock-test {{ 'is-active' if billing_lock_enabled }}">
+          <span class="admin-billing-lock-icon">{{ icon('lock', 20) }}</span>
+          <div class="admin-billing-lock-copy">
+            <strong>{{ 'Bloqueo por mensualidad activo' if billing_lock_enabled else 'Probar pantalla de mensualidad vencida' }}</strong>
+            <small>{% if billing_lock_enabled %}Todos los usuarios de esta empresa están bloqueados hasta que lo desactives.{% else %}Actívalo para ver exactamente qué verá el cliente cuando no pueda entrar por falta de pago.{% endif %}</small>
+          </div>
+          <form method="post" action="{{ url_for('admin.toggle_billing_lock', organization_id=organization.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="enabled" value="{{ '0' if billing_lock_enabled else '1' }}">
+            <button class="btn {{ 'btn-secondary' if billing_lock_enabled else 'btn-primary' }}" type="submit">{{ 'Quitar bloqueo' if billing_lock_enabled else 'Bloquear para probar' }}</button>
+          </form>
+        </div>
       </section>
 
       <section class="surface admin-tool-panel" id="billing" data-admin-panel="billing" role="tabpanel" hidden>
