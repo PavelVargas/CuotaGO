@@ -23,9 +23,9 @@
     <div class="mini-kpi"><span>Promesas</span><strong>{{ promises|selectattr('status','equalto','pending')|list|length }}</strong><small>Pendientes</small></div>
   </div>
 
-  <div class="client-action-strip">
+  <div class="client-action-strip client-action-strip-v37">
+    {% if can('contracts.create') %}<a class="btn btn-primary" href="{{ url_for('main.contract_new', client_id=client.id) }}">+ Nuevo acuerdo</a>{% endif %}
     {% if statement_wa_link(client) %}<a class="btn btn-whatsapp" target="_blank" rel="noopener" href="{{ statement_wa_link(client) }}">{{ icon('whatsapp',18) }} Enviar estado</a>{% endif %}
-    {% if can('collections.manage') %}<a class="btn btn-secondary" href="#promises">Promesa de pago</a><a class="btn btn-secondary" href="#notes">Agregar nota</a>{% endif %}
   </div>
 
   <section class="surface client-section" id="promises">

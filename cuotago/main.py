@@ -1610,7 +1610,14 @@ def contract_new():
     this flow just to prepare master data first. Existing client/asset IDs are
     still accepted for backwards compatibility and faster repeat business.
     """
-    clients_list, assets_list = agreement_form_choices()
+    preselected_client = None
+    if request.method == "GET":
+        preselected_client_id = request.args.get("client_id", type=int)
+        if preselected_client_id:
+            preselected_client = Client.query.filter_by(
+                id=preselected_client_id, organization_id=current_user.organization_id
+            ).first()
+    clients_list, assets_list = agreement_form_choices(selected_client=preselected_client)
 
     today_value = local_today()
     default_start = today_value.isoformat()
@@ -1833,11 +1840,15 @@ def contract_new():
         flash("Listo. Acuerdo creado, ganancia y cuotas calculadas.", "success")
         return redirect(url_for("main.contract_detail", contract_id=contract.id))
 
+    initial_form = {"request_key": uuid.uuid4().hex}
+    if preselected_client is not None:
+        initial_form["client_id"] = str(preselected_client.id)
+
     return render_template(
         "contracts/form.html",
         clients=clients_list,
         assets=assets_list,
-        form={"request_key": uuid.uuid4().hex},
+        form=initial_form,
         default_start=default_start,
         default_due=default_due,
     )

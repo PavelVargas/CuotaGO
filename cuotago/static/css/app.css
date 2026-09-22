@@ -64,7 +64,7 @@ html[data-theme="dark"]{
 
 *{box-sizing:border-box}
 html{background:var(--bg);-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth}
-body{margin:0;min-width:280px;min-height:100dvh;background:var(--bg);color:var(--text);font-family:"MuseoModerno",ui-sans-serif,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.45;overflow-x:hidden;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-width:280px;min-height:100dvh;background:var(--bg);color:var(--text);font-family:"Sora",sans-serif;line-height:1.45;overflow-x:hidden;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
 a{color:inherit;text-decoration:none}
 button,input,select,textarea{font:inherit;color:inherit}
 button,a,input,select,textarea{touch-action:manipulation}
@@ -447,7 +447,7 @@ input,select,textarea{font-size:16px!important}
 
 /* v1.8 · MuseoModerno más legible + alertas locales robustas */
 body{font-weight:500;line-height:1.56;letter-spacing:0}
-body,button,input,select,textarea{font-family:"MuseoModerno",ui-sans-serif,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
+body,button,input,select,textarea{font-family:"Sora",sans-serif}
 h1,h2,h3,h4,h5,h6,strong,b,.btn,.brand,.module-card strong,.page-head h1,.notification-title-line strong,.payment-notification-copy>b{font-weight:700!important;letter-spacing:-.012em}
 p,small,.field span,.field small,.user-copy small,.module-card small,.payment-notification-copy>small,.notification-overview-copy p{font-weight:500;letter-spacing:0}
 .page-head h1{line-height:1.24;letter-spacing:-.018em}
@@ -1263,11 +1263,11 @@ html[data-auth-screen="1"] .auth-main{color:#253142}
    - PWA: 4 x 2 launcher preserved and tap targets remain comfortable.
    -------------------------------------------------------------------------- */
 body{
-  font-family:"MuseoModerno",ui-sans-serif,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-family:"Sora",sans-serif;
   line-height:1.4;
 }
 button,input,select,textarea{font-family:inherit}
-.brand-name,.boot-splash strong{font-family:"MuseoModerno",ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.brand-name,.boot-splash strong{font-family:"Sora",sans-serif}
 
 :root{
   --shadow:0 12px 30px rgba(29,42,58,.08);
@@ -3756,3 +3756,164 @@ form.is-submitting-v17{pointer-events:none;opacity:.86}form.is-submitting-v17 [t
 @media(max-width:700px){.quick-search-sheet-v17{width:calc(100% - 16px);margin:max(calc(var(--safe-top) + 8px),10px) auto 0;max-height:calc(100dvh - var(--safe-top) - 16px);border-radius:18px}.quick-search-bar-v17 input{font-size:16px}.dashboard-launcher-v3 .module-card strong{font-size:max(10.5px,2.7vw)!important;line-height:1.16}.module-badge{font-size:8.5px!important}.status-kpis span{font-size:9px!important}}
 
 body.is-navigating-v17::before{content:"";position:fixed;z-index:10020;left:0;top:0;width:42%;height:2px;background:var(--primary);transform-origin:left center;animation:cuotago-nav-progress-v17 .75s ease-out both;pointer-events:none}@keyframes cuotago-nav-progress-v17{0%{transform:scaleX(.08);opacity:.35}55%{transform:scaleX(.72);opacity:.9}100%{transform:scaleX(1);opacity:.7}}@media(prefers-reduced-motion:reduce){body.is-navigating-v17::before{animation:none;width:100%;opacity:.55}}
+
+/* v1.17.1 ui-v37 · Sora + capa visual unificada CuotaGo
+   Una sola escala para controles, superficies y jerarquia. Las pantallas especiales
+   conservan su funcion, pero ya no inventan tamanos o densidades distintas. */
+:root{
+  --cg-space-1:4px;
+  --cg-space-2:8px;
+  --cg-space-3:12px;
+  --cg-space-4:16px;
+  --cg-space-5:24px;
+  --cg-control-h:44px;
+  --cg-control-h-sm:36px;
+  --cg-radius-control:12px;
+  --cg-radius-panel:16px;
+  --cg-radius-sheet:20px;
+  --cg-font-caption:10px;
+  --cg-font-small:11px;
+  --cg-font-body:12px;
+  --cg-font-section:15px;
+  --cg-font-page:21px;
+}
+
+body,button,input,select,textarea{font-family:"Sora",sans-serif}
+.brand-name,.boot-splash strong{font-family:"Sora",sans-serif}
+
+/* Estructura comun */
+.content-page{padding-top:18px;padding-bottom:26px}
+.narrow-page{max-width:840px}
+.page-head{align-items:center;gap:var(--cg-space-3);margin-bottom:var(--cg-space-4)}
+.page-head-left{align-items:center;gap:10px}
+.page-head h1{margin:2px 0;font-size:var(--cg-font-page);line-height:1.15;letter-spacing:-.035em;font-weight:750}
+.page-head p{font-size:var(--cg-font-small);line-height:1.45}
+.eyebrow{font-size:9px;letter-spacing:.105em;font-weight:750}
+.surface{border-radius:var(--cg-radius-panel);box-shadow:0 5px 18px rgba(35,49,66,.055)}
+html[data-theme="dark"] .surface{box-shadow:0 6px 20px rgba(0,0,0,.14)}
+.section-heading{margin-bottom:10px}
+.section-heading h2{font-size:var(--cg-font-section);letter-spacing:-.02em;font-weight:700}
+.section-heading>span,.section-heading>a{font-size:var(--cg-font-caption)}
+
+/* Controles: misma altura, radio y peso en toda la app */
+.btn{min-height:var(--cg-control-h);padding:9px 14px;border-radius:var(--cg-radius-control);font-size:11.5px;font-weight:700;box-shadow:none}
+.btn-primary{box-shadow:0 5px 13px rgba(244,89,31,.16)}
+.btn-sm,.btn-small{min-height:var(--cg-control-h-sm);padding:7px 10px;border-radius:10px;font-size:10px}
+.btn-lg{min-height:48px;border-radius:13px;font-size:12.5px}
+.icon-btn{width:40px;height:40px;flex-basis:40px;border-radius:12px;box-shadow:none}
+.field{gap:6px}
+.field>span{font-size:10.5px;font-weight:700}
+.field>small{font-size:9.5px;line-height:1.4}
+.field input,.field select,.field textarea,.filter-row select{min-height:var(--cg-control-h);border-radius:var(--cg-radius-control);background:var(--surface);font-size:16px;padding:10px 12px}
+.search-box,.calendar-search{min-height:var(--cg-control-h);height:var(--cg-control-h);border-radius:var(--cg-radius-control);box-shadow:none}
+.toolbar{margin-bottom:12px}
+.result-count{font-size:10px}
+.status-pill{font-size:9.5px;font-weight:700}
+
+/* Listas: menos card sobre card; misma densidad */
+.data-table tbody{gap:8px}
+.data-table tr{padding:13px 14px;border-radius:var(--cg-radius-panel);box-shadow:none}
+.person-cell strong,.contract-card h3,.asset-card h3{font-size:12.5px}
+.person-cell small,.contract-card p,.asset-card>p{font-size:9.5px}
+.contract-card,.asset-card{border-radius:var(--cg-radius-panel);box-shadow:none}
+.collection-section,.notification-group,.client-section,.schedule-card,.advanced-options,
+.expense-list-card-v15,.report-panel-v19,.report-cashflow-v15{box-shadow:none}
+.collection-row,.payment-notification-row,.reminder-v20-row{min-height:62px}
+
+/* Acuerdo guiado: lenguaje mas directo y legible */
+.agreement-wizard{max-width:680px}
+.wizard-progress{max-width:620px;margin-bottom:14px}
+.wizard-progress-step span{font-size:9px;font-weight:650}
+.wizard-progress-step b{width:30px;height:30px;font-size:10px}
+.wizard-panel{padding-top:14px}
+.wizard-panel-head{grid-template-columns:42px minmax(0,1fr);gap:10px;margin-bottom:16px}
+.wizard-panel-icon{width:42px;height:42px;border-radius:12px}
+.wizard-panel-head span:not(.wizard-panel-icon){font-size:9px;letter-spacing:.06em}
+.wizard-panel-head h2{font-size:19px;letter-spacing:-.025em}
+.wizard-panel-head p{font-size:10.5px}
+.choice-buttons>button,.choice-buttons>label{min-height:var(--cg-control-h);border-radius:var(--cg-radius-control);font-size:10.5px;font-weight:650}
+.wizard-label{font-size:9.5px;letter-spacing:.055em}
+.wizard-price-row>div>span,.wizard-price-row>div>small{font-size:9px}
+.wizard-more-options>summary{font-size:10.5px}
+.review-row>span{font-size:9px}.review-row>strong{font-size:10.5px}.review-row>button{font-size:9px}
+.final-total>span,.final-total>small{font-size:9.5px}
+
+/* Reportes: conserva la informacion, elimina la microtipografia */
+.report-page-head h1{font-size:var(--cg-font-page)!important}
+.report-page-head p{font-size:var(--cg-font-small)!important}
+.report-filter-v19 label>span,.report-kpi-v19>span,.report-kpi-v19>small,
+.report-money-stack-v19 span,.report-metric-list-v19 span,.cashflow-kpis-v15 span,
+.payment-method-breakdown-v15 span,.report-purchases-summary-v20 span{font-size:9.5px!important}
+.report-kpi-v19 strong{font-size:17px!important}
+.report-section-head-v19 h2{font-size:14px!important}
+.report-inline-link-v20{font-size:10px!important}
+.payment-method-breakdown-v15 b{font-size:10px!important}
+.report-activity-copy-v19 strong{font-size:10.5px!important}
+.report-activity-copy-v19 small{font-size:9px!important}
+.report-panel-v19{border-radius:var(--cg-radius-panel)!important}
+
+/* Superadmin: misma familia visual sin perder densidad de consola */
+.admin-console{--admin-readable:10px}
+.admin-console-hero{border-radius:18px!important}
+.admin-console-title h1{font-size:22px!important;letter-spacing:-.035em!important}
+.admin-console-title p{font-size:10.5px!important;line-height:1.45!important}
+.admin-head-btn{min-height:var(--cg-control-h-sm)!important;border-radius:10px!important;font-size:10px!important}
+.admin-nav a{min-height:36px!important;border-radius:10px!important;font-size:10px!important}
+.admin-overview-strip .admin-kpi-copy>span{font-size:8.5px!important;letter-spacing:.04em!important}
+.admin-overview-strip .admin-kpi-copy>strong{font-size:16px!important}
+.admin-overview-strip .money .admin-kpi-copy>strong{font-size:13px!important}
+.admin-overview-strip .admin-kpi-copy>small{font-size:8.5px!important}
+.admin-section-head h2{font-size:14px!important}.admin-section-head p{font-size:9.5px!important}
+.admin-result-count,.admin-company-table-head{font-size:8.5px!important}
+.admin-company-identity strong{font-size:11px!important}.admin-company-identity small{font-size:9px!important}
+.admin-manage-label,.admin-control-button>b{font-size:9.5px!important}
+.admin-bottom-action strong{font-size:10px!important}.admin-bottom-action small{font-size:8.5px!important}
+.admin-company-overview-plan>div>small,.admin-company-status-side>small{font-size:8.5px!important}
+.admin-company-overview-counts span small{font-size:8px!important}.admin-company-overview-counts b{font-size:10px!important}
+.admin-control-button>small{font-size:8px!important}
+.admin-create-plan>summary>div>strong{font-size:10.5px!important}.admin-create-plan>summary>div>small{font-size:8.5px!important}
+.admin-summary-cta{font-size:9px!important}.admin-plan-head small,.admin-plan-price small{font-size:8.5px!important}
+.admin-plan-usage span small{font-size:8px!important}.admin-plan-usage span b{font-size:10px!important}
+.admin-form-section-head p{font-size:9px!important}.admin-action-code{font-size:8px!important}
+.admin-audit-row strong{font-size:10px!important}.admin-audit-row small{font-size:8.5px!important}
+.admin-directory,.admin-audit-surface,.admin-editor-card-modern,.admin-company-overview,.admin-tool-panel{border-radius:var(--cg-radius-panel)!important}
+
+/* Agenda + notificaciones: mismas filas y jerarquia */
+.notifications-page,.reminders-page-v20{max-width:840px;margin-inline:auto}
+.notification-group,.reminder-group-v20{margin-top:14px}
+.notification-group-head,.reminder-group-head-v20{min-height:38px}
+.notification-group-head h2,.reminder-group-head-v20 h2{font-size:14px!important;letter-spacing:-.02em}
+.payment-notification-copy b,.reminder-v20-name strong{font-size:11px!important}
+.payment-notification-copy small,.reminder-v20-main>small,.payment-notification-top time,.reminder-v20-side small{font-size:9px!important}
+.payment-notification-amount,.reminder-v20-side>strong{font-size:11px!important}
+
+/* Ajustes y formularios de negocio: filas simples, sin tarjetas innecesarias */
+.settings-switch-panel,.settings-account-card,.settings-password-v16,.team-add-v16{box-shadow:none}
+.settings-switch-row,.settings-test-row{min-height:58px}
+.settings-row-copy strong{font-size:11.5px}.settings-row-copy small{font-size:9.5px}
+.expense-entry-v15,.expense-summary-v15{box-shadow:none}
+.expense-form-v15{gap:10px}
+
+/* En movil: legible sin volver la interfaz grande */
+@media(max-width:719px){
+  :root{--cg-font-page:19px;--cg-font-section:14px}
+  .content-page{padding-top:14px;padding-left:max(11px,var(--safe-left));padding-right:max(11px,var(--safe-right))}
+  .page-head{margin-bottom:12px}
+  .page-head p{font-size:10px}
+  .page-head>.btn{min-height:38px;padding:7px 10px;font-size:9.5px}
+  .surface{border-radius:14px}
+  .wizard-progress{gap:4px}
+  .wizard-progress-step span{font-size:8px;max-width:58px;white-space:normal;line-height:1.1;text-align:center}
+  .admin-console-title p{font-size:9.5px!important}
+  .admin-nav a{font-size:9px!important}
+  .admin-overview-strip .admin-kpi-copy>span,.admin-overview-strip .admin-kpi-copy>small{font-size:8px!important}
+  .admin-section-head p{font-size:8.7px!important}
+  .admin-company-identity small{font-size:8.5px!important}
+}
+.compact-optional-fields-v37{border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.compact-optional-fields-v37>summary{min-height:42px;list-style:none;display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:700;color:var(--text);cursor:pointer}
+.compact-optional-fields-v37>summary::-webkit-details-marker{display:none}.compact-optional-fields-v37>summary:after{content:"+";font-size:17px;color:var(--muted)}.compact-optional-fields-v37[open]>summary:after{content:"−"}
+.compact-optional-fields-body-v37{display:grid;gap:10px;padding:0 0 12px}
+.client-action-strip-v37{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.client-action-strip-v37 .btn{width:100%}
+@media(max-width:430px){.client-action-strip-v37{grid-template-columns:1fr}.client-action-strip-v37 .btn{min-height:42px}}
+.report-filter-disclosure-v37{margin:0 0 12px;border:1px solid var(--line);border-radius:var(--cg-radius-control);background:var(--surface);overflow:hidden}.report-filter-disclosure-v37>summary{list-style:none;min-height:44px;padding:8px 12px;display:grid;grid-template-columns:22px auto 1fr auto;align-items:center;gap:8px;cursor:pointer;color:var(--text)}.report-filter-disclosure-v37>summary::-webkit-details-marker{display:none}.report-filter-disclosure-v37>summary>span{font-size:10.5px;font-weight:700}.report-filter-disclosure-v37>summary>small{justify-self:end;font-size:9px;color:var(--muted)}.report-filter-disclosure-v37>summary>b{font-size:17px;color:var(--muted);font-weight:500}.report-filter-disclosure-v37[open]>summary>b{transform:rotate(45deg)}.report-filter-disclosure-v37 .report-filters-v19{margin:0;padding:10px 12px 12px;border-top:1px solid var(--line)}

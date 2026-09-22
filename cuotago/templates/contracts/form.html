@@ -9,16 +9,16 @@
   <div class="page-head simple-page-head wizard-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.contracts') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><h1>Nuevo acuerdo</h1><p>Un paso a la vez. CuotaGo no te deja avanzar hasta que lo necesario este listo.</p></div>
+      <div><h1>Nuevo acuerdo</h1><p>4 pasos claros. Completa uno y sigue al próximo.</p></div>
     </div>
   </div>
 
   <nav class="wizard-progress" aria-label="Progreso del acuerdo">
-    <button type="button" class="wizard-progress-step is-active" data-step-target="1"><b>1</b><span>Cliente</span></button>
+    <button type="button" class="wizard-progress-step is-active" data-step-target="1"><b>1</b><span>Quién recibe</span></button>
     <i></i>
-    <button type="button" class="wizard-progress-step" data-step-target="2" disabled><b>2</b><span>Articulo</span></button>
+    <button type="button" class="wizard-progress-step" data-step-target="2" disabled><b>2</b><span>Artículo</span></button>
     <i></i>
-    <button type="button" class="wizard-progress-step" data-step-target="3" disabled><b>3</b><span>Pago</span></button>
+    <button type="button" class="wizard-progress-step" data-step-target="3" disabled><b>3</b><span>Cómo pagará</span></button>
     <i></i>
     <button type="button" class="wizard-progress-step" data-step-target="4" disabled><b>4</b><span>Revisar</span></button>
   </nav>
@@ -30,7 +30,7 @@
     <section class="wizard-panel is-active" data-wizard-step="1">
       <div class="wizard-panel-head">
         <span class="wizard-panel-icon">{{ icon('person-card', 25) }}</span>
-        <div><span>Paso 1 de 4</span><h2>&iquest;Quien recibira?</h2><p>Selecciona un cliente o crealo sin salir de aqui.</p></div>
+        <div><span>Paso 1 de 4</span><h2>¿Quién recibe?</h2><p>Selecciona un cliente o créalo aquí mismo.</p></div>
       </div>
 
       <div class="choice-buttons two" role="group" aria-label="Tipo de cliente">
@@ -63,7 +63,7 @@
     <section class="wizard-panel" data-wizard-step="2" hidden>
       <div class="wizard-panel-head">
         <span class="wizard-panel-icon">{{ icon('inventory', 25) }}</span>
-        <div><span>Paso 2 de 4</span><h2>&iquest;Que vas a entregar?</h2><p>{{ 'Elige algo del inventario.' if not allow_new_asset else 'Elige algo del inventario o registra un articulo nuevo.' }}</p></div>
+        <div><span>Paso 2 de 4</span><h2>¿Qué vas a entregar?</h2><p>{{ 'Elige un artículo del inventario.' if not allow_new_asset else 'Elige un artículo o regístralo aquí mismo.' }}</p></div>
       </div>
 
       <div class="choice-buttons {{ 'two' if allow_new_asset else '' }}" role="group" aria-label="Tipo de articulo">
@@ -74,7 +74,7 @@
 
       <div class="wizard-fields" data-asset-fields="existing">
         <label class="field smart-select-field-v17">
-          <span>Articulo *</span>
+          <span>Artículo *</span>
           <input class="smart-select-search-v17" type="search" autocomplete="off" enterkeyhint="search" placeholder="Escribe artículo, IMEI, placa o serial" data-remote-select="{{ url_for('main.asset_lookup_api') }}" data-remote-target="assetSelect" data-remote-kind="asset">
           <select name="asset_id" id="assetSelect">
             <option value="">Seleccionar...</option>
@@ -91,7 +91,7 @@
       </div>
 
       <div class="wizard-fields" data-asset-fields="new">
-        <label class="field"><span>Nombre del articulo *</span><input name="asset_name" id="assetName" value="{{ form.get('asset_name','') }}" placeholder="Ej. iPhone 15 Pro Max"></label>
+        <label class="field"><span>Nombre del artículo *</span><input name="asset_name" id="assetName" value="{{ form.get('asset_name','') }}" placeholder="Ej. iPhone 15 Pro Max"></label>
         <div class="form-grid two compact-grid">
           <label class="field"><span>Tipo</span><select name="asset_kind" id="assetKind">
             {% set kind = form.get('asset_kind','other') %}
@@ -113,28 +113,28 @@
       </div>
 
       <p class="wizard-inline-error" data-step-error="2" hidden></p>
-      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="1">Atras</button><button class="btn btn-primary wizard-next" type="button" data-next-step="3">Continuar</button></div>
+      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="1">Atrás</button><button class="btn btn-primary wizard-next" type="button" data-next-step="3">Continuar</button></div>
     </section>
 
     <section class="wizard-panel" data-wizard-step="3" hidden>
       <div class="wizard-panel-head">
         <span class="wizard-panel-icon">{{ icon('cash-stack', 25) }}</span>
-        <div><span>Paso 3 de 4</span><h2>&iquest;Como te pagara?</h2><p>Define cuotas y tu ganancia. CuotaGo hace el calculo.</p></div>
+        <div><span>Paso 3 de 4</span><h2>¿Cómo te pagará?</h2><p>Elige cuotas y frecuencia. CuotaGo calcula el resto.</p></div>
       </div>
 
       <div class="wizard-label">Tipo de acuerdo</div>
       <div class="choice-buttons two radio-buttons deal-segmented">
-        <label><input type="radio" name="deal_type" value="credit_sale" {{ 'checked' if form.get('deal_type','credit_sale')=='credit_sale' }}><span>Venta a credito</span></label>
-        <label><input type="radio" name="deal_type" value="rental" {{ 'checked' if form.get('deal_type')=='rental' }}><span>Prestamo / alquiler</span></label>
+        <label><input type="radio" name="deal_type" value="credit_sale" {{ 'checked' if form.get('deal_type','credit_sale')=='credit_sale' }}><span>Venta a crédito</span></label>
+        <label><input type="radio" name="deal_type" value="rental" {{ 'checked' if form.get('deal_type')=='rental' }}><span>Préstamo / alquiler</span></label>
       </div>
 
       <div class="wizard-price-row">
-        <div><span>Costo detectado</span><strong id="detectedAssetName">Selecciona un articulo</strong><small>Se toma del inventario. El precio de venta registrado precarga tu margen.</small></div>
+        <div><span>Costo detectado</span><strong id="detectedAssetName">Selecciona un artículo</strong><small>Se toma del inventario. El precio de venta registrado precarga tu margen.</small></div>
         <label class="field compact-price"><span>Costo por unidad</span><input id="unitPrice" type="number" step="0.01" min="0.01" name="unit_price" required value="{{ form.get('unit_price','') }}" placeholder="50000" inputmode="decimal"></label>
       </div>
 
-      <div class="wizard-label wizard-label-spaced">Numero de cuotas</div>
-      <div class="quick-pick-row" aria-label="Cuotas rapidas">
+      <div class="wizard-label wizard-label-spaced">Número de cuotas</div>
+      <div class="quick-pick-row" aria-label="Cuotas rápidas">
         {% for count in (3, 6, 12, 18) %}<button type="button" data-installment-count="{{ count }}">{{ count }}</button>{% endfor %}
         <label class="custom-count"><input id="installmentCount" type="number" min="1" max="500" step="1" name="installment_count" value="{{ form.get('installment_count','6') }}" inputmode="numeric"><span>cuotas</span></label>
       </div>
@@ -158,10 +158,10 @@
       <input id="totalAmount" type="hidden" name="total_amount" value="{{ form.get('total_amount','') }}">
       <input id="installmentAmount" type="hidden" name="installment_amount" value="{{ form.get('installment_amount','') }}">
 
-      <div class="payment-summary simple-summary" id="schedulePreview"><span>Plan calculado</span><strong>Selecciona articulo, precio y cuotas.</strong></div>
+      <div class="payment-summary simple-summary" id="schedulePreview"><span>Plan calculado</span><strong>Selecciona artículo, precio y cuotas.</strong></div>
 
       <details class="wizard-more-options">
-        <summary>Mas opciones</summary>
+        <summary>Opciones adicionales</summary>
         <div class="wizard-more-body">
           <div class="form-grid two compact-grid">
             <label class="field"><span>Inicial</span><input id="downPayment" type="number" step="0.01" min="0" name="down_payment" value="{{ form.get('down_payment','0') }}" placeholder="0" inputmode="decimal"><small>Si colocas una inicial, CuotaGo genera su recibo automáticamente.</small></label>
@@ -179,7 +179,7 @@
       </details>
 
       <p class="wizard-inline-error" data-step-error="3" hidden></p>
-      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="2">Atras</button><button class="btn btn-primary wizard-next" type="button" data-next-step="4">Revisar acuerdo</button></div>
+      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="2">Atrás</button><button class="btn btn-primary wizard-next" type="button" data-next-step="4">Revisar acuerdo</button></div>
     </section>
 
     <section class="wizard-panel" data-wizard-step="4" hidden>
@@ -190,14 +190,14 @@
 
       <div class="review-list">
         <div class="review-row"><span>Cliente</span><strong id="reviewClient">-</strong><button type="button" data-edit-step="1">Cambiar</button></div>
-        <div class="review-row"><span>Articulo</span><strong id="reviewAsset">-</strong><button type="button" data-edit-step="2">Cambiar</button></div>
+        <div class="review-row"><span>Artículo</span><strong id="reviewAsset">-</strong><button type="button" data-edit-step="2">Cambiar</button></div>
         <div class="review-row"><span>Plan</span><strong id="reviewPlan">-</strong><button type="button" data-edit-step="3">Cambiar</button></div>
         <div class="review-row"><span>Primer pago</span><strong id="reviewDue">-</strong><button type="button" data-edit-step="3">Cambiar</button></div>
       </div>
 
       <div class="final-total"><span>Total del acuerdo</span><strong id="reviewTotal">RD$0</strong><small id="reviewExtra"></small></div>
       <p class="wizard-inline-error" data-step-error="4" hidden></p>
-      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="3">Atras</button><button class="btn btn-primary btn-lg" type="submit" id="createContractButton">Crear acuerdo</button></div>
+      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="3">Atrás</button><button class="btn btn-primary btn-lg" type="submit" id="createContractButton">Crear acuerdo</button></div>
     </section>
   </form>
 </section>
@@ -290,7 +290,7 @@
     const option = currentAsset();
     const price = Number(option?.dataset?.price || 0);
     const salePrice = Number(option?.dataset?.salePrice || 0);
-    if (detectedAssetName) detectedAssetName.textContent = option?.dataset?.name || 'Selecciona un articulo';
+    if (detectedAssetName) detectedAssetName.textContent = option?.dataset?.name || 'Selecciona un artículo';
     if (unitPrice && price > 0 && (force || !priceTouched || !unitPrice.value)) {
       unitPrice.value = String(price);
       priceTouched = false;
@@ -396,7 +396,7 @@
       if (calc.initial > 0) parts.push(`Inicial ${money.format(calc.initial)}`);
       const late = Math.max(0, Number(dailyLateInterest?.value || 0));
       if (late > 0) parts.push(`Interes por atraso ${money.format(late)}/dia`);
-      parts.push(selectedDealType() === 'rental' ? 'Prestamo / alquiler' : 'Venta a credito');
+      parts.push(selectedDealType() === 'rental' ? 'Préstamo / alquiler' : 'Venta a crédito');
       reviewExtra.textContent = parts.join(' \u00b7 ');
     }
   };
@@ -417,7 +417,7 @@
     if (step === 2) {
       const qty = Math.max(0, Number(contractQuantity?.value || 0));
       const available = availableQuantity();
-      if (assetMode === 'existing' && !assetSelect?.value) message = 'Selecciona un articulo del inventario.';
+      if (assetMode === 'existing' && !assetSelect?.value) message = 'Selecciona un artículo del inventario.';
       else if (assetMode === 'new' && (assetName?.value?.trim()?.length || 0) < 2) message = 'Escribe el nombre del articulo.';
       else if (assetMode === 'new' && available < 1) message = 'Indica cuantas unidades tienes.';
       else if (qty < 1) message = 'Indica la cantidad a entregar.';

@@ -3,7 +3,7 @@
 {% block title %}Gastos · {{ app_name }}{% endblock %}
 {% block content %}
 <section class="content-page expenses-page-v15">
-  <div class="page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back',22) }}</a><div><span class="eyebrow">GASTOS</span><h1>Salidas de dinero</h1><p>Registra lo que sale para conocer el flujo real.</p></div></div></div>
+  <div class="page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back',22) }}</a><div><span class="eyebrow">GASTOS</span><h1>Gastos</h1><p>Registra una salida y CuotaGo actualiza el flujo.</p></div></div></div>
 
   <div class="expense-top-grid-v15">
     {% if can('expenses.manage') %}<section class="surface expense-entry-v15">
@@ -14,8 +14,13 @@
         <label class="field"><span>Fecha</span><input type="date" name="expense_date" value="{{ today_value.isoformat() }}" required></label>
         <label class="field"><span>Categoría</span><select name="category"><option value="fuel">Combustible</option><option value="rent">Alquiler</option><option value="payroll">Nómina</option><option value="repair">Reparación</option><option value="transport">Transporte</option><option value="services">Servicios</option><option value="supplies">Insumos</option><option value="other" selected>Otro</option></select></label>
         <label class="field"><span>Método</span><select name="method"><option value="cash">Efectivo</option><option value="transfer">Transferencia</option><option value="deposit">Depósito</option><option value="card">Tarjeta</option><option value="other">Otro</option></select></label>
-        <label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="Opcional"></label>
-        <label class="field expense-note-v15"><span>Concepto</span><input name="note" maxlength="240" placeholder="Ej. gasolina para cobranzas"></label>
+        <details class="compact-optional-fields-v37">
+          <summary>Agregar referencia o nota</summary>
+          <div class="compact-optional-fields-body-v37">
+            <label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="Opcional"></label>
+            <label class="field expense-note-v15"><span>Concepto</span><input name="note" maxlength="240" placeholder="Ej. gasolina para cobranzas"></label>
+          </div>
+        </details>
         <button class="btn btn-primary" type="submit">Guardar gasto</button>
       </form>
     </section>{% endif %}

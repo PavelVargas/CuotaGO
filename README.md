@@ -7,8 +7,11 @@ Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con 
 
 ## Cambios v1.17.1 — PWA, rendimiento y UX
 
+- **Sora como tipografía global de prueba:** interfaz, formularios, botones, login y splash usan `font-family: "Sora", sans-serif`.
+- **Capa visual unificada ui-v37:** mismos tamaños de títulos, controles, radios, superficies y densidad en módulos, Reportes y Superadmin.
+- **Flujos más cortos:** desde la ficha del cliente puedes iniciar un acuerdo con ese cliente preseleccionado; opciones poco usadas permanecen plegadas.
 - **Hotfix PostgreSQL:** CuotaGo usa su propio ledger `cuotago_schema_migrations`, evitando conflictos con bases que ya tengan una tabla `schema_migrations` con otra estructura.
-- **PWA versionada de forma coherente:** JavaScript, Service Worker y assets quedan sincronizados en `1.17.1-ui-v36`.
+- **PWA versionada de forma coherente:** JavaScript, Service Worker y assets quedan sincronizados en `1.17.1-ui-v37`.
 - **PWA más nativa:** navigation preload, caché segura solo para estáticos, splash de arranque una sola vez por sesión instalada, transiciones ligeras y estados de conexión discretos.
 - **Búsqueda rápida global:** desde la barra superior abre una hoja de búsqueda sin sacar al usuario de la pantalla; busca clientes, acuerdos, recibos y artículos respetando permisos.
 - **Protección contra doble toque:** acuerdos y pagos usan claves idempotentes en servidor y los formularios bloquean envíos repetidos visualmente sin añadir confirmaciones innecesarias.
@@ -31,7 +34,7 @@ Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con 
 - **Auditoría de empresa:** registra creación/borrado de acuerdos, mora, reprogramaciones, pagos, promesas, notas y gastos con actor, fecha y detalle.
 - **Gastos y flujo de caja:** nuevo módulo de salidas; Reportes calcula entradas, gastos y flujo neto del periodo.
 - **Documentos:** conserva la guía viva sincronizada con el catálogo de módulos y la nueva identidad visual índigo.
-- **PWA:** caché de interfaz actualizada a `1.17.1-ui-v36`.
+- **PWA:** caché de interfaz actualizada a `1.17.1-ui-v37`.
 
 ## Cambios v1.14.2
 

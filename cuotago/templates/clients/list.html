@@ -6,7 +6,7 @@
   <div class="page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><span class="eyebrow">CLIENTES</span><h1>Personas</h1><p>Contactos ligados a tus acuerdos.</p></div>
+      <div><span class="eyebrow">CLIENTES</span><h1>Clientes</h1><p>Busca una persona y abre su historial.</p></div>
     </div>
     {% if can('clients.manage') %}<a class="btn btn-primary" href="{{ url_for('main.client_new') }}">+ Nuevo cliente</a>{% endif %}
   </div>

@@ -8,12 +8,14 @@
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back', 22) }}</a>
       <div>
         <span class="eyebrow">REPORTES</span>
-        <h1>Cómo va el negocio</h1>
+        <h1>Reportes</h1>
         <p>Lo importante: cobros, gastos, flujo de caja, cartera y ganancia.</p>
       </div>
     </div>
   </div>
 
+  <details class="report-filter-disclosure-v37" {% if report_period != 'month' or selected_client_id or report_status != 'all' %}open{% endif %}>
+    <summary>{{ icon('sliders', 17) }}<span>Filtrar reportes</span><small>{{ period_label }}{% if selected_client_id %} · cliente seleccionado{% endif %}</small><b>+</b></summary>
   <form class="report-filters-v19" method="get" action="{{ url_for('main.reports') }}">
     <label>
       <span>Periodo</span>
@@ -44,6 +46,7 @@
     </label>
     <button class="btn btn-secondary report-filter-button" type="submit">Aplicar</button>
   </form>
+  </details>
 
   <div class="report-kpi-grid-v19">
     <article class="report-kpi-v19">

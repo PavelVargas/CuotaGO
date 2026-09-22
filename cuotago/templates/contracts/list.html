@@ -6,7 +6,7 @@
   <div class="page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back', 22) }}</a>
-      <div><span class="eyebrow">ACUERDOS</span><h1>Préstamos y ventas a crédito</h1><p>Saldo, progreso y próxima fecha en un solo lugar.</p></div>
+      <div><span class="eyebrow">ACUERDOS</span><h1>Acuerdos</h1><p>Crea y revisa financiamientos sin pasos innecesarios.</p></div>
     </div>
     {% if can('contracts.create') %}<a class="btn btn-primary" href="{{ url_for('main.contract_new') }}">+ Nuevo acuerdo</a>{% endif %}
   </div>

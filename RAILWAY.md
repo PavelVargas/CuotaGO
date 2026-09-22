@@ -132,6 +132,6 @@ Esta actualización es **hacia adelante y no borra datos existentes**. `db.creat
 - Amplía `payments` con referencia, tipo de pago, código de recibo y usuario que registró el movimiento.
 - Amplía `installments` con base de mora reprogramada para conservar recargos previos sin detener la acumulación futura.
 - Agrega Expediente del cliente, Agenda de cobranza, reprogramación, recibos/estado de cuenta, módulo Gastos y flujo neto en Reportes.
-- El Service Worker usa caché `1.17.1-ui-v36`.
+- El Service Worker usa caché `1.17.1-ui-v37`.
 
 La actualización es hacia adelante: usa `CREATE TABLE IF NOT EXISTS` y `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`; no borra acuerdos ni pagos existentes.
