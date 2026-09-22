@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Estado de cuenta · {{ client.full_name }}{% endblock %}
+{% block content %}
+<section class="content-page statement-page-v15">
+  <div class="page-head statement-actions-v15 no-print">
+    <div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.client_detail', client_id=client.id) }}">{{ icon('back',22) }}</a><div><h1>Estado de cuenta</h1><p>{{ client.full_name }}</p></div></div>
+    <div class="statement-buttons-v15">{% if statement_wa_link(client) %}<a class="btn btn-whatsapp" target="_blank" rel="noopener" href="{{ statement_wa_link(client) }}">{{ icon('whatsapp',18) }} WhatsApp</a>{% endif %}<button class="btn btn-primary" type="button" onclick="window.print()">Imprimir / PDF</button></div>
+  </div>
+
+  <article class="surface printable-document-v15">
+    <header class="print-doc-head"><div><span class="eyebrow">{{ app_name|upper }}</span><h1>Estado de cuenta</h1></div><div><strong>{{ client.full_name }}</strong><small>{{ client.phone or 'Sin teléfono' }}{% if client.document_id %} · {{ client.document_id }}{% endif %}</small></div></header>
+    <div class="statement-summary-v15">
+      <div><span>Total acordado</span><strong>{{ money(totals.agreed) }}</strong></div>
+      <div><span>Total recibido</span><strong>{{ money(totals.paid) }}</strong></div>
+      <div><span>Saldo pendiente</span><strong>{{ money(totals.balance) }}</strong></div>
+      <div><span>Mora pendiente</span><strong>{{ money(totals.late_fee) }}</strong></div>
+    </div>
+    {% if next_item %}<div class="statement-next-v15"><span>Próximo pago</span><strong>{{ money(next_item.remaining) }}</strong><small>{{ next_item.due_date.strftime('%d/%m/%Y') }}</small></div>{% endif %}
+
+    <h2>Acuerdos</h2>
+    <div class="statement-contracts-v15">{% for contract in contracts %}<div><span><strong>{{ contract.code }} · {{ contract.asset.name }}</strong><small>{{ contract_status_label(contract.status) }} · {{ frequency_label(contract.frequency) }}</small></span><span><small>Pagado {{ money(contract.paid_total) }}</small><b>Saldo {{ money(contract.balance) }}</b></span></div>{% else %}<div class="empty-inline">Sin acuerdos.</div>{% endfor %}</div>
+
+    <h2>Últimos pagos</h2>
+    <div class="statement-payments-v15">{% for payment in payments %}<div><span><strong>{{ payment.receipt_code or ('CGP-' ~ payment.contract.organization_id ~ '-' ~ '%06d'|format(payment.id)) }}</strong><small>{{ payment.contract.code }} · {{ payment_method_label(payment.method) }}</small></span><b>{{ money(payment.amount) }}</b><time>{{ payment.paid_at.strftime('%d/%m/%Y') }}</time></div>{% else %}<div class="empty-inline">Sin pagos registrados.</div>{% endfor %}</div>
+
+    <footer class="print-doc-foot">Generado el {{ today.strftime('%d/%m/%Y') }} · {{ app_name }}</footer>
+  </article>
+</section>
+{% endblock %}

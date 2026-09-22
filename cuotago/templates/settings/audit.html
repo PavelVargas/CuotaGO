@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Auditoría · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page narrow-page audit-page-v15">
+  <div class="page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.settings') }}">{{ icon('back',22) }}</a><div><span class="eyebrow">SEGURIDAD</span><h1>Auditoría</h1><p>Quién hizo qué y cuándo dentro de la empresa.</p></div></div></div>
+  <section class="surface audit-list-v15">
+    {% for log in logs %}<div class="audit-row-v15"><span class="audit-dot-v15"></span><span><strong>{{ log.summary }}</strong><small>{{ log.action }} · {{ actors.get(log.actor_user_id, 'Usuario eliminado') if log.actor_user_id else 'Sistema' }}</small>{% if log.detail %}<details><summary>Ver detalle</summary><pre>{{ log.detail }}</pre></details>{% endif %}</span><time>{{ log.created_at.strftime('%d/%m/%Y %H:%M') }}</time></div>{% else %}<div class="empty-state"><h3>Sin actividad todavía</h3><p>Los cambios importantes aparecerán aquí automáticamente.</p></div>{% endfor %}
+  </section>
+</section>
+{% endblock %}

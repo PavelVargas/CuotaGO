@@ -31,10 +31,10 @@
     <a class="home-reminder-button" href="{{ url_for('main.reminders') }}" aria-label="Abrir recordatorios: {{ reminder_count }}">
       <span class="home-reminder-check" aria-hidden="true">✓</span>
       <span class="home-reminder-copy">
-        <strong>Recordatorios</strong>
-        <small>Pagos que necesitan seguimiento</small>
+        <strong>Agenda de cobranza</strong>
+        <small>Pagos y promesas que necesitan seguimiento</small>
       </span>
-      <span class="home-reminder-pill"><span aria-hidden="true">✓</span>{{ reminder_count }} recordatorio{{ 's' if reminder_count != 1 }}</span>
+      <span class="home-reminder-pill"><span aria-hidden="true">✓</span>{{ reminder_count }} tarea{{ 's' if reminder_count != 1 }}</span>
       <span class="home-reminder-arrow" aria-hidden="true">›</span>
     </a>
   </section>

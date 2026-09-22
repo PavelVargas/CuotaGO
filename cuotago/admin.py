@@ -16,16 +16,21 @@ from .models import (
     AdminAuditLog,
     Asset,
     Client,
+    CollectionNote,
     Contract,
+    ContractScheduleChange,
+    Expense,
     Organization,
     OrganizationSubscription,
     Payment,
+    PaymentPromise,
     Purchase,
     PushNotificationLog,
     PushSubscription,
     SubscriptionPayment,
     SubscriptionPlan,
     Supplier,
+    TenantAuditLog,
     User,
 )
 
@@ -250,6 +255,7 @@ def _delete_contracts(organization_id):
 
 def _clear_collections(organization_id):
     PushNotificationLog.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
+    PaymentPromise.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
     contracts = Contract.query.filter_by(organization_id=organization_id).all()
     for contract in contracts:
         for payment in list(contract.payments):
@@ -257,6 +263,7 @@ def _clear_collections(organization_id):
         for installment in contract.installments:
             installment.paid_amount = Decimal("0.00")
             installment.late_fee_amount = Decimal("0.00")
+            installment.late_fee_base_amount = Decimal("0.00")
             installment.late_fee_paid = Decimal("0.00")
             installment.principal_paid_at = None
             installment.paid_at = None
@@ -298,6 +305,9 @@ def _clear_module(organization_id, module):
         _delete_contracts(organization_id)
         Client.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
         return "Clientes"
+    if module == "expenses":
+        Expense.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
+        return "Gastos"
     if module == "notifications":
         PushNotificationLog.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
         return "Historial de alertas"
@@ -310,6 +320,11 @@ def _clear_module(organization_id, module):
 def _clear_company_content(organization_id):
     PushNotificationLog.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
     PushSubscription.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
+    PaymentPromise.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
+    CollectionNote.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
+    ContractScheduleChange.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
+    Expense.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
+    TenantAuditLog.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
     _delete_contracts(organization_id)
     Client.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
     Purchase.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
@@ -929,6 +944,11 @@ def delete_company(organization_id):
     )
     PushNotificationLog.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
     PushSubscription.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
+    PaymentPromise.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
+    CollectionNote.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
+    ContractScheduleChange.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
+    Expense.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
+    TenantAuditLog.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
     _delete_contracts(organization.id)
     Client.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
     Purchase.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)

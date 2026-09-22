@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Gastos · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page expenses-page-v15">
+  <div class="page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back',22) }}</a><div><span class="eyebrow">GASTOS</span><h1>Salidas de dinero</h1><p>Registra lo que sale para conocer el flujo real.</p></div></div></div>
+
+  <div class="expense-top-grid-v15">
+    <section class="surface expense-entry-v15">
+      <div class="section-heading"><div><span class="eyebrow">NUEVO</span><h2>Registrar gasto</h2></div></div>
+      <form method="post" class="expense-form-v15">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="field"><span>Monto</span><input type="number" name="amount" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
+        <label class="field"><span>Fecha</span><input type="date" name="expense_date" value="{{ today_value.isoformat() }}" required></label>
+        <label class="field"><span>Categoría</span><select name="category"><option value="fuel">Combustible</option><option value="rent">Alquiler</option><option value="payroll">Nómina</option><option value="repair">Reparación</option><option value="transport">Transporte</option><option value="services">Servicios</option><option value="supplies">Insumos</option><option value="other" selected>Otro</option></select></label>
+        <label class="field"><span>Método</span><select name="method"><option value="cash">Efectivo</option><option value="transfer">Transferencia</option><option value="deposit">Depósito</option><option value="card">Tarjeta</option><option value="other">Otro</option></select></label>
+        <label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="Opcional"></label>
+        <label class="field expense-note-v15"><span>Concepto</span><input name="note" maxlength="240" placeholder="Ej. gasolina para cobranzas"></label>
+        <button class="btn btn-primary" type="submit">Guardar gasto</button>
+      </form>
+    </section>
+
+    <section class="surface expense-summary-v15">
+      <span class="eyebrow">RESUMEN</span><strong>{{ money(total) }}</strong><small>{% if period == 'today' %}gastado hoy{% elif period == '7d' %}últimos 7 días{% elif period == 'all' %}histórico{% else %}gastado este mes{% endif %}</small>
+      <div class="expense-periods-v15"><a class="{{ 'active' if period=='today' }}" href="?period=today">Hoy</a><a class="{{ 'active' if period=='7d' }}" href="?period=7d">7 días</a><a class="{{ 'active' if period=='month' }}" href="?period=month">Mes</a><a class="{{ 'active' if period=='all' }}" href="?period=all">Todo</a></div>
+      <div class="expense-category-list-v15">{% for category, value in top_categories %}<div><span>{{ expense_category_label(category) }}</span><b>{{ money(value) }}</b></div>{% else %}<div class="empty-inline">Sin gastos en este periodo.</div>{% endfor %}</div>
+    </section>
+  </div>
+
+  <section class="surface expense-list-card-v15">
+    <div class="section-heading"><div><span class="eyebrow">MOVIMIENTOS</span><h2>Gastos registrados</h2></div><span>{{ expenses|length }}</span></div>
+    <div class="expense-list-v15">{% for expense in expenses %}<div class="expense-row-v15"><span class="expense-symbol-v15">−</span><span><strong>{{ expense_category_label(expense.category) }}</strong><small>{{ expense.expense_date.strftime('%d/%m/%Y') }} · {{ payment_method_label(expense.method) }}{% if expense.note %} · {{ expense.note }}{% endif %}</small></span><b>{{ money(expense.amount) }}</b><form method="post" action="{{ url_for('main.expense_delete', expense_id=expense.id) }}" onsubmit="return confirm('¿Eliminar este gasto?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="icon-action" type="submit" aria-label="Eliminar">{{ icon('trash',16) }}</button></form></div>{% else %}<div class="empty-inline">No hay gastos para mostrar.</div>{% endfor %}</div>
+  </section>
+</section>
+{% endblock %}

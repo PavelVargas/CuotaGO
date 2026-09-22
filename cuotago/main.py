@@ -1,4 +1,5 @@
 import calendar as pycalendar
+import json
 import re
 import uuid
 from datetime import date, datetime, timedelta
@@ -11,7 +12,10 @@ from flask_login import current_user, login_required
 from sqlalchemy import or_
 
 from .extensions import db
-from .models import Asset, Client, Contract, Installment, Payment, Purchase, PushNotificationLog, Supplier
+from .models import (
+    Asset, Client, CollectionNote, Contract, ContractScheduleChange, Expense, Installment, Payment,
+    PaymentPromise, Purchase, PushNotificationLog, Supplier, TenantAuditLog, User,
+)
 from .module_catalog import module_catalog
 
 main_bp = Blueprint("main", __name__)
@@ -168,7 +172,8 @@ def sync_contract_late_fees(contract, today_value=None, commit=False):
             end_day = min(today_value, principal_paid_at.date())
         charge_start = max(installment.due_date, activation_day)
         days_late = max((end_day - charge_start).days, 0)
-        target = money_decimal(rate * days_late)
+        base_fee = money_decimal(getattr(installment, "late_fee_base_amount", 0))
+        target = money_decimal(base_fee + (rate * days_late))
         current = money_decimal(installment.late_fee_amount)
         if target > current:
             installment.late_fee_amount = target
@@ -217,6 +222,88 @@ def scoped_contract(contract_id):
     contract = Contract.query.filter_by(id=contract_id, organization_id=current_user.organization_id).first_or_404()
     sync_contract_late_fees(contract, commit=True)
     return contract
+
+
+def scoped_payment(payment_id):
+    return (
+        Payment.query.join(Contract)
+        .filter(Payment.id == payment_id, Contract.organization_id == current_user.organization_id)
+        .first_or_404()
+    )
+
+
+def scoped_promise(promise_id):
+    return PaymentPromise.query.filter_by(
+        id=promise_id, organization_id=current_user.organization_id
+    ).first_or_404()
+
+
+def tenant_audit(action, entity_type, entity_id, summary, detail=None):
+    db.session.add(TenantAuditLog(
+        organization_id=current_user.organization_id,
+        actor_user_id=getattr(current_user, "id", None),
+        action=action,
+        entity_type=entity_type,
+        entity_id=str(entity_id) if entity_id is not None else None,
+        summary=(summary or "")[:240],
+        detail=detail,
+    ))
+
+
+def sync_payment_promises(commit=True):
+    today_value = local_today()
+    promises = PaymentPromise.query.filter_by(
+        organization_id=current_user.organization_id, status="pending"
+    ).filter(PaymentPromise.promised_date < today_value).all()
+    for promise in promises:
+        promise.status = "broken"
+    if promises and commit:
+        db.session.commit()
+    return len(promises)
+
+
+def payment_method_label(value):
+    return {
+        "cash": "Efectivo",
+        "transfer": "Transferencia",
+        "deposit": "Depósito",
+        "card": "Tarjeta",
+        "other": "Otro",
+    }.get(value, (value or "Otro").capitalize())
+
+
+def expense_category_label(value):
+    return {
+        "fuel": "Combustible",
+        "rent": "Alquiler",
+        "payroll": "Nómina",
+        "repair": "Reparación",
+        "transport": "Transporte",
+        "services": "Servicios",
+        "supplies": "Insumos",
+        "other": "Otro",
+    }.get(value, (value or "Otro").capitalize())
+
+
+def client_risk_summary(client):
+    today_value = local_today()
+    overdue_days = 0
+    overdue_count = 0
+    for contract in client.contracts:
+        if contract.status != "active":
+            continue
+        for installment in contract.installments:
+            if installment.remaining > Decimal("0.009") and installment.due_date < today_value:
+                overdue_count += 1
+                overdue_days = max(overdue_days, (today_value - installment.due_date).days)
+    broken_promises = sum(1 for promise in client.payment_promises if promise.status == "broken")
+    if overdue_days >= 15 or broken_promises >= 2:
+        return {"level": "high", "label": "Alto riesgo", "reason": f"{overdue_count} cuota(s) vencida(s) · {broken_promises} promesa(s) incumplida(s)"}
+    if overdue_count or broken_promises:
+        return {"level": "watch", "label": "Atención", "reason": f"{overdue_count} cuota(s) vencida(s) · {broken_promises} promesa(s) incumplida(s)"}
+    if client.contracts:
+        return {"level": "good", "label": "Buen pagador", "reason": "Sin atrasos ni promesas incumplidas"}
+    return {"level": "new", "label": "Sin historial", "reason": "Aún no tiene acuerdos registrados"}
 
 
 def tenant_installments(active_only=True):
@@ -343,20 +430,45 @@ def deal_type_label(value):
     return {"credit_sale": "Venta a crédito", "rental": "Préstamo / alquiler"}.get(value, value or "—")
 
 
-def whatsapp_link(client, contract=None, installment=None):
+def whatsapp_text_link(client, message):
     digits = re.sub(r"\D", "", client.phone or "")
     if len(digits) == 10:
         digits = "1" + digits
     if len(digits) < 10:
         return ""
+    return f"https://wa.me/{digits}?text={quote(message)}"
 
+
+def whatsapp_link(client, contract=None, installment=None):
     message = f"Hola {client.full_name}, te escribimos para recordarte tu pago"
     if contract:
         message += f" del acuerdo {contract.code or ''}"
     if installment:
         message += f" por {format_money(installment.remaining)}, con fecha {installment.due_date.strftime('%d/%m/%Y')}"
     message += ". Gracias."
-    return f"https://wa.me/{digits}?text={quote(message)}"
+    return whatsapp_text_link(client, message)
+
+
+def statement_whatsapp_link(client):
+    active = [contract for contract in client.contracts if contract.status == "active"]
+    balance = sum((contract.balance for contract in active), Decimal("0.00"))
+    next_items = [contract.next_installment for contract in active if contract.next_installment]
+    next_item = min(next_items, key=lambda item: item.due_date) if next_items else None
+    message = f"Hola {client.full_name}. Estado de cuenta CuotaGo: saldo pendiente {format_money(balance)}."
+    if next_item:
+        message += f" Próximo pago {format_money(next_item.remaining)} el {next_item.due_date.strftime('%d/%m/%Y')}."
+    message += " Si necesitas el detalle completo, contáctanos. Gracias."
+    return whatsapp_text_link(client, message)
+
+
+def receipt_whatsapp_link(payment):
+    contract = payment.contract
+    message = (
+        f"Hola {contract.client.full_name}. Recibimos {format_money(payment.amount)} "
+        f"para el acuerdo {contract.code}. Recibo {payment.receipt_code or f'CGP-{contract.organization_id}-{payment.id:06d}'}. "
+        f"Saldo pendiente {format_money(contract.balance)}. Gracias."
+    )
+    return whatsapp_text_link(contract.client, message)
 
 
 @main_bp.app_context_processor
@@ -368,7 +480,11 @@ def inject_helpers():
         "contract_status_label": contract_status_label,
         "frequency_label": frequency_label,
         "deal_type_label": deal_type_label,
+        "payment_method_label": payment_method_label,
+        "expense_category_label": expense_category_label,
         "wa_link": whatsapp_link,
+        "statement_wa_link": statement_whatsapp_link,
+        "receipt_wa_link": receipt_whatsapp_link,
         "today": local_today(),
         "app_name": current_app.config.get("APP_NAME", "CuotaGo"),
         "notification_count": urgent_payment_alert_count() if current_user.is_authenticated else 0,
@@ -395,6 +511,11 @@ def dashboard():
     overdue_count = len(overdue)
     due_today_count = len(due_today)
     notification_count = overdue_count + due_today_count
+    sync_payment_promises(commit=True)
+    agenda_promises = PaymentPromise.query.filter_by(organization_id=org_id).filter(
+        PaymentPromise.status.in_(["pending", "broken"]),
+        PaymentPromise.promised_date <= today_value + timedelta(days=7),
+    ).count()
     modules = module_catalog()
     module_status = {
         "agreements": {
@@ -421,7 +542,7 @@ def dashboard():
         module_status=module_status,
         overdue_count=overdue_count,
         due_today_count=due_today_count,
-        reminder_count=len(overdue) + len(due_today) + len(upcoming),
+        reminder_count=len(overdue) + len(due_today) + len(upcoming) + agenda_promises,
         active_count=len(active_contracts),
         receivable=receivable,
         overdue_total=overdue_total,
@@ -443,17 +564,24 @@ def documents():
 @main_bp.get("/reminders")
 @login_required
 def reminders():
+    sync_payment_promises(commit=True)
     items = payment_notification_items(limit=500)
     overdue = [item for item in items if item["type"] == "overdue"]
     due_today = [item for item in items if item["type"] == "today"]
     upcoming = [item for item in items if item["type"] == "upcoming"]
+    today_value = local_today()
+    promises = PaymentPromise.query.filter_by(organization_id=current_user.organization_id).filter(
+        PaymentPromise.status.in_(["pending", "broken"]),
+        PaymentPromise.promised_date <= today_value + timedelta(days=7),
+    ).order_by(PaymentPromise.promised_date.asc()).all()
+    broken_promises = [p for p in promises if p.status == "broken"]
+    today_promises = [p for p in promises if p.status == "pending" and p.promised_date == today_value]
+    upcoming_promises = [p for p in promises if p.status == "pending" and p.promised_date > today_value]
     return render_template(
         "reminders/index.html",
-        items=items,
-        overdue=overdue,
-        due_today=due_today,
-        upcoming=upcoming,
-        reminder_count=len(items),
+        items=items, overdue=overdue, due_today=due_today, upcoming=upcoming,
+        broken_promises=broken_promises, today_promises=today_promises, upcoming_promises=upcoming_promises,
+        reminder_count=len(items) + len(promises),
     )
 
 
@@ -524,6 +652,8 @@ def client_new():
             notes=request.form.get("notes", "").strip(),
         )
         db.session.add(client)
+        db.session.flush()
+        tenant_audit("client.created", "client", client.id, f"Cliente {client.full_name} creado.")
         db.session.commit()
         flash("Cliente creado.", "success")
         return redirect(url_for("main.clients"))
@@ -536,6 +666,7 @@ def client_new():
 def client_edit(client_id):
     client = scoped_client(client_id)
     if request.method == "POST":
+        before = {"full_name": client.full_name, "phone": client.phone, "email": client.email, "document_id": client.document_id, "address": client.address}
         full_name = request.form.get("full_name", "").strip()
         if len(full_name) < 2:
             flash("Escribe el nombre del cliente.", "error")
@@ -546,11 +677,207 @@ def client_edit(client_id):
         client.document_id = request.form.get("document_id", "").strip()
         client.address = request.form.get("address", "").strip()
         client.notes = request.form.get("notes", "").strip()
+        tenant_audit(
+            "client.updated", "client", client.id, f"Cliente {client.full_name} actualizado.",
+            json.dumps({"before": before, "after": {"full_name": client.full_name, "phone": client.phone, "email": client.email, "document_id": client.document_id, "address": client.address}}, ensure_ascii=False),
+        )
         db.session.commit()
         flash("Cliente actualizado.", "success")
         return redirect(url_for("main.clients"))
     return render_template("clients/form.html", client=client)
 
+
+@main_bp.get("/clients/<int:client_id>")
+@login_required
+def client_detail(client_id):
+    client = scoped_client(client_id)
+    sync_payment_promises(commit=True)
+    changed = False
+    for contract in client.contracts:
+        changed = sync_contract_late_fees(contract, commit=False) or changed
+    if changed:
+        db.session.commit()
+
+    contracts = sorted(client.contracts, key=lambda item: item.created_at or datetime.min, reverse=True)
+    payments = sorted(
+        [payment for contract in contracts for payment in contract.payments],
+        key=lambda item: item.paid_at or datetime.min,
+        reverse=True,
+    )
+    active = [contract for contract in contracts if contract.status == "active"]
+    balance = sum((contract.balance for contract in active), Decimal("0.00"))
+    paid = sum((contract.paid_total for contract in contracts), Decimal("0.00"))
+    today_value = local_today()
+    overdue = [
+        installment for contract in active for installment in contract.installments
+        if installment.remaining > Decimal("0.009") and installment.due_date < today_value
+    ]
+    promises = PaymentPromise.query.filter_by(
+        organization_id=current_user.organization_id, client_id=client.id
+    ).order_by(PaymentPromise.promised_date.desc(), PaymentPromise.created_at.desc()).all()
+    notes = CollectionNote.query.filter_by(
+        organization_id=current_user.organization_id, client_id=client.id
+    ).order_by(CollectionNote.created_at.desc()).all()
+    actor_ids = {
+        actor_id
+        for actor_id in (
+            [item.created_by_user_id for item in notes]
+            + [item.created_by_user_id for item in promises]
+            + [item.created_by_user_id for item in payments]
+            + [change.created_by_user_id for contract in contracts for change in contract.schedule_changes]
+        )
+        if actor_id
+    }
+    actors = {user.id: user.name for user in User.query.filter(User.id.in_(actor_ids)).all()} if actor_ids else {}
+
+    timeline = []
+    for contract in contracts:
+        timeline.append({
+            "kind": "agreement", "title": f"Acuerdo {contract.code}", "detail": contract.asset.name,
+            "amount": money_decimal(contract.total_amount), "date": contract.created_at,
+            "url": url_for("main.contract_detail", contract_id=contract.id),
+        })
+        for payment in contract.payments:
+            timeline.append({
+                "kind": "payment", "title": "Abono" if payment.payment_kind == "advance" else "Pago",
+                "detail": f"{contract.code} · {payment_method_label(payment.method)}",
+                "amount": money_decimal(payment.amount), "date": payment.paid_at,
+                "url": url_for("main.payment_receipt", payment_id=payment.id),
+            })
+        for change in contract.schedule_changes:
+            timeline.append({
+                "kind": "schedule", "title": "Cuotas reprogramadas",
+                "detail": f"{contract.code} · {change.new_open_count} cuota(s) · {change.reason or 'Sin nota'}",
+                "amount": None, "date": change.created_at,
+                "url": url_for("main.contract_detail", contract_id=contract.id),
+            })
+    for promise in promises:
+        timeline.append({
+            "kind": "promise", "title": "Promesa de pago",
+            "detail": f"{promise.promised_date.strftime('%d/%m/%Y')} · {promise.status}",
+            "amount": money_decimal(promise.amount), "date": promise.created_at, "url": None,
+        })
+    for note in notes:
+        timeline.append({
+            "kind": "note", "title": "Nota de cobranza", "detail": note.body,
+            "amount": None, "date": note.created_at, "url": None,
+        })
+    timeline.sort(key=lambda item: item["date"] or datetime.min, reverse=True)
+
+    return render_template(
+        "clients/detail.html", client=client, contracts=contracts, payments=payments, promises=promises,
+        notes=notes, timeline=timeline[:40], actors=actors, risk=client_risk_summary(client), balance=balance, paid=paid,
+        overdue_count=len(overdue), active_count=len(active),
+    )
+
+
+@main_bp.post("/clients/<int:client_id>/notes")
+@login_required
+def client_note_add(client_id):
+    client = scoped_client(client_id)
+    body = (request.form.get("body") or "").strip()
+    if len(body) < 2:
+        flash("Escribe una nota de cobranza.", "error")
+        return redirect(url_for("main.client_detail", client_id=client.id, _anchor="notes"))
+    contract_id = parse_int(request.form.get("contract_id"))
+    contract = None
+    if contract_id:
+        contract = Contract.query.filter_by(
+            id=contract_id, organization_id=current_user.organization_id, client_id=client.id
+        ).first()
+        if contract is None:
+            abort(400)
+    note = CollectionNote(
+        organization_id=current_user.organization_id, client_id=client.id,
+        contract_id=contract.id if contract else None, body=body[:2000],
+        created_by_user_id=current_user.id,
+    )
+    db.session.add(note)
+    db.session.flush()
+    tenant_audit("client.note_added", "client", client.id, f"Nota de cobranza agregada a {client.full_name}.", body[:500])
+    db.session.commit()
+    flash("Nota guardada.", "success")
+    return redirect(url_for("main.client_detail", client_id=client.id, _anchor="notes"))
+
+
+@main_bp.post("/clients/<int:client_id>/promises")
+@login_required
+def client_promise_add(client_id):
+    client = scoped_client(client_id)
+    promised_date = parse_date(request.form.get("promised_date"))
+    amount = parse_money(request.form.get("amount"))
+    contract_id = parse_int(request.form.get("contract_id"))
+    if promised_date is None or amount is None or amount <= 0:
+        flash("Indica fecha y monto válidos para la promesa.", "error")
+        return redirect(url_for("main.client_detail", client_id=client.id, _anchor="promises"))
+    contract = None
+    if contract_id:
+        contract = Contract.query.filter_by(
+            id=contract_id, organization_id=current_user.organization_id, client_id=client.id
+        ).first()
+        if contract is None:
+            abort(400)
+    promise = PaymentPromise(
+        organization_id=current_user.organization_id, client_id=client.id,
+        contract_id=contract.id if contract else None, promised_date=promised_date, amount=amount,
+        note=(request.form.get("note") or "").strip()[:240], created_by_user_id=current_user.id,
+    )
+    db.session.add(promise)
+    db.session.flush()
+    tenant_audit(
+        "promise.created", "payment_promise", promise.id,
+        f"Promesa de {format_money(amount)} para {client.full_name} el {promised_date.strftime('%d/%m/%Y')}.",
+    )
+    db.session.commit()
+    flash("Promesa de pago registrada.", "success")
+    return redirect(url_for("main.client_detail", client_id=client.id, _anchor="promises"))
+
+
+@main_bp.post("/promises/<int:promise_id>/status")
+@login_required
+def promise_status(promise_id):
+    promise = scoped_promise(promise_id)
+    status = (request.form.get("status") or "").strip()
+    if status not in {"pending", "fulfilled", "broken"}:
+        abort(400)
+    promise.status = status
+    if status == "fulfilled":
+        promise.fulfilled_at = datetime.utcnow()
+    elif status != "fulfilled":
+        promise.fulfilled_at = None
+        promise.fulfilled_payment_id = None
+    tenant_audit(
+        "promise.status_changed", "payment_promise", promise.id,
+        f"Promesa de {promise.client.full_name} marcada como {status}.",
+    )
+    db.session.commit()
+    flash("Promesa actualizada.", "success")
+    return redirect(url_for("main.client_detail", client_id=promise.client_id, _anchor="promises"))
+
+
+@main_bp.get("/clients/<int:client_id>/statement")
+@login_required
+def client_statement(client_id):
+    client = scoped_client(client_id)
+    sync_payment_promises(commit=True)
+    for contract in client.contracts:
+        sync_contract_late_fees(contract, commit=False)
+    db.session.commit()
+    contracts = sorted(client.contracts, key=lambda item: item.created_at or datetime.min, reverse=True)
+    active = [item for item in contracts if item.status == "active"]
+    payments = sorted([p for c in contracts for p in c.payments], key=lambda p: p.paid_at, reverse=True)
+    totals = {
+        "agreed": sum((money_decimal(c.total_amount) for c in contracts), Decimal("0.00")),
+        "paid": sum((c.paid_total for c in contracts), Decimal("0.00")),
+        "balance": sum((c.balance for c in active), Decimal("0.00")),
+        "late_fee": sum((c.late_fee_balance for c in active), Decimal("0.00")),
+    }
+    next_items = [c.next_installment for c in active if c.next_installment]
+    next_item = min(next_items, key=lambda item: item.due_date) if next_items else None
+    return render_template(
+        "clients/statement.html", client=client, contracts=contracts, payments=payments[:20],
+        totals=totals, next_item=next_item, risk=client_risk_summary(client),
+    )
 
 
 @main_bp.get("/assets/<int:asset_id>/image")
@@ -1194,6 +1521,10 @@ def contract_new():
         if total - down <= Decimal("0.009"):
             contract.status = "completed"
         refresh_asset_status(asset)
+        tenant_audit(
+            "contract.created", "contract", contract.id,
+            f"Acuerdo {contract.code} creado para {client.full_name} por {format_money(total)}.",
+        )
         db.session.commit()
         flash("Listo. Acuerdo creado, ganancia y cuotas calculadas.", "success")
         return redirect(url_for("main.contract_detail", contract_id=contract.id))
@@ -1235,11 +1566,120 @@ def contract_enable_late_fee(contract_id):
 
     contract.daily_late_interest = daily_amount
     contract.late_fee_started_on = local_today()
+    tenant_audit(
+        "contract.late_fee_enabled", "contract", contract.id,
+        f"Mora de {format_money(daily_amount)} por día activada en {contract.code}.",
+    )
     db.session.commit()
     flash(
         f"Mora de {format_money(daily_amount)} por día activada desde hoy. No se cobraron días anteriores.",
         "success",
     )
+    return redirect(url_for("main.contract_detail", contract_id=contract.id))
+
+
+@main_bp.post("/contracts/<int:contract_id>/reschedule")
+@login_required
+def contract_reschedule(contract_id):
+    contract = scoped_contract(contract_id)
+    if contract.status != "active":
+        flash("Solo puedes reprogramar un acuerdo activo.", "error")
+        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+
+    new_first_due = parse_date(request.form.get("first_due_date"))
+    frequency = (request.form.get("frequency") or contract.frequency).strip()
+    count = parse_int(request.form.get("installment_count"), minimum=1)
+    reason = (request.form.get("reason") or "").strip()[:240]
+    if frequency not in {"weekly", "biweekly", "monthly"}:
+        frequency = contract.frequency
+    if new_first_due is None or new_first_due < local_today():
+        flash("La nueva primera fecha debe ser hoy o una fecha futura.", "error")
+        return redirect(url_for("main.contract_detail", contract_id=contract.id, _anchor="manage"))
+    if count is None or count > 120:
+        flash("Selecciona entre 1 y 120 cuotas pendientes.", "error")
+        return redirect(url_for("main.contract_detail", contract_id=contract.id, _anchor="manage"))
+
+    open_items = [item for item in contract.installments if not item.is_paid]
+    if not open_items:
+        flash("Este acuerdo no tiene cuotas pendientes para reprogramar.", "error")
+        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+
+    pending_principal = money_decimal(contract.principal_balance)
+    pending_late_fee = sum((item.late_fee_remaining for item in open_items), Decimal("0.00"))
+    old_next_due = min((item.due_date for item in open_items), default=None)
+    snapshot = [
+        {
+            "sequence": item.sequence,
+            "due_date": item.due_date.isoformat(),
+            "amount": str(money_decimal(item.amount)),
+            "paid_amount": str(money_decimal(item.paid_amount)),
+            "late_fee_amount": str(money_decimal(item.late_fee_amount)),
+            "late_fee_base_amount": str(money_decimal(getattr(item, "late_fee_base_amount", 0))),
+            "late_fee_paid": str(money_decimal(item.late_fee_paid)),
+        }
+        for item in open_items
+    ]
+
+    old_ids = [item.id for item in open_items if item.id is not None]
+    if old_ids:
+        PushNotificationLog.query.filter(PushNotificationLog.installment_id.in_(old_ids)).delete(synchronize_session=False)
+    for item in open_items:
+        db.session.delete(item)
+    db.session.flush()
+
+    paid_sequences = [item.sequence for item in contract.installments if item.is_paid]
+    next_sequence = max(paid_sequences, default=0) + 1
+    total_cents = int((pending_principal * 100).to_integral_value(rounding=ROUND_HALF_UP))
+    if total_cents > 0 and count > total_cents:
+        count = total_cents
+    if total_cents <= 0:
+        count = 1
+    base_cents, extra_cents = divmod(total_cents, count) if count else (0, 0)
+    due = new_first_due
+    new_items = []
+    for offset in range(count):
+        cents = base_cents + (1 if offset < extra_cents else 0)
+        item = Installment(
+            sequence=next_sequence + offset,
+            due_date=due,
+            amount=Decimal(cents) / Decimal("100"),
+            paid_amount=Decimal("0.00"),
+            late_fee_amount=(money_decimal(pending_late_fee) if offset == 0 else Decimal("0.00")),
+            late_fee_base_amount=(money_decimal(pending_late_fee) if offset == 0 else Decimal("0.00")),
+            late_fee_paid=Decimal("0.00"),
+        )
+        contract.installments.append(item)
+        new_items.append(item)
+        due = advance_due(due, frequency)
+
+    old_frequency = contract.frequency
+    contract.frequency = frequency
+    contract.first_due_date = new_first_due
+    contract.installment_amount = money_decimal(new_items[0].amount) if new_items else Decimal("0.00")
+
+    change = ContractScheduleChange(
+        organization_id=current_user.organization_id, contract=contract, created_by_user_id=current_user.id,
+        reason=reason, old_frequency=old_frequency, new_frequency=frequency,
+        old_next_due_date=old_next_due, new_next_due_date=new_first_due,
+        old_open_count=len(open_items), new_open_count=len(new_items),
+        pending_principal=pending_principal, pending_late_fee=money_decimal(pending_late_fee),
+        snapshot=json.dumps(snapshot, ensure_ascii=False),
+    )
+    db.session.add(change)
+    db.session.flush()
+    tenant_audit(
+        "contract.rescheduled", "contract", contract.id,
+        f"Acuerdo {contract.code} reprogramado a {len(new_items)} cuota(s).",
+        json.dumps({
+            "old_next_due": old_next_due.isoformat() if old_next_due else None,
+            "new_next_due": new_first_due.isoformat(),
+            "old_frequency": old_frequency, "new_frequency": frequency,
+            "pending_principal": str(pending_principal), "pending_late_fee": str(pending_late_fee),
+            "reason": reason,
+        }, ensure_ascii=False),
+    )
+    db.session.commit()
+    flash(f"Cuotas reprogramadas. El saldo quedó distribuido en {len(new_items)} cuota(s).", "success")
     return redirect(url_for("main.contract_detail", contract_id=contract.id))
 
 
@@ -1256,6 +1696,10 @@ def contract_delete(contract_id):
             PushNotificationLog.query.filter(
                 PushNotificationLog.installment_id.in_(installment_ids)
             ).delete(synchronize_session=False)
+        tenant_audit(
+            "contract.deleted", "contract", contract.id,
+            f"Acuerdo {contract.code} de {contract.client.full_name} eliminado.",
+        )
         db.session.delete(contract)
         db.session.flush()
         # Reload the relationship after the delete so stock/status are computed
@@ -1291,8 +1735,9 @@ def contract_pay(contract_id):
         return redirect(url_for("main.contract_detail", contract_id=contract.id))
 
     method = request.form.get("method", "cash")
-    if method not in {"cash", "transfer", "card", "other"}:
+    if method not in {"cash", "transfer", "deposit", "card", "other"}:
         method = "other"
+    reference = (request.form.get("reference") or "").strip()[:120]
 
     now_value = datetime.utcnow()
     try:
@@ -1336,15 +1781,43 @@ def contract_pay(contract_id):
         amount=amount,
         late_fee_amount=money_decimal(interest_applied_total),
         method=method,
+        reference=reference,
+        payment_kind=payment_kind,
+        created_by_user_id=current_user.id,
         note=payment_note,
         paid_at=now_value,
     )
     db.session.add(payment)
+    db.session.flush()
+    payment.receipt_code = f"CGP-{current_user.organization_id}-{payment.id:06d}"
+
+    # A payment that covers a due promise closes the oldest applicable promise automatically.
+    pending_promises = (
+        PaymentPromise.query.filter_by(
+            organization_id=current_user.organization_id, contract_id=contract.id, status="pending"
+        )
+        .filter(PaymentPromise.promised_date <= local_today())
+        .order_by(PaymentPromise.promised_date.asc(), PaymentPromise.id.asc())
+        .all()
+    )
+    remaining_for_promises = amount
+    for promise in pending_promises:
+        if remaining_for_promises + Decimal("0.009") < money_decimal(promise.amount):
+            continue
+        promise.status = "fulfilled"
+        promise.fulfilled_payment_id = payment.id
+        promise.fulfilled_at = now_value
+        remaining_for_promises -= money_decimal(promise.amount)
 
     projected_balance = balance_before - amount
     if projected_balance <= Decimal("0.009"):
         contract.status = "completed"
     refresh_asset_status(contract.asset)
+    tenant_audit(
+        "payment.created", "payment", payment.id,
+        f"{('Abono' if payment_kind == 'advance' else 'Pago')} de {format_money(amount)} en {contract.code}.",
+        json.dumps({"method": method, "reference": reference, "late_fee": str(interest_applied_total)}, ensure_ascii=False),
+    )
 
     db.session.commit()
     action_label = "Abono" if payment_kind == "advance" else "Pago"
@@ -1352,7 +1825,22 @@ def contract_pay(contract_id):
     next_url = request.form.get("next", "").strip()
     if next_url.startswith("/") and not next_url.startswith("//"):
         return redirect(next_url)
+    if request.form.get("show_receipt") == "1":
+        return redirect(url_for("main.payment_receipt", payment_id=payment.id))
     return redirect(url_for("main.contract_detail", contract_id=contract.id))
+
+
+@main_bp.get("/payments/<int:payment_id>/receipt")
+@login_required
+def payment_receipt(payment_id):
+    payment = scoped_payment(payment_id)
+    contract = payment.contract
+    receipt_code = payment.receipt_code or f"CGP-{contract.organization_id}-{payment.id:06d}"
+    registered_by = db.session.get(User, payment.created_by_user_id) if payment.created_by_user_id else None
+    return render_template(
+        "collections/receipt.html", payment=payment, contract=contract, receipt_code=receipt_code,
+        whatsapp_url=receipt_whatsapp_link(payment), registered_by=registered_by,
+    )
 
 
 @main_bp.get("/collections")
@@ -1420,6 +1908,88 @@ def payment_calendar():
         calendar_events=calendar_events,
         calendar_clients=calendar_clients,
     )
+
+
+@main_bp.route("/expenses", methods=["GET", "POST"])
+@login_required
+def expenses():
+    if request.method == "POST":
+        expense_date = parse_date(request.form.get("expense_date")) or local_today()
+        amount = parse_money(request.form.get("amount"))
+        category = (request.form.get("category") or "other").strip()
+        method = (request.form.get("method") or "cash").strip()
+        allowed_categories = {"fuel", "rent", "payroll", "repair", "transport", "services", "supplies", "other"}
+        if category not in allowed_categories:
+            category = "other"
+        if method not in {"cash", "transfer", "deposit", "card", "other"}:
+            method = "other"
+        if amount is None or amount <= 0:
+            flash("Escribe un monto de gasto válido.", "error")
+            return redirect(url_for("main.expenses"))
+        expense = Expense(
+            organization_id=current_user.organization_id, expense_date=expense_date, category=category, amount=amount,
+            method=method, reference=(request.form.get("reference") or "").strip()[:120],
+            note=(request.form.get("note") or "").strip()[:240], created_by_user_id=current_user.id,
+        )
+        db.session.add(expense)
+        db.session.flush()
+        tenant_audit(
+            "expense.created", "expense", expense.id,
+            f"Gasto de {format_money(amount)} · {expense_category_label(category)}.",
+            json.dumps({"method": method, "date": expense_date.isoformat(), "reference": expense.reference}, ensure_ascii=False),
+        )
+        db.session.commit()
+        flash("Gasto registrado.", "success")
+        return redirect(url_for("main.expenses"))
+
+    period = (request.args.get("period") or "month").strip().lower()
+    today_value = local_today()
+    if period == "today":
+        start = today_value
+    elif period == "7d":
+        start = today_value - timedelta(days=6)
+    elif period == "all":
+        start = None
+    else:
+        period = "month"
+        start = today_value.replace(day=1)
+    query = Expense.query.filter_by(organization_id=current_user.organization_id)
+    if start:
+        query = query.filter(Expense.expense_date >= start)
+    rows = query.order_by(Expense.expense_date.desc(), Expense.created_at.desc()).all()
+    total = sum((money_decimal(item.amount) for item in rows), Decimal("0.00"))
+    category_totals = {}
+    for item in rows:
+        category_totals[item.category] = category_totals.get(item.category, Decimal("0.00")) + money_decimal(item.amount)
+    top_categories = sorted(category_totals.items(), key=lambda pair: pair[1], reverse=True)[:5]
+    return render_template(
+        "expenses/index.html", expenses=rows, total=total, period=period, top_categories=top_categories, today_value=today_value,
+    )
+
+
+@main_bp.post("/expenses/<int:expense_id>/delete")
+@login_required
+def expense_delete(expense_id):
+    expense = Expense.query.filter_by(id=expense_id, organization_id=current_user.organization_id).first_or_404()
+    summary = f"Gasto de {format_money(expense.amount)} · {expense_category_label(expense.category)} eliminado."
+    tenant_audit("expense.deleted", "expense", expense.id, summary)
+    db.session.delete(expense)
+    db.session.commit()
+    flash("Gasto eliminado.", "success")
+    return redirect(url_for("main.expenses"))
+
+
+@main_bp.get("/audit")
+@login_required
+def audit_log():
+    if getattr(current_user, "role", "") not in {"owner", "admin"}:
+        abort(403)
+    logs = TenantAuditLog.query.filter_by(organization_id=current_user.organization_id).order_by(
+        TenantAuditLog.created_at.desc()
+    ).limit(250).all()
+    actor_ids = {log.actor_user_id for log in logs if log.actor_user_id}
+    actors = {user.id: user.name for user in User.query.filter(User.id.in_(actor_ids)).all()} if actor_ids else {}
+    return render_template("settings/audit.html", logs=logs, actors=actors)
 
 
 @main_bp.get("/reports")
@@ -1522,6 +2092,16 @@ def reports():
         + sum((money_decimal(contract.down_payment) for contract in period_down_payments), Decimal("0.00"))
     )
     period_payment_count = len(period_payments) + len(period_down_payments)
+    payment_method_totals = {key: Decimal("0.00") for key in ("cash", "transfer", "deposit", "card", "other")}
+    for payment in period_payments:
+        key = payment.method if payment.method in payment_method_totals else "other"
+        payment_method_totals[key] += money_decimal(payment.amount)
+    down_payment_total = sum((money_decimal(contract.down_payment) for contract in period_down_payments), Decimal("0.00"))
+
+    expense_rows = Expense.query.filter_by(organization_id=org_id).all()
+    period_expenses = [item for item in expense_rows if date_in_period(item.expense_date)]
+    expenses_period_total = sum((money_decimal(item.amount) for item in period_expenses), Decimal("0.00"))
+    cash_flow_net = period_collected - expenses_period_total
 
     financed_total = sum((money_decimal(contract.total_amount) for contract in contracts_scope), Decimal("0.00"))
     profit_contracts = [
@@ -1629,7 +2209,7 @@ def reports():
                 "url": url_for("main.contract_detail", contract_id=contract.id),
             })
         for payment in contract.payments:
-            payment_label = "Abono" if (payment.note or "").strip().casefold() == "abono" else "Pago"
+            payment_label = "Abono" if payment.payment_kind == "advance" else "Pago"
             recent_activity.append({
                 "kind": "payment",
                 "label": payment_label,
@@ -1639,6 +2219,18 @@ def reports():
                 "timestamp": payment.paid_at,
                 "amount": money_decimal(payment.amount),
                 "url": url_for("main.contract_detail", contract_id=contract.id, _anchor="pay"),
+            })
+    if not selected_client_id:
+        for expense in period_expenses:
+            recent_activity.append({
+                "kind": "expense",
+                "label": "Gasto",
+                "client": expense_category_label(expense.category),
+                "detail": expense.note or payment_method_label(expense.method),
+                "date": expense.expense_date.strftime("%d/%m/%Y"),
+                "timestamp": expense.created_at or datetime.combine(expense.expense_date, datetime.min.time()),
+                "amount": money_decimal(expense.amount),
+                "url": url_for("main.expenses"),
             })
     recent_activity.sort(key=lambda item: item["timestamp"], reverse=True)
     recent_activity = recent_activity[:8]
@@ -1659,6 +2251,10 @@ def reports():
         upcoming_total=upcoming_total,
         period_collected=period_collected,
         period_payment_count=period_payment_count,
+        payment_method_totals=payment_method_totals,
+        down_payment_total=down_payment_total,
+        expenses_period_total=expenses_period_total,
+        cash_flow_net=cash_flow_net,
         financed_total=financed_total,
         capital_total=capital_total,
         capital_recovered=capital_recovered,

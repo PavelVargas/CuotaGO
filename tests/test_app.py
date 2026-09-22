@@ -8,8 +8,9 @@ import pytest
 from cuotago import create_app
 from cuotago.extensions import db
 from cuotago.models import (
-    AdminAuditLog, Asset, Client, Contract, Installment, Organization, OrganizationSubscription,
-    Purchase, PushNotificationLog, PushSubscription, SubscriptionPayment, SubscriptionPlan, Supplier, User,
+    AdminAuditLog, Asset, Client, CollectionNote, Contract, ContractScheduleChange, Expense, Installment,
+    Organization, OrganizationSubscription, Payment, PaymentPromise, Purchase, PushNotificationLog,
+    PushSubscription, SubscriptionPayment, SubscriptionPlan, Supplier, TenantAuditLog, User,
 )
 
 
@@ -911,8 +912,8 @@ def test_reminders_v20_compacts_dashboard_and_adds_dedicated_view():
     assert 'reminder-v20-row' in reminders
     assert '.home-reminder-button{' in css
     assert '.reminders-page-v20{' in css
-    assert '-ui-v32' in base
-    assert "1.14.3-ui-v32" in sw
+    assert '-ui-v33' in base
+    assert "1.15.0-ui-v33" in sw
 
 
 
@@ -928,7 +929,7 @@ def test_overdue_push_repeats_outside_app_without_notification_pileup():
     assert 'Recordatorio de cobro' in push
     assert 'replaceKey' in push
     assert 'getNotifications()' in worker
-    assert "1.14.3-ui-v32" in worker
+    assert "1.15.0-ui-v33" in worker
 
 
 def test_purchase_batch_registers_multiple_items_in_one_submit(client, app):
@@ -1017,3 +1018,79 @@ def test_documents_module_is_present_in_launcher(client):
     html = response.data.decode('utf-8')
     assert html.count('>Documentos</strong>') == 1
     assert '/documents' in html
+
+
+def test_v115_collections_history_promises_receipts_and_expenses_are_wired():
+    from pathlib import Path
+    main = Path('cuotago/main.py').read_text(encoding='utf-8')
+    models = Path('cuotago/models.py').read_text(encoding='utf-8')
+    catalog = Path('cuotago/module_catalog.py').read_text(encoding='utf-8')
+    client_detail = Path('cuotago/templates/clients/detail.html').read_text(encoding='utf-8')
+    contract_detail = Path('cuotago/templates/contracts/detail.html').read_text(encoding='utf-8')
+    reports = Path('cuotago/templates/reports/index.html').read_text(encoding='utf-8')
+
+    assert 'class PaymentPromise' in models
+    assert 'class CollectionNote' in models
+    assert 'class ContractScheduleChange' in models
+    assert 'class Expense' in models
+    assert 'class TenantAuditLog' in models
+    assert '@main_bp.post("/contracts/<int:contract_id>/reschedule")' in main
+    assert '@main_bp.get("/payments/<int:payment_id>/receipt")' in main
+    assert '@main_bp.get("/clients/<int:client_id>/statement")' in main
+    assert '@main_bp.route("/expenses", methods=["GET", "POST"])' in main
+    assert 'Promesas de pago' in client_detail
+    assert 'Notas de cobranza' in client_detail
+    assert 'Reprogramar cuotas' in contract_detail
+    assert 'Entradas y salidas reales' in reports
+    assert '"slug": "expenses"' in catalog
+
+
+def test_payment_can_fulfill_promise_and_generates_receipt(client, app):
+    register(client)
+    start = date.today()
+    response = client.post('/contracts/new', data={
+        'client_name': 'Cliente Promesa', 'client_phone': '8095550909',
+        'asset_name': 'Equipo Promesa', 'asset_kind': 'phone',
+        'deal_type': 'credit_sale', 'total_amount': '10000', 'down_payment': '0',
+        'installment_count': '2', 'installment_amount': '5000', 'frequency': 'monthly',
+        'start_date': start.isoformat(), 'first_due_date': start.isoformat(),
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    with app.app_context():
+        person = Client.query.filter_by(full_name='Cliente Promesa').one()
+        contract = Contract.query.one()
+        person_id, contract_id = person.id, contract.id
+
+    response = client.post(f'/clients/{person_id}/promises', data={
+        'promised_date': start.isoformat(), 'amount': '5000', 'contract_id': str(contract_id), 'note': 'Paga hoy'
+    }, follow_redirects=True)
+    assert response.status_code == 200
+
+    response = client.post(f'/contracts/{contract_id}/pay', data={
+        'amount': '5000', 'method': 'transfer', 'reference': 'TRX-001', 'payment_kind': 'payment', 'show_receipt': '1'
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'Recibo de pago' in response.data or b'RECIBO DE PAGO' in response.data
+    with app.app_context():
+        payment = Payment.query.one()
+        promise = PaymentPromise.query.one()
+        assert payment.receipt_code.startswith('CGP-')
+        assert payment.reference == 'TRX-001'
+        assert promise.status == 'fulfilled'
+        assert promise.fulfilled_payment_id == payment.id
+        assert TenantAuditLog.query.filter_by(action='payment.created').count() == 1
+
+
+def test_expense_enters_cash_flow_report(client, app):
+    register(client)
+    response = client.post('/expenses', data={
+        'expense_date': date.today().isoformat(), 'category': 'fuel', 'amount': '1250', 'method': 'cash', 'note': 'Ruta de cobro'
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'1,250.00' in response.data
+    report = client.get('/reports?period=today')
+    assert report.status_code == 200
+    assert b'Flujo neto' in report.data
+    with app.app_context():
+        assert Expense.query.count() == 1
+        assert TenantAuditLog.query.filter_by(action='expense.created').count() == 1

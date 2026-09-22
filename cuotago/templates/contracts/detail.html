@@ -53,6 +53,7 @@
       <form method="post" action="{{ url_for('main.contract_pay', contract_id=contract.id) }}" class="form-stack quick-payment-form payment-dialog-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="payment_kind" value="payment" data-payment-kind-input>
+        <input type="hidden" name="show_receipt" value="1">
         <label class="field payment-amount-field">
           <span>Monto recibido</span>
           <input class="payment-amount-input" type="number" name="amount" step="0.01" min="0.01" max="{{ contract.balance }}" required value="{{ suggested_payment }}" placeholder="0.00" inputmode="decimal">
@@ -60,11 +61,14 @@
         <div class="payment-method-pills payment-dialog-methods" aria-label="Método de pago">
           <label><input type="radio" name="method" value="cash" checked><span>Efectivo</span></label>
           <label><input type="radio" name="method" value="transfer"><span>Transferencia</span></label>
+          <label><input type="radio" name="method" value="deposit"><span>Depósito</span></label>
           <label><input type="radio" name="method" value="card"><span>Tarjeta</span></label>
+          <label><input type="radio" name="method" value="other"><span>Otro</span></label>
         </div>
+        <p class="payment-allocation-hint">Si el monto supera una cuota, CuotaGo lo aplica automáticamente a las siguientes. Si es menor, queda como abono parcial.</p>
         <details class="advanced-options small-advanced payment-note-option">
-          <summary>Agregar nota</summary>
-          <div class="advanced-options-body"><label class="field"><input name="note" placeholder="Nota opcional"></label></div>
+          <summary>Referencia o nota</summary>
+          <div class="advanced-options-body payment-extra-grid-v15"><label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="Transferencia, depósito..."></label><label class="field"><span>Nota</span><input name="note" maxlength="240" placeholder="Nota opcional"></label></div>
         </details>
         <div class="payment-dialog-actions">
           <button class="btn btn-secondary" type="button" data-payment-close>Cancelar</button>
@@ -96,7 +100,7 @@
     <div class="advanced-options-body">
       <dl class="detail-dl">
         <div><dt>Tipo</dt><dd>{{ deal_type_label(contract.deal_type) }}</dd></div>
-        <div><dt>Cliente</dt><dd>{{ contract.client.full_name }}</dd></div>
+        <div><dt>Cliente</dt><dd><a class="text-link" href="{{ url_for('main.client_detail', client_id=contract.client.id) }}">{{ contract.client.full_name }}</a></dd></div>
         <div><dt>Teléfono</dt><dd>{{ contract.client.phone or '—' }}</dd></div>
         <div><dt>Bien</dt><dd>{{ contract.asset.name }}</dd></div>
         <div><dt>Cantidad entregada</dt><dd>{{ contract.quantity }}</dd></div>
@@ -117,7 +121,14 @@
   {% if contract.payments %}
   <details class="surface advanced-options detail-more">
     <summary>Historial de pagos ({{ contract.payments|length }})</summary>
-    <div class="advanced-options-body payment-history">{% for payment in contract.payments[:12] %}<div><span><strong>{{ money(payment.amount) }}</strong><small>{{ payment.method|capitalize }}{% if payment.note %} · {{ payment.note }}{% endif %}{% if payment.late_fee_amount > 0 %} · {{ money(payment.late_fee_amount) }} interés{% endif %}</small></span><time>{{ payment.paid_at.strftime('%d/%m/%Y') }}</time></div>{% endfor %}</div>
+    <div class="advanced-options-body payment-history">{% for payment in contract.payments[:12] %}<div><span><strong>{{ money(payment.amount) }}</strong><small>{{ payment_method_label(payment.method) }}{% if payment.reference %} · Ref. {{ payment.reference }}{% endif %}{% if payment.note %} · {{ payment.note }}{% endif %}{% if payment.late_fee_amount > 0 %} · {{ money(payment.late_fee_amount) }} interés{% endif %}</small></span><span class="payment-history-actions-v15"><a class="text-link" href="{{ url_for('main.payment_receipt', payment_id=payment.id) }}">Recibo</a><time>{{ payment.paid_at.strftime('%d/%m/%Y') }}</time></span></div>{% endfor %}</div>
+  </details>
+  {% endif %}
+
+  {% if contract.schedule_changes %}
+  <details class="surface advanced-options detail-more">
+    <summary>Reprogramaciones ({{ contract.schedule_changes|length }})</summary>
+    <div class="advanced-options-body schedule-change-list-v15">{% for change in contract.schedule_changes[:8] %}<div><span><strong>{{ change.new_open_count }} cuota{{ 's' if change.new_open_count != 1 }}</strong><small>{{ frequency_label(change.new_frequency) }} · desde {{ change.new_next_due_date.strftime('%d/%m/%Y') }}{% if change.reason %} · {{ change.reason }}{% endif %}</small></span><time>{{ change.created_at.strftime('%d/%m/%Y') }}</time></div>{% endfor %}</div>
   </details>
   {% endif %}
 
@@ -137,12 +148,37 @@
         <button class="btn btn-secondary btn-sm" type="button" data-contract-dialog-open="lateFeeDialog">Agregar mora</button>
         {% endif %}
       </div>
+      {% if contract.status == 'active' and contract.next_installment %}
+      <div class="agreement-management-row" id="manage">
+        <div><strong>Reprogramar cuotas</strong><small>Cambia próxima fecha, frecuencia y cantidad de cuotas. Los pagos ya hechos se conservan.</small></div>
+        <button class="btn btn-secondary btn-sm" type="button" data-contract-dialog-open="rescheduleDialog">Reprogramar</button>
+      </div>
+      {% endif %}
       <div class="agreement-management-row danger-row">
         <div><strong>Eliminar acuerdo</strong><small>Elimina sus cuotas y pagos. El cliente y el producto permanecen guardados.</small></div>
         <button class="btn btn-danger-soft btn-sm" type="button" data-contract-dialog-open="deleteContractDialog">Eliminar</button>
       </div>
     </div>
   </details>
+
+  {% if contract.status == 'active' and contract.next_installment %}
+  <dialog class="payment-dialog compact-contract-dialog" id="rescheduleDialog" aria-labelledby="rescheduleDialogTitle">
+    <div class="payment-dialog-sheet">
+      <div class="payment-dialog-handle" aria-hidden="true"></div>
+      <div class="payment-dialog-head"><div><span class="eyebrow">REPROGRAMAR</span><h2 id="rescheduleDialogTitle">Nuevas cuotas</h2><p>Se conserva todo lo pagado y cualquier mora pendiente.</p></div><button class="payment-dialog-close" type="button" data-contract-dialog-close aria-label="Cerrar">×</button></div>
+      <form method="post" action="{{ url_for('main.contract_reschedule', contract_id=contract.id) }}" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="reschedule-grid-v15">
+          <label class="field"><span>Próxima fecha</span><input type="date" name="first_due_date" min="{{ today.isoformat() }}" value="{{ contract.next_installment.due_date.isoformat() if contract.next_installment.due_date >= today else today.isoformat() }}" required></label>
+          <label class="field"><span>Frecuencia</span><select name="frequency"><option value="weekly" {{ 'selected' if contract.frequency=='weekly' }}>Semanal</option><option value="biweekly" {{ 'selected' if contract.frequency=='biweekly' }}>Quincenal</option><option value="monthly" {{ 'selected' if contract.frequency=='monthly' }}>Mensual</option></select></label>
+          <label class="field"><span>Cuotas pendientes</span><input type="number" name="installment_count" min="1" max="120" value="{{ contract.installments|rejectattr('is_paid')|list|length }}" required></label>
+          <label class="field"><span>Motivo</span><input name="reason" maxlength="240" placeholder="Ej. ajuste acordado con el cliente"></label>
+        </div>
+        <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>Cancelar</button><button class="btn btn-primary" type="submit">Guardar nueva programación</button></div>
+      </form>
+    </div>
+  </dialog>
+  {% endif %}
 
   {% if contract.status == 'active' and contract.daily_late_interest <= 0 %}
   <dialog class="payment-dialog compact-contract-dialog" id="lateFeeDialog" aria-labelledby="lateFeeDialogTitle">

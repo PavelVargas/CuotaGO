@@ -48,6 +48,14 @@
     </div>
   </section>
 
+  {% if current_user.role in ['owner', 'admin'] %}
+  <a class="surface settings-audit-link-v15" href="{{ url_for('main.audit_log') }}">
+    <span class="settings-row-icon">{{ icon('shield',20) }}</span>
+    <span><strong>Auditoría</strong><small>Revisa pagos, acuerdos, promesas, reprogramaciones y gastos.</small></span>
+    <b>›</b>
+  </a>
+  {% endif %}
+
   <form method="post" class="surface settings-account-card">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="settings-section-heading">

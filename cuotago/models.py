@@ -187,6 +187,12 @@ class Client(db.Model):
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
 
     contracts = db.relationship("Contract", back_populates="client")
+    collection_notes = db.relationship(
+        "CollectionNote", back_populates="client", cascade="all, delete-orphan", order_by="CollectionNote.created_at.desc()"
+    )
+    payment_promises = db.relationship(
+        "PaymentPromise", back_populates="client", cascade="all, delete-orphan", order_by="PaymentPromise.promised_date.desc()"
+    )
 
 
 class Supplier(db.Model):
@@ -343,6 +349,12 @@ class Contract(db.Model):
         cascade="all, delete-orphan",
         order_by="Payment.paid_at.desc()",
     )
+    payment_promises = db.relationship(
+        "PaymentPromise", back_populates="contract", cascade="all, delete-orphan", order_by="PaymentPromise.promised_date.desc()"
+    )
+    schedule_changes = db.relationship(
+        "ContractScheduleChange", back_populates="contract", cascade="all, delete-orphan", order_by="ContractScheduleChange.created_at.desc()"
+    )
 
     @property
     def profit_amount(self):
@@ -410,6 +422,7 @@ class Installment(db.Model):
     amount = db.Column(db.Numeric(12, 2), nullable=False)
     paid_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     late_fee_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    late_fee_base_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     late_fee_paid = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     principal_paid_at = db.Column(db.DateTime)
     paid_at = db.Column(db.DateTime)
@@ -451,10 +464,100 @@ class Payment(db.Model):
     amount = db.Column(db.Numeric(12, 2), nullable=False)
     late_fee_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     method = db.Column(db.String(30), nullable=False, default="cash")
+    reference = db.Column(db.String(120))
+    payment_kind = db.Column(db.String(24), nullable=False, default="payment")
+    receipt_code = db.Column(db.String(60), unique=True, index=True)
+    created_by_user_id = db.Column(db.Integer, nullable=True, index=True)
     note = db.Column(db.String(240))
     paid_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
 
     contract = db.relationship("Contract", back_populates="payments")
+
+
+class CollectionNote(db.Model):
+    __tablename__ = "collection_notes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id", ondelete="CASCADE"), nullable=False, index=True)
+    contract_id = db.Column(db.Integer, db.ForeignKey("contracts.id", ondelete="SET NULL"), nullable=True, index=True)
+    body = db.Column(db.Text, nullable=False)
+    created_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
+
+    client = db.relationship("Client", back_populates="collection_notes")
+
+
+class PaymentPromise(db.Model):
+    __tablename__ = "payment_promises"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id", ondelete="CASCADE"), nullable=False, index=True)
+    contract_id = db.Column(db.Integer, db.ForeignKey("contracts.id", ondelete="CASCADE"), nullable=True, index=True)
+    promised_date = db.Column(db.Date, nullable=False, index=True)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="pending", index=True)
+    note = db.Column(db.String(240))
+    created_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    fulfilled_payment_id = db.Column(db.Integer, nullable=True, index=True)
+    fulfilled_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
+    updated_at = db.Column(db.DateTime, default=now_utc_naive, onupdate=now_utc_naive, nullable=False)
+
+    client = db.relationship("Client", back_populates="payment_promises")
+    contract = db.relationship("Contract", back_populates="payment_promises")
+
+
+class ContractScheduleChange(db.Model):
+    __tablename__ = "contract_schedule_changes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    contract_id = db.Column(db.Integer, db.ForeignKey("contracts.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    reason = db.Column(db.String(240))
+    old_frequency = db.Column(db.String(20))
+    new_frequency = db.Column(db.String(20))
+    old_next_due_date = db.Column(db.Date)
+    new_next_due_date = db.Column(db.Date)
+    old_open_count = db.Column(db.Integer, nullable=False, default=0)
+    new_open_count = db.Column(db.Integer, nullable=False, default=0)
+    pending_principal = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    pending_late_fee = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    snapshot = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
+
+    contract = db.relationship("Contract", back_populates="schedule_changes")
+
+
+class Expense(db.Model):
+    __tablename__ = "expenses"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    expense_date = db.Column(db.Date, nullable=False, default=date.today, index=True)
+    category = db.Column(db.String(60), nullable=False, default="other", index=True)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
+    method = db.Column(db.String(30), nullable=False, default="cash")
+    reference = db.Column(db.String(120))
+    note = db.Column(db.String(240))
+    created_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
+
+
+class TenantAuditLog(db.Model):
+    __tablename__ = "tenant_audit_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    actor_user_id = db.Column(db.Integer, nullable=True, index=True)
+    action = db.Column(db.String(60), nullable=False, index=True)
+    entity_type = db.Column(db.String(40), nullable=False, index=True)
+    entity_id = db.Column(db.String(80))
+    summary = db.Column(db.String(240), nullable=False)
+    detail = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
 
 
 class PushSubscription(db.Model):

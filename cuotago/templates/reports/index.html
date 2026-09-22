@@ -9,7 +9,7 @@
       <div>
         <span class="eyebrow">REPORTES</span>
         <h1>Cómo va el negocio</h1>
-        <p>Lo importante: cobros, cartera, ganancia, mora e inventario.</p>
+        <p>Lo importante: cobros, gastos, flujo de caja, cartera y ganancia.</p>
       </div>
     </div>
   </div>
@@ -67,6 +67,25 @@
       <small>Ganancia esperada: {{ money(profit_expected) }}</small>
     </article>
   </div>
+
+  {% if not selected_client_id %}
+  <section class="surface report-cashflow-v15">
+    <div class="report-section-head-v19"><div><span class="eyebrow">FLUJO DE CAJA · {{ period_label|upper }}</span><h2>Entradas y salidas reales</h2></div><a class="report-inline-link-v20" href="{{ url_for('main.expenses') }}">Ver gastos</a></div>
+    <div class="cashflow-kpis-v15">
+      <div class="success"><span>Entradas</span><strong>{{ money(period_collected) }}</strong></div>
+      <div class="danger"><span>Gastos</span><strong>{{ money(expenses_period_total) }}</strong></div>
+      <div class="{{ 'success' if cash_flow_net >= 0 else 'danger' }}"><span>Flujo neto</span><strong>{{ money(cash_flow_net) }}</strong></div>
+    </div>
+    <div class="payment-method-breakdown-v15">
+      <div><span>Efectivo</span><b>{{ money(payment_method_totals.cash) }}</b></div>
+      <div><span>Transferencia</span><b>{{ money(payment_method_totals.transfer) }}</b></div>
+      <div><span>Depósito</span><b>{{ money(payment_method_totals.deposit) }}</b></div>
+      <div><span>Tarjeta</span><b>{{ money(payment_method_totals.card) }}</b></div>
+      <div><span>Otro</span><b>{{ money(payment_method_totals.other) }}</b></div>
+      <div><span>Iniciales</span><b>{{ money(down_payment_total) }}</b></div>
+    </div>
+  </section>
+  {% endif %}
 
   <div class="report-primary-grid-v19">
     <section class="surface report-panel-v19 report-chart-panel-v19">
@@ -168,7 +187,7 @@
       <div class="report-activity-list-v19">
         {% for item in recent_activity %}
           <a href="{{ item.url }}" class="report-activity-row-v19">
-            <span class="report-activity-icon-v19 {{ item.kind }}">{% if item.kind == 'agreement' %}{{ icon('contract', 18) }}{% else %}{{ icon('cash-stack', 18) }}{% endif %}</span>
+            <span class="report-activity-icon-v19 {{ item.kind }}">{% if item.kind == 'agreement' %}{{ icon('contract', 18) }}{% elif item.kind == 'expense' %}{{ icon('wallet', 18) }}{% else %}{{ icon('cash-stack', 18) }}{% endif %}</span>
             <span class="report-activity-copy-v19"><strong>{{ item.label }} · {{ item.client }}</strong><small>{{ item.detail }} · {{ item.date }}</small></span>
             <b>{{ money(item.amount) }}</b>
           </a>

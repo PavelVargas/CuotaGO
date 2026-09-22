@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
-{% block title %}Recordatorios · {{ app_name }}{% endblock %}
+{% block title %}Agenda de cobranza · {{ app_name }}{% endblock %}
 {% block body_class %}reminders-page-body{% endblock %}
 
 {% macro reminder_rows(rows, state, label) %}
@@ -23,8 +23,8 @@
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
       <div>
-        <h1>Recordatorios</h1>
-        <p>Todo lo que necesita seguimiento, sin cargar la pantalla principal.</p>
+        <h1>Agenda de cobranza</h1>
+        <p>Pagos y promesas que necesitan seguimiento hoy.</p>
       </div>
     </div>
   </div>
@@ -33,13 +33,14 @@
     <span class="reminder-overview-check" aria-hidden="true">✓</span>
     <div class="reminder-overview-copy">
       <span class="eyebrow">RESUMEN</span>
-      <strong>{{ reminder_count }} recordatorio{{ 's' if reminder_count != 1 }}</strong>
-      <small>{% if reminder_count %}Vencidos, cobros de hoy y próximos pagos de los siguientes 7 días.{% else %}No tienes pagos por atender en los próximos 7 días.{% endif %}</small>
+      <strong>{{ reminder_count }} tarea{{ 's' if reminder_count != 1 }}</strong>
+      <small>{% if reminder_count %}Cobros y promesas de pago priorizados para los próximos 7 días.{% else %}No tienes cobros ni promesas por atender en los próximos 7 días.{% endif %}</small>
     </div>
     <div class="reminder-overview-breakdown" aria-label="Resumen de recordatorios">
       <span class="is-overdue"><b>{{ overdue|length }}</b> vencido{{ 's' if overdue|length != 1 }}</span>
       <span class="is-today"><b>{{ due_today|length }}</b> hoy</span>
       <span class="is-upcoming"><b>{{ upcoming|length }}</b> próximo{{ 's' if upcoming|length != 1 }}</span>
+      <span class="is-promise"><b>{{ (broken_promises|length) + (today_promises|length) + (upcoming_promises|length) }}</b> promesa{{ 's' if ((broken_promises|length) + (today_promises|length) + (upcoming_promises|length)) != 1 }}</span>
     </div>
   </section>
 
@@ -64,11 +65,26 @@
       <div class="reminder-v20-list">{{ reminder_rows(upcoming, 'upcoming', 'Próximo') }}</div>
     </section>
     {% endif %}
+
+    {% if broken_promises or today_promises or upcoming_promises %}
+    <section class="reminder-group-v20 agenda-promises-v15">
+      <div class="reminder-group-head-v20"><div><span class="eyebrow">PROMESAS</span><h2>Compromisos del cliente</h2></div><span>{{ (broken_promises|length) + (today_promises|length) + (upcoming_promises|length) }}</span></div>
+      <div class="promise-agenda-list-v15">
+        {% for promise in broken_promises + today_promises + upcoming_promises %}
+        <a class="promise-agenda-row-v15 status-{{ promise.status }}" href="{{ url_for('main.client_detail', client_id=promise.client_id, _anchor='promises') }}">
+          <span class="promise-agenda-date"><strong>{{ promise.promised_date.strftime('%d') }}</strong><small>{{ promise.promised_date.strftime('%b') }}</small></span>
+          <span><strong>{{ promise.client.full_name }}</strong><small>{% if promise.status == 'broken' %}Promesa incumplida{% elif promise.promised_date == today %}Prometió pagar hoy{% else %}Promesa próxima{% endif %}{% if promise.note %} · {{ promise.note }}{% endif %}</small></span>
+          <b>{{ money(promise.amount) }}</b><i>›</i>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
   {% else %}
     <section class="reminders-empty-v20">
       <span class="reminders-empty-check" aria-hidden="true">✓</span>
       <strong>Todo está al día</strong>
-      <p>Cuando haya un pago vencido, para hoy o próximo, aparecerá aquí automáticamente.</p>
+      <p>Cuando haya un pago o una promesa pendiente, aparecerá aquí automáticamente.</p>
       <a class="btn btn-secondary btn-sm" href="{{ url_for('main.collections') }}">Ver cobros</a>
     </section>
   {% endif %}

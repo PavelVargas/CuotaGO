@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Recibo {{ receipt_code }} · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page receipt-page-v15">
+  <div class="page-head no-print">
+    <div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.contract_detail', contract_id=contract.id) }}">{{ icon('back',22) }}</a><div><h1>Pago registrado</h1><p>{{ receipt_code }}</p></div></div>
+    <div class="statement-buttons-v15">{% if whatsapp_url %}<a class="btn btn-whatsapp" target="_blank" rel="noopener" href="{{ whatsapp_url }}">{{ icon('whatsapp',18) }} Enviar</a>{% endif %}<button class="btn btn-primary" onclick="window.print()" type="button">Imprimir / PDF</button></div>
+  </div>
+  <article class="surface printable-document-v15 receipt-document-v15">
+    <header class="receipt-brand-v15"><span class="receipt-check-v15">✓</span><div><span class="eyebrow">RECIBO DE PAGO</span><h1>{{ money(payment.amount) }}</h1><small>{{ receipt_code }}</small></div></header>
+    <dl class="receipt-details-v15">
+      <div><dt>Cliente</dt><dd>{{ contract.client.full_name }}</dd></div>
+      <div><dt>Acuerdo</dt><dd>{{ contract.code }}</dd></div>
+      <div><dt>Artículo</dt><dd>{{ contract.asset.name }}</dd></div>
+      <div><dt>Fecha</dt><dd>{{ payment.paid_at.strftime('%d/%m/%Y %H:%M') }}</dd></div>
+      <div><dt>Método</dt><dd>{{ payment_method_label(payment.method) }}</dd></div>
+      {% if registered_by %}<div><dt>Registrado por</dt><dd>{{ registered_by.name }}</dd></div>{% endif %}
+      {% if payment.reference %}<div><dt>Referencia</dt><dd>{{ payment.reference }}</dd></div>{% endif %}
+      {% if payment.late_fee_amount > 0 %}<div><dt>Incluye mora</dt><dd>{{ money(payment.late_fee_amount) }}</dd></div>{% endif %}
+      <div><dt>Saldo pendiente</dt><dd><strong>{{ money(contract.balance) }}</strong></dd></div>
+    </dl>
+    {% if payment.note %}<div class="note-box">{{ payment.note }}</div>{% endif %}
+    <footer class="print-doc-foot">Gracias por su pago · {{ app_name }}</footer>
+  </article>
+</section>
+{% endblock %}

@@ -151,6 +151,23 @@ MODULE_CATALOG = [
         ],
     },
     {
+        "slug": "expenses",
+        "name": "Gastos",
+        "endpoint": "main.expenses",
+        "icon": "home-expenses",
+        "accent": "accent-rose",
+        "home_description": "Salidas y flujo de caja",
+        "guide_summary": "Registra gastos del negocio y úsalos para calcular el flujo neto real en Reportes.",
+        "guide_steps": [
+            "Abre Gastos y registra monto, fecha, categoría y método de pago.",
+            "Agrega una referencia o concepto cuando necesites identificar el movimiento.",
+            "Revisa Reportes para comparar cobros, gastos y flujo neto.",
+        ],
+        "guide_tips": [
+            "Los gastos no modifican los acuerdos ni el inventario; se usan para controlar las salidas de dinero del negocio.",
+        ],
+    },
+    {
         "slug": "documents",
         "name": "Documentos",
         "endpoint": "main.documents",

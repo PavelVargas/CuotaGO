@@ -1,17 +1,22 @@
-# CuotaGo MOBILE PWA v1.14.3 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.15.0 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
 
 
-## Cambios v1.14.3
+## Cambios v1.15.0
 
-- **Nuevo módulo Documentos:** añade una guía de uso dentro de CuotaGo, accesible desde el launcher principal.
-- **Guía sincronizada con los módulos:** Inicio y Documentos consumen el mismo catálogo interno, evitando que el manual quede desactualizado al ampliar el sistema.
-- **Manual práctico y buscable:** incluye inicio rápido, pasos por módulo, recomendaciones, enlaces directos y buscador por palabras clave.
-- **Launcher mantenible:** los módulos del inicio ya no están duplicados a mano en la plantilla; se generan desde el catálogo central.
-- **PWA:** caché de interfaz actualizada a `1.14.3-ui-v32`.
+- **Expediente del cliente:** nueva vista con acuerdos, pagos, saldo, atrasos, promesas, notas de cobranza y actividad cronológica.
+- **Riesgo de pago:** indicador simple Buen pagador / Atención / Alto riesgo calculado con atrasos y promesas incumplidas.
+- **Promesas de pago + agenda:** registra fecha y monto prometido; las promesas vencidas pasan a incumplidas y aparecen en la Agenda de cobranza.
+- **Reprogramación de cuotas:** cambia próxima fecha, frecuencia y cantidad de cuotas sin borrar pagos realizados; conserva la mora pendiente y guarda el antes/después.
+- **Recibos y estados de cuenta:** recibos numerados, impresión/PDF del navegador y envío de resumen por WhatsApp.
+- **Métodos de pago:** efectivo, transferencia, depósito, tarjeta u otro, con referencia opcional y desglose en Reportes.
+- **Auditoría de empresa:** registra creación/borrado de acuerdos, mora, reprogramaciones, pagos, promesas, notas y gastos con actor, fecha y detalle.
+- **Gastos y flujo de caja:** nuevo módulo de salidas; Reportes calcula entradas, gastos y flujo neto del periodo.
+- **Documentos:** conserva la guía viva sincronizada con el catálogo de módulos y la nueva identidad visual índigo.
+- **PWA:** caché de interfaz actualizada a `1.15.0-ui-v33`.
 
 ## Cambios v1.14.2
 
@@ -82,7 +87,7 @@ Primero ejecuta `COMPROBAR_POSTGRES.bat`. Si muestra PostgreSQL OK, inicia norma
 Esta es la forma más rápida para comenzar.
 
 1. Descomprime el ZIP.
-2. Entra a la carpeta de CuotaGo v1.14.3.
+2. Entra a la carpeta de CuotaGo v1.15.0.
 3. Haz doble clic en `INICIAR_WINDOWS.bat`.
 4. El script crea `venv`, instala dependencias, comprueba `.env` y la base de datos, y arranca la aplicación.
 5. Abre `http://127.0.0.1:5000`.
@@ -162,7 +167,7 @@ El `Dockerfile` arranca con Gunicorn y escucha el puerto entregado en `PORT`. Pa
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.14.3
+APP_VERSION=1.15.0
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -201,7 +206,7 @@ Debe terminar mostrando:
 ```text
 [OK] .env cargado
 [OK] Base de datos accesible: ...
-[OK] App: CuotaGo v1.14.3
+[OK] App: CuotaGo v1.15.0
 [OK] CuotaGo esta listo para iniciar.
 ```
 
