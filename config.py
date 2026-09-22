@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import quote_plus
 
@@ -59,6 +60,8 @@ class Config:
     AUTO_CREATE_DB = _bool_env("AUTO_CREATE_DB", True)
 
     WTF_CSRF_TIME_LIMIT = None
+    REMEMBER_COOKIE_DURATION = timedelta(days=max(1, int(os.getenv("REMEMBER_DAYS", "90"))))
+    REMEMBER_COOKIE_REFRESH_EACH_REQUEST = True
     REMEMBER_COOKIE_HTTPONLY = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"

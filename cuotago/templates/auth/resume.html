@@ -14,12 +14,12 @@
   <form method="post" class="resume-actions">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="next" value="{{ next_url or '' }}">
-    <button class="btn btn-primary btn-lg btn-block" type="submit">Iniciar como {{ current_user.name }}</button>
+    <button class="btn btn-primary btn-lg btn-block" type="submit">Continuar con esta cuenta</button>
   </form>
 
   <form method="post" action="{{ url_for('auth.logout') }}" class="resume-other-account">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="btn btn-ghost btn-block" type="submit">Cambiar de cuenta</button>
+    <button class="btn btn-ghost btn-block" type="submit">Iniciar con otra cuenta</button>
   </form>
 </section>
 {% endblock %}

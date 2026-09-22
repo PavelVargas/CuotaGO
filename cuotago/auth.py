@@ -81,8 +81,6 @@ def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
-        remember = request.form.get("remember") == "on"
-
         allowed, retry_minutes = _login_rate_state(email)
         if not allowed:
             flash(f"Demasiados intentos. Intenta de nuevo en {retry_minutes} min.", "error")
@@ -100,7 +98,7 @@ def login():
         user.last_login_at = datetime.utcnow()
         db.session.commit()
         _clear_login_failures(email)
-        login_user(user, remember=remember)
+        login_user(user, remember=True, duration=current_app.config.get("REMEMBER_COOKIE_DURATION"))
         next_url = request.args.get("next", "")
         if next_url.startswith("/") and not next_url.startswith("//"):
             separator = "&" if "?" in next_url else "?"
@@ -168,7 +166,7 @@ def register():
         subscription = OrganizationSubscription(organization=org, status="pending")
         db.session.add_all([org, user, subscription])
         db.session.commit()
-        login_user(user)
+        login_user(user, remember=True, duration=current_app.config.get("REMEMBER_COOKIE_DURATION"))
         flash("Tu cuenta está lista. Ya puedes empezar.", "success")
         return redirect(url_for("main.dashboard", entered=1))
 

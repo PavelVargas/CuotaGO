@@ -272,9 +272,21 @@ def test_resume_screen_shows_remembered_account(client, app):
     register(client)
     response = client.get('/resume')
     assert response.status_code == 200
-    assert b'Continua con la cuenta' in response.data or b'Contin\xc3\xbaa con la cuenta' in response.data
-    assert b'pavel@example.com' in response.data
-    assert b'>Entrar<' in response.data
+    assert b'Pavel' in response.data
+    assert b'Continuar con esta cuenta' in response.data
+    assert b'Iniciar con otra cuenta' in response.data
+
+
+def test_login_remembers_account_by_default(client, app):
+    register(client)
+    client.post('/logout')
+    response = client.post('/login', data={
+        'email': 'pavel@example.com',
+        'password': '12345678',
+    }, follow_redirects=False)
+    assert response.status_code in {302, 303}
+    cookies = response.headers.getlist('Set-Cookie')
+    assert any('remember_token=' in cookie for cookie in cookies)
 
 
 def test_superadmin_can_clear_company_data(client, app):
