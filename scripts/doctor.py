@@ -54,7 +54,7 @@ def main() -> int:
                 missing.append(f"{table_name}.{column}")
         db.session.commit()
         if missing:
-            print("[ERROR] Faltan columnas/tablas v1.14.2: " + ", ".join(missing))
+            print("[ERROR] Faltan columnas/tablas v1.14.3: " + ", ".join(missing))
             return 1
 
     try:

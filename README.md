@@ -1,8 +1,17 @@
-# CuotaGo MOBILE PWA v1.14.2 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.14.3 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
+
+
+## Cambios v1.14.3
+
+- **Nuevo módulo Documentos:** añade una guía de uso dentro de CuotaGo, accesible desde el launcher principal.
+- **Guía sincronizada con los módulos:** Inicio y Documentos consumen el mismo catálogo interno, evitando que el manual quede desactualizado al ampliar el sistema.
+- **Manual práctico y buscable:** incluye inicio rápido, pasos por módulo, recomendaciones, enlaces directos y buscador por palabras clave.
+- **Launcher mantenible:** los módulos del inicio ya no están duplicados a mano en la plantilla; se generan desde el catálogo central.
+- **PWA:** caché de interfaz actualizada a `1.14.3-ui-v32`.
 
 ## Cambios v1.14.2
 
@@ -73,7 +82,7 @@ Primero ejecuta `COMPROBAR_POSTGRES.bat`. Si muestra PostgreSQL OK, inicia norma
 Esta es la forma más rápida para comenzar.
 
 1. Descomprime el ZIP.
-2. Entra a la carpeta de CuotaGo v1.14.2.
+2. Entra a la carpeta de CuotaGo v1.14.3.
 3. Haz doble clic en `INICIAR_WINDOWS.bat`.
 4. El script crea `venv`, instala dependencias, comprueba `.env` y la base de datos, y arranca la aplicación.
 5. Abre `http://127.0.0.1:5000`.
@@ -153,7 +162,7 @@ El `Dockerfile` arranca con Gunicorn y escucha el puerto entregado en `PORT`. Pa
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.14.2
+APP_VERSION=1.14.3
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -192,7 +201,7 @@ Debe terminar mostrando:
 ```text
 [OK] .env cargado
 [OK] Base de datos accesible: ...
-[OK] App: CuotaGo v1.14.2
+[OK] App: CuotaGo v1.14.3
 [OK] CuotaGo esta listo para iniciar.
 ```
 

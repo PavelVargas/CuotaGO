@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Documentos · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page documents-page">
+  <div class="page-head documents-page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <div>
+        <span class="eyebrow">DOCUMENTOS</span>
+        <h1>Guía de uso de CuotaGo</h1>
+        <p>Manual práctico del sistema, sincronizado con los módulos activos.</p>
+      </div>
+    </div>
+  </div>
+
+  <section class="surface docs-document-shell">
+    <header class="docs-document-head">
+      <div class="docs-document-icon accent-orange">{{ icon('home-documents', 30) }}</div>
+      <div class="docs-document-title">
+        <span>DOCUMENTO DEL SISTEMA</span>
+        <h2>Manual de uso</h2>
+        <p>Versión {{ config.get('APP_VERSION', '1.14.3') }} · {{ module_count }} módulos documentados · actualizado automáticamente</p>
+      </div>
+      <span class="docs-live-badge"><i></i> Sincronizado</span>
+    </header>
+
+    <div class="docs-search-row">
+      <label class="docs-search" for="docsSearch">
+        {{ icon('search', 18) }}
+        <input id="docsSearch" type="search" placeholder="Buscar: compras, mora, inventario, cobros..." autocomplete="off" aria-label="Buscar en la guía">
+      </label>
+      <span class="docs-updated">Generado {{ generated_on.strftime('%d/%m/%Y') }}</span>
+    </div>
+
+    <div class="docs-guide-layout">
+      <nav class="docs-index" aria-label="Índice de la guía">
+        <div class="docs-index-title"><span>ÍNDICE</span><strong>Uso del sistema</strong></div>
+        <a href="#inicio-rapido" data-doc-link><span>01</span>Inicio rápido</a>
+        {% for module in modules %}
+          <a href="#modulo-{{ module.slug }}" data-doc-link><span>{{ '%02d'|format(loop.index + 1) }}</span>{{ module.name }}</a>
+        {% endfor %}
+      </nav>
+
+      <article class="docs-manual" id="docsManual">
+        <section class="docs-section docs-intro-section" id="inicio-rapido" data-doc-section data-search="inicio rápido comenzar flujo recomendado clientes inventario compras acuerdos cobros reportes">
+          <div class="docs-section-number">01</div>
+          <div class="docs-section-body">
+            <span class="eyebrow">PRIMEROS PASOS</span>
+            <h2>Cómo empezar a usar CuotaGo</h2>
+            <p class="docs-lead">CuotaGo está pensado para que registres la operación una sola vez y el resto del sistema se actualice automáticamente.</p>
+
+            <div class="docs-flow">
+              <div><span>1</span><strong>Registra lo que tienes</strong><small>Usa Inventario o Compras para introducir los artículos y sus costos.</small></div>
+              <div><span>2</span><strong>Crea el acuerdo</strong><small>Selecciona cliente, artículo, inicial, cuotas y mora si corresponde.</small></div>
+              <div><span>3</span><strong>Cobra sin pasos extra</strong><small>Registra pagos y abonos directamente desde el acuerdo o Cobros.</small></div>
+              <div><span>4</span><strong>Supervisa</strong><small>Calendario, Notificaciones y Reportes se alimentan con lo que ya registraste.</small></div>
+            </div>
+
+            <div class="docs-callout">
+              <strong>Regla principal de CuotaGo</strong>
+              <p>Si el sistema puede deducir algo de una acción que ya hiciste, no debería pedirte otro paso. Por ejemplo, al crear un acuerdo el artículo queda asignado y deja de estar disponible automáticamente.</p>
+            </div>
+          </div>
+        </section>
+
+        {% for module in modules %}
+        <section class="docs-section" id="modulo-{{ module.slug }}" data-doc-section data-search="{{ module.name|lower }} {{ module.home_description|lower }} {{ module.guide_summary|lower }} {% for step in module.guide_steps %}{{ step|lower }} {% endfor %}{% for tip in module.guide_tips %}{{ tip|lower }} {% endfor %}">
+          <div class="docs-section-number">{{ '%02d'|format(loop.index + 1) }}</div>
+          <div class="docs-section-body">
+            <div class="docs-module-heading">
+              <span class="docs-mini-icon {{ module.accent }}">{{ icon(module.icon, 23) }}</span>
+              <div>
+                <span class="eyebrow">MÓDULO</span>
+                <h2>{{ module.name }}</h2>
+              </div>
+              <a class="docs-open-module" href="{{ url_for(module.endpoint) }}">Abrir módulo <span aria-hidden="true">›</span></a>
+            </div>
+            <p class="docs-lead">{{ module.guide_summary }}</p>
+
+            <div class="docs-subsection">
+              <h3>Cómo usarlo</h3>
+              <ol class="docs-steps">
+                {% for step in module.guide_steps %}
+                  <li><span>{{ loop.index }}</span><p>{{ step }}</p></li>
+                {% endfor %}
+              </ol>
+            </div>
+
+            {% if module.guide_tips %}
+            <div class="docs-tip-list">
+              {% for tip in module.guide_tips %}
+                <div>{{ icon('shield', 17) }}<p>{{ tip }}</p></div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+        </section>
+        {% endfor %}
+
+        <div class="docs-empty-search" id="docsEmptySearch" hidden>
+          {{ icon('search', 26) }}
+          <strong>No encontré esa parte de la guía</strong>
+          <p>Prueba con palabras como “cobro”, “mora”, “proveedor”, “inventario” o “reporte”.</p>
+        </div>
+      </article>
+    </div>
+  </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+  const input = document.getElementById('docsSearch');
+  const sections = Array.from(document.querySelectorAll('[data-doc-section]'));
+  const links = Array.from(document.querySelectorAll('[data-doc-link]'));
+  const empty = document.getElementById('docsEmptySearch');
+  if (!input || !sections.length) return;
+
+  const normalize = (value) => (value || '')
+    .toLocaleLowerCase('es')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+  input.addEventListener('input', () => {
+    const query = normalize(input.value);
+    let visible = 0;
+    sections.forEach((section) => {
+      const haystack = normalize(`${section.dataset.search || ''} ${section.textContent || ''}`);
+      const show = !query || haystack.includes(query);
+      section.hidden = !show;
+      if (show) visible += 1;
+    });
+    links.forEach((link) => {
+      const target = document.querySelector(link.getAttribute('href'));
+      link.hidden = Boolean(query) && Boolean(target?.hidden);
+    });
+    empty.hidden = visible !== 0;
+  });
+})();
+</script>
+{% endblock %}

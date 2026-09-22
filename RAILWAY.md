@@ -1,4 +1,4 @@
-# CuotaGo v1.14.2 en Railway
+# CuotaGo v1.14.3 en Railway
 
 Esta carpeta esta preparada para Railway con PostgreSQL.
 
@@ -39,7 +39,7 @@ Agrega estas variables en el servicio WEB de CuotaGo:
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.14.2
+APP_VERSION=1.14.3
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -120,3 +120,9 @@ Las suscripciones `suspended`, `cancelled` o vencidas fuera del periodo de graci
 - El Service Worker usa caché `1.14.2-ui-v29` para forzar la interfaz nueva de órdenes de compra.
 
 Esta actualización es **hacia adelante y no borra datos existentes**. `db.create_all()` crea las tablas nuevas `subscription_plans`, `organization_subscriptions`, `subscription_payments` y `admin_audit_logs`. Para instalaciones PostgreSQL existentes, el arranque agrega de forma segura `users.is_enabled` y `users.last_login_at` con `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`. Las empresas que ya existían aparecen como **Sin configurar** hasta que el superadmin les asigne una suscripción; no quedan bloqueadas por ese motivo.
+
+## Actualización v1.14.3
+
+- Nuevo módulo **Documentos** con la guía de uso integrada.
+- El launcher y la documentación comparten un catálogo central de módulos para mantenerse sincronizados.
+- El Service Worker usa caché `1.14.3-ui-v32` para publicar la nueva interfaz.

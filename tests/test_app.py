@@ -658,7 +658,7 @@ def test_remembered_authenticated_session_can_open_modules_without_resume_redire
     with client.session_transaction() as session:
         session['_fresh'] = False
 
-    for path in ['/contracts', '/collections', '/notifications', '/clients', '/purchases', '/assets', '/calendar', '/reports', '/settings']:
+    for path in ['/contracts', '/collections', '/notifications', '/clients', '/purchases', '/assets', '/calendar', '/reports', '/documents', '/settings']:
         response = client.get(path, follow_redirects=False)
         assert response.status_code == 200, f"{path} redirected unexpectedly to {response.headers.get('Location')}"
 
@@ -911,8 +911,8 @@ def test_reminders_v20_compacts_dashboard_and_adds_dedicated_view():
     assert 'reminder-v20-row' in reminders
     assert '.home-reminder-button{' in css
     assert '.reminders-page-v20{' in css
-    assert '-ui-v29' in base
-    assert "1.14.2-ui-v29" in sw
+    assert '-ui-v32' in base
+    assert "1.14.3-ui-v32" in sw
 
 
 
@@ -928,7 +928,7 @@ def test_overdue_push_repeats_outside_app_without_notification_pileup():
     assert 'Recordatorio de cobro' in push
     assert 'replaceKey' in push
     assert 'getNotifications()' in worker
-    assert "1.14.2-ui-v29" in worker
+    assert "1.14.3-ui-v32" in worker
 
 
 def test_purchase_batch_registers_multiple_items_in_one_submit(client, app):
@@ -986,3 +986,34 @@ def test_purchase_form_supports_dynamic_multiple_rows_and_launcher_flows_left_to
     assert 'Guardar orden · ${all.length} artículos' in form_html
     assert '.dashboard-launcher-v3 .module-grid>.module-card:last-child{grid-column:2 / span 2}' not in css
     assert 'grid-column:auto!important' in css
+
+
+
+def test_documents_module_uses_shared_catalog_and_renders_live_guide(client):
+    from pathlib import Path
+    register(client)
+    response = client.get('/documents')
+    assert response.status_code == 200
+    html = response.data.decode('utf-8')
+    assert 'Guía de uso de CuotaGo' in html
+    assert 'Manual de uso' in html
+    assert 'actualizado automáticamente' in html
+    assert 'Buscar: compras, mora, inventario, cobros...' in html
+    assert 'Compras solo modifica el costo de compra' in html
+    assert 'No necesitas abrir ni cerrar una caja para cobrar.' in html
+    assert 'Documentos' in html
+
+    dashboard = Path('cuotago/templates/dashboard.html').read_text(encoding='utf-8')
+    main = Path('cuotago/main.py').read_text(encoding='utf-8')
+    catalog = Path('cuotago/module_catalog.py').read_text(encoding='utf-8')
+    assert '{% for module in modules %}' in dashboard
+    assert 'module_catalog()' in main
+    assert '"slug": "documents"' in catalog
+    assert '"endpoint": "main.documents"' in catalog
+
+
+def test_documents_module_is_present_in_launcher(client):
+    response = register(client)
+    html = response.data.decode('utf-8')
+    assert html.count('>Documentos</strong>') == 1
+    assert '/documents' in html

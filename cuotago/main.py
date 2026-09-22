@@ -12,6 +12,7 @@ from sqlalchemy import or_
 
 from .extensions import db
 from .models import Asset, Client, Contract, Installment, Payment, Purchase, PushNotificationLog, Supplier
+from .module_catalog import module_catalog
 
 main_bp = Blueprint("main", __name__)
 CENT = Decimal("0.01")
@@ -391,14 +392,51 @@ def dashboard():
     receivable = sum((c.balance for c in active_contracts), Decimal("0.00"))
     overdue_total = sum((i.remaining for i in overdue), Decimal("0.00"))
 
+    overdue_count = len(overdue)
+    due_today_count = len(due_today)
+    notification_count = overdue_count + due_today_count
+    modules = module_catalog()
+    module_status = {
+        "agreements": {
+            "kind": "small",
+            "text": f"Crear y gestionar · {len(active_contracts)} activo{'s' if len(active_contracts) != 1 else ''}",
+        },
+        "collections": (
+            {"kind": "badge-danger", "text": f"{overdue_count} vencido{'s' if overdue_count != 1 else ''}"}
+            if overdue_count
+            else {"kind": "badge-warning", "text": f"{due_today_count} hoy"}
+            if due_today_count
+            else {"kind": "small", "text": "Todo al día"}
+        ),
+        "notifications": (
+            {"kind": "badge-danger", "text": f"{notification_count} pendiente{'s' if notification_count != 1 else ''}"}
+            if notification_count
+            else {"kind": "small", "text": "Todo al día"}
+        ),
+    }
+
     return render_template(
         "dashboard.html",
-        overdue_count=len(overdue),
-        due_today_count=len(due_today),
+        modules=modules,
+        module_status=module_status,
+        overdue_count=overdue_count,
+        due_today_count=due_today_count,
         reminder_count=len(overdue) + len(due_today) + len(upcoming),
         active_count=len(active_contracts),
         receivable=receivable,
         overdue_total=overdue_total,
+    )
+
+
+@main_bp.get("/documents")
+@login_required
+def documents():
+    modules = module_catalog()
+    return render_template(
+        "documents/index.html",
+        modules=modules,
+        module_count=len(modules),
+        generated_on=local_today(),
     )
 
 
