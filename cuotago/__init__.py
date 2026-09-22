@@ -427,9 +427,9 @@ def create_app(test_config=None):
         if started is not None:
             duration_ms = max((time.perf_counter() - started) * 1000.0, 0.0)
             response.headers.setdefault("Server-Timing", f"app;dur={duration_ms:.1f}")
-            threshold = float(current_app.config.get("SLOW_REQUEST_MS", 800) or 800)
+            threshold = float(app.config.get("SLOW_REQUEST_MS", 800) or 800)
             if duration_ms >= threshold and request.endpoint not in {"static", "healthz", "service_worker"}:
-                current_app.logger.warning(
+                app.logger.warning(
                     "slow_request endpoint=%s method=%s path=%s status=%s duration_ms=%.1f",
                     request.endpoint, request.method, request.path, response.status_code, duration_ms,
                 )
@@ -446,7 +446,7 @@ def create_app(test_config=None):
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "script-src 'self' 'unsafe-inline'"
         )
-        if current_app.config.get("APP_ENV") not in {"local", "development", "test"} and request.is_secure:
+        if app.config.get("APP_ENV") not in {"local", "development", "test"} and request.is_secure:
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         if current_user.is_authenticated and response.mimetype == "text/html":
             response.headers.setdefault("Cache-Control", "private, no-store")
