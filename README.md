@@ -1,12 +1,14 @@
-# CuotaGo MOBILE PWA v1.14.0 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.14.2 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
 
-## Cambios v1.14.0
+## Cambios v1.14.2
 
-- **Nuevo módulo Compras:** registra producto, cantidad, proveedor, fecha, costo unitario y precio objetivo de venta. La compra aumenta automáticamente la existencia.
+- **Compras por órdenes:** registra proveedor, fecha, referencia, varios artículos, cantidades y costo unitario en una sola orden. La compra aumenta automáticamente la existencia.
+- **Proveedores reutilizables:** el proveedor es obligatorio; puede seleccionarse de la lista o crearse sin salir de la orden.
+- **Compras no cambia el precio de venta:** una reposición solo actualiza costo promedio y stock. El precio objetivo sigue administrándose desde Inventario.
 - **Costo y venta separados:** Inventario ahora distingue cuánto costó cada unidad de cuánto se venderá, mostrando margen estimado por producto.
 - **Margen precargado en Acuerdos:** al elegir un producto, CuotaGo toma el costo registrado y usa el precio objetivo para precargar el porcentaje de ganancia; todavía puede ajustarse para un acuerdo específico.
 - **Rentabilidad en Reportes:** el panel muestra margen de ganancia, ganancia esperada, valor del inventario a costo, venta estimada, ganancia potencial e inversión del periodo en Compras.
@@ -71,7 +73,7 @@ Primero ejecuta `COMPROBAR_POSTGRES.bat`. Si muestra PostgreSQL OK, inicia norma
 Esta es la forma más rápida para comenzar.
 
 1. Descomprime el ZIP.
-2. Entra a la carpeta de CuotaGo v1.14.0.
+2. Entra a la carpeta de CuotaGo v1.14.2.
 3. Haz doble clic en `INICIAR_WINDOWS.bat`.
 4. El script crea `venv`, instala dependencias, comprueba `.env` y la base de datos, y arranca la aplicación.
 5. Abre `http://127.0.0.1:5000`.
@@ -151,7 +153,7 @@ El `Dockerfile` arranca con Gunicorn y escucha el puerto entregado en `PORT`. Pa
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.14.0
+APP_VERSION=1.14.2
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -190,7 +192,7 @@ Debe terminar mostrando:
 ```text
 [OK] .env cargado
 [OK] Base de datos accesible: ...
-[OK] App: CuotaGo v1.14.0
+[OK] App: CuotaGo v1.14.2
 [OK] CuotaGo esta listo para iniciar.
 ```
 

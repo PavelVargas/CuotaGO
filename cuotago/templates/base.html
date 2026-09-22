@@ -54,10 +54,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=MuseoModerno:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}?v={{ config.get('APP_VERSION', '1.14.0') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}?v={{ config.get('APP_VERSION', '1.14.2') }}">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
-  <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='icons/favicon-64.png') }}?v={{ config.get('APP_VERSION', '1.14.0') }}-filled-v10">
-  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32.png') }}?v={{ config.get('APP_VERSION', '1.14.0') }}-filled-v10">
+  <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='icons/favicon-64.png') }}?v={{ config.get('APP_VERSION', '1.14.2') }}-filled-v10">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32.png') }}?v={{ config.get('APP_VERSION', '1.14.2') }}-filled-v10">
 
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1320x2868-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1320x2868-light.png') }}">
@@ -82,7 +82,7 @@
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-light.png') }}">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('APP_VERSION', '1.14.0') }}-ui-v28">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('APP_VERSION', '1.14.2') }}-ui-v29">
 </head>
 <body class="{% if current_user.is_authenticated and request.blueprint != 'auth' %}app-authenticated{% else %}auth-shell{% endif %} {% block body_class %}{% endblock %}">
   <div class="boot-splash" id="bootSplash" aria-hidden="true">
@@ -101,7 +101,7 @@
       <a class="brand" href="{{ url_for('admin.dashboard') if current_user.role == 'superadmin' else url_for('main.dashboard') }}" aria-label="Ir al inicio">
         <img class="brand-app-icon" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="">
         <span class="brand-name">{{ app_name }}</span>
-        <span class="brand-badge">v{{ config.get('APP_VERSION', '1.14.0') }}</span>
+        <span class="brand-badge">v{{ config.get('APP_VERSION', '1.14.2') }}</span>
       </a>
 
       <div class="topbar-actions">
@@ -175,7 +175,7 @@
   <footer class="footer"><span class="status-dot"></span><span>© 2026 {{ app_name }}</span>{% if current_user.role == 'superadmin' %}<a href="{{ url_for('admin.dashboard') }}">Superadmin</a>{% else %}<a href="{{ url_for('main.settings') }}">Configuración</a>{% endif %}</footer>
   {% endif %}
 
-  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('APP_VERSION', '1.14.0') }}-ui-v28" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('APP_VERSION', '1.14.2') }}-ui-v29" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

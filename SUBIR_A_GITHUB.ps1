@@ -39,7 +39,7 @@ try { git rev-parse --verify HEAD *> $null } catch { $hasHead = $false }
 
 if (-not $hasHead -or $status) {
     git add .
-    git commit -m "CuotaGo v1.14.0 - compras y margen de ganancia"
+    git commit -m "CuotaGo v1.14.2 - compras y margen de ganancia"
 }
 
 git branch -M main

@@ -2,42 +2,51 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Compras · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page purchases-page">
+<section class="content-page purchases-page purchases-page-v22">
   <div class="page-head purchases-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><span class="eyebrow">COMPRAS</span><h1>Compras</h1><p>Registra lo que te costó y a cuánto piensas venderlo.</p></div>
+      <div><span class="eyebrow">COMPRAS</span><h1>Órdenes de compra</h1><p>Controla proveedores, cantidades y cuánto capital entró al inventario.</p></div>
     </div>
-    <a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">+ Nueva compra</a>
+    <a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">+ Nueva orden</a>
   </div>
 
-  <div class="purchase-kpis">
-    <article class="purchase-kpi"><span>Invertido</span><strong>{{ money(invested) }}</strong><small>{{ units }} unidad{% if units != 1 %}es{% endif %} comprada{% if units != 1 %}s{% endif %}</small></article>
-    <article class="purchase-kpi"><span>Venta estimada</span><strong>{{ money(expected_revenue) }}</strong><small>Con los precios registrados</small></article>
-    <article class="purchase-kpi profit"><span>Ganancia potencial</span><strong>{{ money(expected_profit) }}</strong><small>Antes de mora u otros cargos</small></article>
-    <article class="purchase-kpi profit"><span>Margen</span><strong>{{ '%.2f'|format(margin_percent) }}%</strong><small>Ganancia sobre costo</small></article>
+  <div class="purchase-kpis purchase-kpis-v22">
+    <article class="purchase-kpi"><span>Invertido</span><strong>{{ money(invested) }}</strong><small>Costo acumulado</small></article>
+    <article class="purchase-kpi"><span>Órdenes</span><strong>{{ order_count }}</strong><small>Compras registradas</small></article>
+    <article class="purchase-kpi"><span>Unidades</span><strong>{{ units }}</strong><small>Artículos adquiridos</small></article>
+    <article class="purchase-kpi"><span>Proveedores</span><strong>{{ supplier_count }}</strong><small>Con compras registradas</small></article>
   </div>
 
-  <section class="surface report-panel-v19">
-    <div class="report-section-head-v19"><div><span class="eyebrow">HISTORIAL</span><h2>Últimas compras</h2></div></div>
-    {% if purchases %}
-    <div class="purchase-list">
-      {% for purchase in purchases %}
-      <article class="purchase-row">
-        <div class="purchase-row-main">
-          <strong>{{ purchase.asset.name }} · {{ purchase.quantity }} unidad{% if purchase.quantity != 1 %}es{% endif %}</strong>
-          <small>{{ purchase.purchase_date.strftime('%d/%m/%Y') }}{% if purchase.supplier %} · {{ purchase.supplier }}{% endif %}{% if purchase.reference %} · Ref. {{ purchase.reference }}{% endif %}</small>
+  <section class="surface purchase-orders-panel">
+    <div class="purchase-orders-panel-head"><div><span class="eyebrow">HISTORIAL</span><h2>Órdenes recientes</h2></div><span>Abre una orden para ver sus artículos</span></div>
+    {% if orders %}
+    <div class="purchase-orders-list">
+      {% for order in orders %}
+      <details class="purchase-order-row">
+        <summary>
+          <span class="purchase-order-code">{{ order.code }}</span>
+          <span class="purchase-order-main"><strong>{{ order.supplier }}</strong><small>{{ order.purchase_date.strftime('%d/%m/%Y') }}{% if order.reference %} · Ref. {{ order.reference }}{% endif %}</small></span>
+          <span class="purchase-order-count">{{ order.lines|length }} línea{% if order.lines|length != 1 %}s{% endif %} · {{ order.units }} ud.</span>
+          <span class="purchase-order-amount"><small>Total</small><strong>{{ money(order.total) }}</strong></span>
+          <span class="purchase-order-chevron" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="purchase-order-detail">
+          <div class="purchase-order-detail-head"><span>Artículo</span><span>Cant.</span><span>Costo c/u</span><span>Subtotal</span></div>
+          {% for purchase in order.lines %}
+          <div class="purchase-order-detail-line">
+            <span><strong>{{ purchase.asset.name }}</strong>{% if purchase.notes %}<small>{{ purchase.notes }}</small>{% endif %}</span>
+            <span>{{ purchase.quantity }}</span>
+            <span>{{ money(purchase.unit_cost) }}</span>
+            <span><strong>{{ money(purchase.total_cost) }}</strong></span>
+          </div>
+          {% endfor %}
         </div>
-        <div class="purchase-row-money">
-          <strong>Costo {{ money(purchase.unit_cost) }} → Venta {{ money(purchase.unit_sale_price) }}</strong>
-          <small>Inversión {{ money(purchase.total_cost) }} · ganancia {{ money(purchase.expected_profit) }}</small>
-        </div>
-        <span class="purchase-margin-pill {{ 'negative' if purchase.margin_percent < 0 }}">{{ '%.1f'|format(purchase.margin_percent) }}%</span>
-      </article>
+      </details>
       {% endfor %}
     </div>
     {% else %}
-      <div class="empty-state"><span class="empty-icon">{{ icon('home-purchases', 34) }}</span><h3>Aún no hay compras</h3><p>Registra una compra para empezar a medir costo, precio de venta y margen.</p><a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">Registrar primera compra</a></div>
+      <div class="empty-state"><span class="empty-icon">{{ icon('home-purchases', 34) }}</span><h3>Aún no hay órdenes</h3><p>Registra una compra y CuotaGo actualizará costo y existencia del inventario.</p><a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">Crear primera orden</a></div>
     {% endif %}
   </section>
 </section>

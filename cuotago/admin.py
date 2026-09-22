@@ -25,6 +25,7 @@ from .models import (
     PushSubscription,
     SubscriptionPayment,
     SubscriptionPlan,
+    Supplier,
     User,
 )
 
@@ -312,6 +313,7 @@ def _clear_company_content(organization_id):
     _delete_contracts(organization_id)
     Client.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
     Purchase.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
+    Supplier.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
     Asset.query.filter_by(organization_id=organization_id).delete(synchronize_session=False)
     db.session.flush()
 
@@ -930,6 +932,7 @@ def delete_company(organization_id):
     _delete_contracts(organization.id)
     Client.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
     Purchase.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
+    Supplier.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
     Asset.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
     User.query.filter_by(organization_id=organization.id).delete(synchronize_session=False)
     if organization.subscription is not None:

@@ -189,6 +189,19 @@ class Client(db.Model):
     contracts = db.relationship("Contract", back_populates="client")
 
 
+class Supplier(db.Model):
+    __tablename__ = "suppliers"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False, index=True)
+    name = db.Column(db.String(140), nullable=False)
+    phone = db.Column(db.String(40))
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
+
+    purchases = db.relationship("Purchase", back_populates="supplier_record")
+
+
 class Asset(db.Model):
     __tablename__ = "assets"
 
@@ -246,6 +259,8 @@ class Purchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False, index=True)
     asset_id = db.Column(db.Integer, db.ForeignKey("assets.id"), nullable=False, index=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey("suppliers.id"), nullable=True, index=True)
+    batch_key = db.Column(db.String(36), index=True)
     supplier = db.Column(db.String(140))
     reference = db.Column(db.String(120))
     purchase_date = db.Column(db.Date, nullable=False, default=date.today, index=True)
@@ -256,6 +271,7 @@ class Purchase(db.Model):
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
 
     asset = db.relationship("Asset", back_populates="purchases")
+    supplier_record = db.relationship("Supplier", back_populates="purchases")
 
     @property
     def total_cost(self):
@@ -263,7 +279,16 @@ class Purchase(db.Model):
 
     @property
     def expected_revenue(self):
-        return Decimal(str(self.unit_sale_price or 0)) * Decimal(int(self.quantity or 0))
+        # Purchases only capture acquisition cost. Margin is derived from the
+        # current inventory selling price; legacy rows may still carry a sale
+        # price snapshot. If neither exists, keep the row neutral instead of
+        # reporting a fake loss.
+        current_sale_price = Decimal(str(self.asset.sale_price or 0)) if self.asset is not None else Decimal("0")
+        legacy_sale_price = Decimal(str(self.unit_sale_price or 0))
+        effective_sale_price = current_sale_price if current_sale_price > 0 else legacy_sale_price
+        if effective_sale_price <= 0:
+            effective_sale_price = Decimal(str(self.unit_cost or 0))
+        return effective_sale_price * Decimal(int(self.quantity or 0))
 
     @property
     def expected_profit(self):

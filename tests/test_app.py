@@ -9,7 +9,7 @@ from cuotago import create_app
 from cuotago.extensions import db
 from cuotago.models import (
     AdminAuditLog, Asset, Client, Contract, Installment, Organization, OrganizationSubscription,
-    Purchase, PushNotificationLog, PushSubscription, SubscriptionPayment, SubscriptionPlan, User,
+    Purchase, PushNotificationLog, PushSubscription, SubscriptionPayment, SubscriptionPlan, Supplier, User,
 )
 
 
@@ -821,7 +821,7 @@ def test_contract_can_be_deleted_and_inventory_is_released(client, app):
         assert asset.status == 'available'
 
 
-def test_purchase_registers_cost_sale_price_and_stock(client, app):
+def test_purchase_registers_cost_supplier_and_stock_without_changing_sale_price(client, app):
     register(client)
     response = client.post(
         '/purchases/new',
@@ -830,23 +830,24 @@ def test_purchase_registers_cost_sale_price_and_stock(client, app):
             'asset_kind': 'phone',
             'quantity': '3',
             'unit_cost': '40000',
-            'unit_sale_price': '55000',
             'purchase_date': date.today().isoformat(),
             'supplier': 'Proveedor Demo',
         },
         follow_redirects=True,
     )
     assert response.status_code == 200
-    assert b'Compra registrada' in response.data
+    assert b'Orden de compra registrada' in response.data
     with app.app_context():
         asset = Asset.query.filter_by(name='iPhone Compra').one()
         purchase = Purchase.query.one()
+        supplier = Supplier.query.one()
         assert asset.quantity_total == 3
         assert asset.estimated_value == Decimal('40000.00')
-        assert asset.sale_price == Decimal('55000.00')
+        assert asset.sale_price == Decimal('0.00')
+        assert supplier.name == 'Proveedor Demo'
+        assert purchase.supplier_id == supplier.id
         assert purchase.total_cost == Decimal('120000.00')
-        assert purchase.expected_profit == Decimal('45000.00')
-        assert purchase.margin_percent == Decimal('37.50')
+        assert purchase.expected_profit == Decimal('0.00')
 
 
 def test_purchase_existing_asset_uses_weighted_cost_and_adds_stock(client, app):
@@ -854,13 +855,22 @@ def test_purchase_existing_asset_uses_weighted_cost_and_adds_stock(client, app):
     client.post('/assets/new', data={'kind':'phone','name':'Stock base','quantity_total':'2','estimated_value':'100','sale_price':'150'}, follow_redirects=True)
     with app.app_context():
         asset_id = Asset.query.filter_by(name='Stock base').one().id
-    response = client.post('/purchases/new', data={'asset_id':asset_id,'quantity':'2','unit_cost':'200','unit_sale_price':'300','purchase_date':date.today().isoformat()}, follow_redirects=True)
+    response = client.post('/purchases/new', data={'asset_id':asset_id,'quantity':'2','unit_cost':'200','purchase_date':date.today().isoformat(),'supplier':'Proveedor Stock'}, follow_redirects=True)
     assert response.status_code == 200
     with app.app_context():
         asset = db.session.get(Asset, asset_id)
         assert asset.quantity_total == 4
         assert asset.estimated_value == Decimal('150.00')
-        assert asset.sale_price == Decimal('300.00')
+        assert asset.sale_price == Decimal('150.00')
+
+
+def test_purchase_form_exposes_inventory_selector_and_inline_supplier_creation():
+    from pathlib import Path
+    template = Path('cuotago/templates/purchases/form.html').read_text(encoding='utf-8')
+    assert 'Seleccionar del inventario...' in template
+    assert '+ Crear artículo nuevo' in template
+    assert '+ Crear proveedor nuevo' in template
+    assert 'item_unit_sale_price' not in template
 
 
 def test_reports_v19_has_two_column_mobile_kpis_and_core_business_sections():
@@ -901,8 +911,8 @@ def test_reminders_v20_compacts_dashboard_and_adds_dedicated_view():
     assert 'reminder-v20-row' in reminders
     assert '.home-reminder-button{' in css
     assert '.reminders-page-v20{' in css
-    assert '-ui-v27' in base
-    assert "1.14.0-ui-v28" in sw
+    assert '-ui-v29' in base
+    assert "1.14.2-ui-v29" in sw
 
 
 
@@ -918,7 +928,7 @@ def test_overdue_push_repeats_outside_app_without_notification_pileup():
     assert 'Recordatorio de cobro' in push
     assert 'replaceKey' in push
     assert 'getNotifications()' in worker
-    assert "1.14.0-ui-v28" in worker
+    assert "1.14.2-ui-v29" in worker
 
 
 def test_purchase_batch_registers_multiple_items_in_one_submit(client, app):
@@ -940,7 +950,6 @@ def test_purchase_batch_registers_multiple_items_in_one_submit(client, app):
         'item_kind': ['other', 'car'],
         'item_quantity': ['3', '2'],
         'item_unit_cost': ['200', '500000'],
-        'item_unit_sale_price': ['300', '650000'],
         'item_notes': ['Reposicion', 'Dos unidades'],
     }, follow_redirects=True)
     assert response.status_code == 200
@@ -953,13 +962,15 @@ def test_purchase_batch_registers_multiple_items_in_one_submit(client, app):
         existing = db.session.get(Asset, existing_id)
         assert existing.quantity_total == 5
         assert existing.estimated_value == Decimal('160.00')
-        assert existing.sale_price == Decimal('300.00')
+        assert existing.sale_price == Decimal('150.00')
         new_asset = Asset.query.filter_by(name='Toyota Corolla lote').one()
         assert new_asset.quantity_total == 2
         assert new_asset.estimated_value == Decimal('500000.00')
-        assert new_asset.sale_price == Decimal('650000.00')
+        assert new_asset.sale_price == Decimal('0.00')
         assert all(p.supplier == 'Proveedor lote' for p in purchases)
         assert all(p.reference == 'FAC-001' for p in purchases)
+        assert len({p.batch_key for p in purchases}) == 1
+        assert all(p.supplier_id for p in purchases)
 
 
 def test_purchase_form_supports_dynamic_multiple_rows_and_launcher_flows_left_to_right():
@@ -969,7 +980,9 @@ def test_purchase_form_supports_dynamic_multiple_rows_and_launcher_flows_left_to
     assert 'data-add-purchase-item' in form_html
     assert 'name="item_quantity"' in form_html
     assert 'name="item_unit_cost"' in form_html
-    assert 'name="item_unit_sale_price"' in form_html
-    assert 'Guardar ${all.length} artículos' in form_html
+    assert 'name="item_unit_sale_price"' not in form_html
+    assert 'Seleccionar del inventario...' in form_html
+    assert '+ Crear proveedor nuevo' in form_html
+    assert 'Guardar orden · ${all.length} artículos' in form_html
     assert '.dashboard-launcher-v3 .module-grid>.module-card:last-child{grid-column:2 / span 2}' not in css
     assert 'grid-column:auto!important' in css

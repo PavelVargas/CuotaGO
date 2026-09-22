@@ -1,5 +1,6 @@
 import calendar as pycalendar
 import re
+import uuid
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from urllib.parse import quote
@@ -10,7 +11,7 @@ from flask_login import current_user, login_required
 from sqlalchemy import or_
 
 from .extensions import db
-from .models import Asset, Client, Contract, Installment, Payment, Purchase, PushNotificationLog
+from .models import Asset, Client, Contract, Installment, Payment, Purchase, PushNotificationLog, Supplier
 
 main_bp = Blueprint("main", __name__)
 CENT = Decimal("0.01")
@@ -656,22 +657,52 @@ def asset_edit(asset_id):
 def purchases():
     items = (
         Purchase.query.filter_by(organization_id=current_user.organization_id)
-        .order_by(Purchase.purchase_date.desc(), Purchase.created_at.desc())
+        .order_by(Purchase.purchase_date.desc(), Purchase.created_at.desc(), Purchase.id.desc())
         .all()
     )
     invested = sum((money_decimal(item.total_cost) for item in items), Decimal("0.00"))
-    expected_revenue = sum((money_decimal(item.expected_revenue) for item in items), Decimal("0.00"))
-    expected_profit = expected_revenue - invested
-    margin_percent = (expected_profit / invested * Decimal("100")) if invested > 0 else Decimal("0.00")
     units = sum((int(item.quantity or 0) for item in items), 0)
+
+    # Purchases are shown as orders instead of isolated lines. New multi-item
+    # purchases share a batch_key; old records remain visible as one-line orders.
+    grouped = {}
+    for item in items:
+        group_key = item.batch_key or f"legacy-{item.id}"
+        order = grouped.setdefault(group_key, {
+            "id": item.id,
+            "code": f"OC-{item.id:05d}",
+            "purchase_date": item.purchase_date,
+            "reference": item.reference or "",
+            "supplier": item.supplier_record.name if item.supplier_record else (item.supplier or "Proveedor no registrado"),
+            "supplier_id": item.supplier_id,
+            "created_at": item.created_at,
+            "lines": [],
+            "units": 0,
+            "total": Decimal("0.00"),
+        })
+        order["lines"].append(item)
+        order["units"] += int(item.quantity or 0)
+        order["total"] += money_decimal(item.total_cost)
+        if item.id < order["id"]:
+            order["id"] = item.id
+            order["code"] = f"OC-{item.id:05d}"
+
+    orders = list(grouped.values())
+    orders.sort(key=lambda order: (order["purchase_date"], order["created_at"] or datetime.min), reverse=True)
+    supplier_ids = {item.supplier_id for item in items if item.supplier_id}
+    legacy_suppliers = {
+        (item.supplier or "").strip().casefold()
+        for item in items
+        if not item.supplier_id and (item.supplier or "").strip()
+    }
+
     return render_template(
         "purchases/list.html",
-        purchases=items,
+        orders=orders,
         invested=money_decimal(invested),
-        expected_revenue=money_decimal(expected_revenue),
-        expected_profit=money_decimal(expected_profit),
-        margin_percent=money_decimal(margin_percent),
         units=units,
+        order_count=len(orders),
+        supplier_count=len(supplier_ids) + len(legacy_suppliers),
     )
 
 
@@ -683,6 +714,11 @@ def purchase_new():
         .order_by(Asset.name.asc())
         .all()
     )
+    suppliers_list = (
+        Supplier.query.filter_by(organization_id=current_user.organization_id)
+        .order_by(Supplier.name.asc())
+        .all()
+    )
 
     def submitted_rows():
         fields = {
@@ -692,17 +728,16 @@ def purchase_new():
             "asset_kind": request.form.getlist("item_kind"),
             "quantity": request.form.getlist("item_quantity"),
             "unit_cost": request.form.getlist("item_unit_cost"),
-            "unit_sale_price": request.form.getlist("item_unit_sale_price"),
             "notes": request.form.getlist("item_notes"),
         }
         row_count = max((len(values) for values in fields.values()), default=0)
 
-        # Backward compatibility with the original one-item purchase form and
-        # older clients/tests that may still POST those field names.
+        # Compatibility with old one-item forms/clients. Sale price is
+        # deliberately ignored: a purchase must never change the selling price.
         if row_count == 0:
             legacy_has_values = any(
                 request.form.get(name)
-                for name in ("asset_id", "asset_name", "quantity", "unit_cost", "unit_sale_price")
+                for name in ("asset_id", "asset_name", "quantity", "unit_cost")
             )
             if legacy_has_values:
                 return [{
@@ -712,7 +747,6 @@ def purchase_new():
                     "asset_kind": request.form.get("asset_kind", "other"),
                     "quantity": request.form.get("quantity", "1"),
                     "unit_cost": request.form.get("unit_cost", ""),
-                    "unit_sale_price": request.form.get("unit_sale_price", ""),
                     "notes": request.form.get("notes", ""),
                 }]
             return []
@@ -723,26 +757,57 @@ def purchase_new():
                 values = fields[key]
                 return values[index] if index < len(values) else default
 
+            asset_value = value("asset_id")
+            mode = value("mode", "new" if asset_value == "__new__" else "existing")
+            if asset_value == "__new__":
+                mode = "new"
+                asset_value = ""
             rows.append({
-                "mode": value("mode", "existing" if assets_list else "new"),
-                "asset_id": value("asset_id"),
+                "mode": mode,
+                "asset_id": asset_value,
                 "asset_name": value("asset_name"),
                 "asset_kind": value("asset_kind", "other"),
                 "quantity": value("quantity", "1"),
                 "unit_cost": value("unit_cost"),
-                "unit_sale_price": value("unit_sale_price"),
                 "notes": value("notes"),
             })
         return rows
 
     if request.method == "POST":
         rows = submitted_rows()
-        supplier = request.form.get("supplier", "").strip()
+        supplier_choice = request.form.get("supplier_id", "").strip()
+        new_supplier_name = request.form.get("new_supplier_name", "").strip()
+        new_supplier_phone = request.form.get("new_supplier_phone", "").strip()
+        legacy_supplier_name = request.form.get("supplier", "").strip()
+        if not supplier_choice and legacy_supplier_name:
+            supplier_choice = "__new__"
+            new_supplier_name = legacy_supplier_name
         reference = request.form.get("reference", "").strip()
         purchase_date = parse_date(request.form.get("purchase_date")) or local_today()
         errors = []
         prepared = []
         allowed_kinds = {"car", "phone", "motorcycle", "appliance", "computer", "other"}
+
+        supplier_record = None
+        create_supplier = False
+        if supplier_choice == "__new__":
+            if len(new_supplier_name) < 2:
+                errors.append("Escribe el nombre del proveedor nuevo.")
+            else:
+                supplier_record = next(
+                    (item for item in suppliers_list if item.name.strip().casefold() == new_supplier_name.casefold()),
+                    None,
+                )
+                create_supplier = supplier_record is None
+        else:
+            supplier_id = parse_int(supplier_choice, None, minimum=1)
+            if supplier_id:
+                supplier_record = Supplier.query.filter_by(
+                    id=supplier_id,
+                    organization_id=current_user.organization_id,
+                ).first()
+            if supplier_record is None:
+                errors.append("Selecciona un proveedor o crea uno nuevo.")
 
         if not rows:
             errors.append("Agrega al menos un artículo a la compra.")
@@ -755,7 +820,6 @@ def purchase_new():
             asset_kind = (row.get("asset_kind") or "other").strip()
             quantity = parse_int(row.get("quantity"), None, minimum=1)
             unit_cost = parse_money(row.get("unit_cost"))
-            unit_sale_price = parse_money(row.get("unit_sale_price"))
             notes = (row.get("notes") or "").strip()
             prefix = f"Artículo {index}: "
 
@@ -777,10 +841,6 @@ def purchase_new():
                 errors.append(prefix + "la cantidad debe ser al menos 1.")
             if unit_cost is None or unit_cost <= 0:
                 errors.append(prefix + "el costo por unidad debe ser mayor que cero.")
-            if unit_sale_price is None or unit_sale_price <= 0:
-                errors.append(prefix + "el precio de venta debe ser mayor que cero.")
-            elif unit_cost is not None and unit_sale_price < unit_cost:
-                errors.append(prefix + "el precio de venta no puede ser menor que el costo.")
 
             prepared.append({
                 "mode": mode,
@@ -789,7 +849,6 @@ def purchase_new():
                 "asset_kind": asset_kind,
                 "quantity": quantity,
                 "unit_cost": unit_cost,
-                "unit_sale_price": unit_sale_price,
                 "notes": notes,
             })
 
@@ -799,17 +858,27 @@ def purchase_new():
             return render_template(
                 "purchases/form.html",
                 assets=assets_list,
+                suppliers=suppliers_list,
                 form=request.form,
                 rows=rows or [{"mode": "existing" if assets_list else "new", "quantity": "1", "asset_kind": "other"}],
                 default_date=local_today().isoformat(),
             )
 
+        if create_supplier:
+            supplier_record = Supplier(
+                organization_id=current_user.organization_id,
+                name=new_supplier_name,
+                phone=new_supplier_phone or None,
+            )
+            db.session.add(supplier_record)
+            db.session.flush()
+
+        batch_key = str(uuid.uuid4())
         total_units = 0
         created_purchases = 0
         for item in prepared:
             quantity = item["quantity"]
             unit_cost = item["unit_cost"]
-            unit_sale_price = item["unit_sale_price"]
             asset = item["asset"]
 
             if item["mode"] == "new":
@@ -818,7 +887,7 @@ def purchase_new():
                     kind=item["asset_kind"],
                     name=item["asset_name"],
                     estimated_value=unit_cost,
-                    sale_price=unit_sale_price,
+                    sale_price=0,
                     quantity_total=quantity,
                     status="available",
                 )
@@ -836,7 +905,8 @@ def purchase_new():
                     asset.estimated_value = money_decimal(weighted_cost)
                 else:
                     asset.estimated_value = unit_cost
-                asset.sale_price = unit_sale_price
+                # Important: purchases update cost/stock only. The selling price
+                # is managed from inventory and is never changed here.
                 asset.quantity_total = new_quantity
                 if asset.status != "maintenance":
                     refresh_asset_status(asset)
@@ -844,12 +914,14 @@ def purchase_new():
             db.session.add(Purchase(
                 organization_id=current_user.organization_id,
                 asset=asset,
-                supplier=supplier,
+                supplier_id=supplier_record.id,
+                batch_key=batch_key,
+                supplier=supplier_record.name,
                 reference=reference,
                 purchase_date=purchase_date,
                 quantity=quantity,
                 unit_cost=unit_cost,
-                unit_sale_price=unit_sale_price,
+                unit_sale_price=0,
                 notes=item["notes"],
             ))
             total_units += quantity
@@ -857,7 +929,7 @@ def purchase_new():
 
         db.session.commit()
         flash(
-            f"Compra registrada: {created_purchases} artículo(s) · {total_units} unidad(es).",
+            f"Orden de compra registrada: {created_purchases} artículo(s) · {total_units} unidad(es).",
             "success",
         )
         return redirect(url_for("main.purchases"))
@@ -866,6 +938,7 @@ def purchase_new():
     return render_template(
         "purchases/form.html",
         assets=assets_list,
+        suppliers=suppliers_list,
         form={},
         rows=[{"mode": default_mode, "quantity": "1", "asset_kind": "other"}],
         default_date=local_today().isoformat(),
