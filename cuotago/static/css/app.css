@@ -1238,10 +1238,20 @@ html[data-auth-screen="1"] .auth-main{color:#253142}
   .dashboard-launcher-v2 .home-reminders{border-radius:20px}
 }
 
+@media (min-width:1040px){
+  .dashboard-launcher-v2{max-width:1120px}
+  .dashboard-launcher-v2 .module-grid{
+    max-width:980px;
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:18px 16px;
+  }
+  .dashboard-launcher-v2 .home-status{max-width:980px}
+}
+
 @media (min-width:1180px){
-  .dashboard-launcher-v2{max-width:1020px;padding-top:62px}
+  .dashboard-launcher-v2{max-width:1160px;padding-top:62px}
   .dashboard-launcher-v2 .module-grid,
-  .dashboard-launcher-v2 .home-status{max-width:860px}
+  .dashboard-launcher-v2 .home-status{max-width:1020px}
 }
 
 /* --------------------------------------------------------------------------
