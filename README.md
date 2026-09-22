@@ -1,12 +1,14 @@
-# CuotaGo MOBILE PWA v1.17.0 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.17.1 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
 
 
-## Cambios v1.17.0 — PWA, rendimiento y UX
+## Cambios v1.17.1 — PWA, rendimiento y UX
 
+- **Hotfix PostgreSQL:** CuotaGo usa su propio ledger `cuotago_schema_migrations`, evitando conflictos con bases que ya tengan una tabla `schema_migrations` con otra estructura.
+- **PWA versionada de forma coherente:** JavaScript, Service Worker y assets quedan sincronizados en `1.17.1-ui-v36`.
 - **PWA más nativa:** navigation preload, caché segura solo para estáticos, splash de arranque una sola vez por sesión instalada, transiciones ligeras y estados de conexión discretos.
 - **Búsqueda rápida global:** desde la barra superior abre una hoja de búsqueda sin sacar al usuario de la pantalla; busca clientes, acuerdos, recibos y artículos respetando permisos.
 - **Protección contra doble toque:** acuerdos y pagos usan claves idempotentes en servidor y los formularios bloquean envíos repetidos visualmente sin añadir confirmaciones innecesarias.
@@ -29,7 +31,7 @@ Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con 
 - **Auditoría de empresa:** registra creación/borrado de acuerdos, mora, reprogramaciones, pagos, promesas, notas y gastos con actor, fecha y detalle.
 - **Gastos y flujo de caja:** nuevo módulo de salidas; Reportes calcula entradas, gastos y flujo neto del periodo.
 - **Documentos:** conserva la guía viva sincronizada con el catálogo de módulos y la nueva identidad visual índigo.
-- **PWA:** caché de interfaz actualizada a `1.15.0-ui-v33`.
+- **PWA:** caché de interfaz actualizada a `1.17.1-ui-v36`.
 
 ## Cambios v1.14.2
 
@@ -100,7 +102,7 @@ Primero ejecuta `COMPROBAR_POSTGRES.bat`. Si muestra PostgreSQL OK, inicia norma
 Esta es la forma más rápida para comenzar.
 
 1. Descomprime el ZIP.
-2. Entra a la carpeta de CuotaGo v1.17.0.
+2. Entra a la carpeta de CuotaGo v1.17.1.
 3. Haz doble clic en `INICIAR_WINDOWS.bat`.
 4. El script crea `venv`, instala dependencias, comprueba `.env` y la base de datos, y arranca la aplicación.
 5. Abre `http://127.0.0.1:5000`.
@@ -219,7 +221,7 @@ Debe terminar mostrando:
 ```text
 [OK] .env cargado
 [OK] Base de datos accesible: ...
-[OK] App: CuotaGo v1.17.0
+[OK] App: CuotaGo v1.17.1
 [OK] CuotaGo esta listo para iniciar.
 ```
 

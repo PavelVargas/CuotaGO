@@ -239,23 +239,59 @@ def _ensure_feature_schema(app):
     ]
 
     with db.engine.begin() as connection:
-        connection.execute(text("""CREATE TABLE IF NOT EXISTS schema_migrations (
+        # Use a CuotaGo-owned ledger instead of the generic ``schema_migrations``
+        # name. Existing installations may already have a table with that name
+        # but a different schema (for example ``id``/``name`` instead of
+        # ``version``). CREATE TABLE IF NOT EXISTS does not reshape an existing
+        # table, so selecting ``version`` from it can prevent the whole app from
+        # starting. Never alter or delete that legacy/foreign table.
+        connection.execute(text("""CREATE TABLE IF NOT EXISTS cuotago_schema_migrations (
             version VARCHAR(80) PRIMARY KEY,
             applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )"""))
-        applied = {row[0] for row in connection.execute(text("SELECT version FROM schema_migrations"))}
+
+        # If a previous CuotaGo release successfully used the old generic
+        # ledger, import only CuotaGo's known markers. This block is conditional
+        # on the legacy table actually exposing a ``version`` column, which
+        # makes startup safe for databases like the user's existing PostgreSQL.
+        legacy_has_version = connection.execute(text("""
+            SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = 'schema_migrations'
+                  AND column_name = 'version'
+            )
+        """)).scalar()
+        if legacy_has_version:
+            connection.execute(text("""
+                INSERT INTO cuotago_schema_migrations(version)
+                SELECT version::text
+                FROM schema_migrations
+                WHERE version::text IN (
+                    '2026-09-v115-features',
+                    '2026-09-v116-hardening',
+                    '2026-09-v117-performance-r2'
+                )
+                ON CONFLICT (version) DO NOTHING
+            """))
+
+        applied = {
+            row[0]
+            for row in connection.execute(text("SELECT version FROM cuotago_schema_migrations"))
+        }
         if "2026-09-v115-features" not in applied:
             for statement in statements:
                 connection.execute(text(statement))
-            connection.execute(text("INSERT INTO schema_migrations(version) VALUES ('2026-09-v115-features') ON CONFLICT DO NOTHING"))
+            connection.execute(text("INSERT INTO cuotago_schema_migrations(version) VALUES ('2026-09-v115-features') ON CONFLICT DO NOTHING"))
         if "2026-09-v116-hardening" not in applied:
             for statement in hardening_statements:
                 connection.execute(text(statement))
-            connection.execute(text("INSERT INTO schema_migrations(version) VALUES ('2026-09-v116-hardening') ON CONFLICT DO NOTHING"))
+            connection.execute(text("INSERT INTO cuotago_schema_migrations(version) VALUES ('2026-09-v116-hardening') ON CONFLICT DO NOTHING"))
         if "2026-09-v117-performance-r2" not in applied:
             for statement in performance_statements:
                 connection.execute(text(statement))
-            connection.execute(text("INSERT INTO schema_migrations(version) VALUES ('2026-09-v117-performance-r2') ON CONFLICT DO NOTHING"))
+            connection.execute(text("INSERT INTO cuotago_schema_migrations(version) VALUES ('2026-09-v117-performance-r2') ON CONFLICT DO NOTHING"))
 
 
 def _ensure_superadmin(app):

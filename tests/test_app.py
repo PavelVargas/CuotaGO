@@ -912,8 +912,8 @@ def test_reminders_v20_compacts_dashboard_and_adds_dedicated_view():
     assert 'reminder-v20-row' in reminders
     assert '.home-reminder-button{' in css
     assert '.reminders-page-v20{' in css
-    assert '-ui-v33' in base
-    assert "1.15.0-ui-v33" in sw
+    assert '-ui-v36' in base
+    assert "1.17.1-ui-v36" in sw
 
 
 
@@ -929,7 +929,7 @@ def test_overdue_push_repeats_outside_app_without_notification_pileup():
     assert 'Recordatorio de cobro' in push
     assert 'replaceKey' in push
     assert 'getNotifications()' in worker
-    assert "1.15.0-ui-v33" in worker
+    assert "1.17.1-ui-v36" in worker
 
 
 def test_purchase_batch_registers_multiple_items_in_one_submit(client, app):
@@ -1187,9 +1187,9 @@ def test_v116_statement_has_real_pdf_and_hardening_assets():
     assert '@main_bp.get("/clients/<int:client_id>/statement.pdf")' in main
     assert '@main_bp.get("/payments/<int:payment_id>/receipt.pdf")' in main
     assert 'data-share-pdf' in Path('cuotago/templates/clients/statement.html').read_text(encoding='utf-8')
-    assert "1.17.0-ui-v35" in sw
+    assert "1.17.1-ui-v36" in sw
     assert '-dark.png' in base
-    assert 'schema_migrations' in init
+    assert 'cuotago_schema_migrations' in init
     assert 'Strict-Transport-Security' in init
     assert 'Content-Security-Policy' in init
     assert 'ROLE_PERMISSIONS' in permissions
@@ -1208,7 +1208,7 @@ def test_v117_pwa_performance_and_calm_ux_are_wired():
     models = Path('cuotago/models.py').read_text(encoding='utf-8')
     requirements = Path('requirements.txt').read_text(encoding='utf-8')
     assert 'navigationPreload.enable()' in sw
-    assert "1.17.0-ui-v35" in sw
+    assert "1.17.1-ui-v36" in sw
     assert 'data-global-search-open' in base
     assert 'setupGlobalQuickSearch' in js
     assert 'setupCalmFormGuard' in js
@@ -1219,3 +1219,16 @@ def test_v117_pwa_performance_and_calm_ux_are_wired():
     assert 'Pillow' in requirements
     assert 'expense.voided' in main
     assert '.quick-search-dialog-v17' in css
+
+
+def test_v1171_migration_ledger_does_not_assume_legacy_schema():
+    from pathlib import Path
+    init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
+    js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
+    sw = Path('cuotago/static/service-worker.js').read_text(encoding='utf-8')
+    assert 'CREATE TABLE IF NOT EXISTS cuotago_schema_migrations' in init
+    assert "column_name = 'version'" in init
+    assert 'SELECT version FROM cuotago_schema_migrations' in init
+    assert 'SELECT version FROM schema_migrations"))' not in init
+    assert "1.17.1-ui-v36" in js
+    assert "1.17.1-ui-v36" in sw
