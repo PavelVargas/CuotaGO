@@ -8,3 +8,4 @@ psycopg[binary]>=3.2,<4
 pywebpush>=2.0,<3
 APScheduler>=3.10,<4
 cryptography>=43,<47
+reportlab==4.2.5

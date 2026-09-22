@@ -204,6 +204,25 @@ MODULE_CATALOG = [
 ]
 
 
+MODULE_PERMISSIONS = {
+    "agreements": "contracts.view",
+    "collections": "collections.view",
+    "notifications": "collections.view",
+    "clients": "clients.view",
+    "purchases": "purchases.view",
+    "inventory": "inventory.view",
+    "calendar": "collections.view",
+    "reports": "reports.view",
+    "expenses": "expenses.view",
+    "documents": "clients.view",
+    "settings": "clients.view",
+}
+
 def module_catalog():
     """Return a fresh list so templates cannot mutate the canonical catalog."""
-    return [dict(module) for module in MODULE_CATALOG]
+    rows = []
+    for module in MODULE_CATALOG:
+        item = dict(module)
+        item["permission"] = MODULE_PERMISSIONS.get(item["slug"])
+        rows.append(item)
+    return rows

@@ -1,15 +1,21 @@
 import calendar as pycalendar
+import csv
+import io
 import json
 import re
 import uuid
+import zipfile
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, Response, abort, current_app, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, Response, abort, current_app, flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import or_
+from sqlalchemy import func, or_
+from sqlalchemy.orm import selectinload
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 from .extensions import db
 from .models import (
@@ -17,6 +23,7 @@ from .models import (
     PaymentPromise, Purchase, PushNotificationLog, Supplier, TenantAuditLog, User,
 )
 from .module_catalog import module_catalog
+from .permissions import has_permission, permission_required
 
 main_bp = Blueprint("main", __name__)
 CENT = Decimal("0.01")
@@ -78,6 +85,20 @@ def parse_int(value, default=None, minimum=None):
     if minimum is not None and parsed < minimum:
         return default
     return parsed
+
+
+def paginate_query(query, order_by, per_page=50):
+    page = parse_int(request.args.get("page"), 1, minimum=1) or 1
+    total = query.order_by(None).count()
+    pages = max((total + per_page - 1) // per_page, 1)
+    if page > pages:
+        page = pages
+    items = query.order_by(order_by).offset((page - 1) * per_page).limit(per_page).all()
+    args = request.args.to_dict(flat=True)
+    args.pop("page", None)
+    prev_url = url_for(request.endpoint, page=page - 1, **args) if page > 1 else None
+    next_url = url_for(request.endpoint, page=page + 1, **args) if page < pages else None
+    return items, {"page": page, "pages": pages, "total": total, "prev_url": prev_url, "next_url": next_url}
 
 
 def parse_date(value):
@@ -419,7 +440,7 @@ def asset_status_label(value):
 
 
 def contract_status_label(value):
-    return {"active": "Activo", "completed": "Completado", "cancelled": "Cancelado"}.get(value, value or "—")
+    return {"active": "Activo", "completed": "Completado", "cancelled": "Cancelado", "voided": "Anulado"}.get(value, value or "—")
 
 
 def frequency_label(value):
@@ -516,7 +537,7 @@ def dashboard():
         PaymentPromise.status.in_(["pending", "broken"]),
         PaymentPromise.promised_date <= today_value + timedelta(days=7),
     ).count()
-    modules = module_catalog()
+    modules = [m for m in module_catalog() if not m.get("permission") or has_permission(current_user, m["permission"])]
     module_status = {
         "agreements": {
             "kind": "small",
@@ -549,10 +570,155 @@ def dashboard():
     )
 
 
+@main_bp.get("/search")
+@login_required
+def global_search():
+    q = (request.args.get("q") or "").strip()
+    results = {"clients": [], "contracts": [], "assets": [], "payments": []}
+    if len(q) >= 2:
+        pattern = f"%{q}%"
+        org_id = current_user.organization_id
+        results["clients"] = (Client.query.filter(
+            Client.organization_id == org_id,
+            or_(Client.full_name.ilike(pattern), Client.phone.ilike(pattern), Client.document_id.ilike(pattern))
+        ).order_by(Client.full_name.asc()).limit(8).all())
+        results["contracts"] = (Contract.query.filter(
+            Contract.organization_id == org_id,
+            Contract.code.ilike(pattern)
+        ).order_by(Contract.created_at.desc()).limit(8).all())
+        results["assets"] = (Asset.query.filter(
+            Asset.organization_id == org_id,
+            or_(Asset.name.ilike(pattern), Asset.identifier.ilike(pattern), Asset.serial_number.ilike(pattern))
+        ).order_by(Asset.created_at.desc()).limit(8).all())
+        if q.upper().startswith("CGP-"):
+            results["payments"] = (Payment.query.join(Contract).filter(
+                Contract.organization_id == org_id, Payment.receipt_code.ilike(pattern)
+            ).order_by(Payment.paid_at.desc()).limit(8).all())
+    return render_template("search/results.html", q=q, results=results)
+
+
+def _pdf_response(filename, title, lines):
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    y = height - 52
+    pdf.setTitle(title)
+    pdf.setFont("Helvetica-Bold", 18)
+    pdf.drawString(48, y, current_app.config.get("APP_NAME", "CuotaGo"))
+    y -= 25
+    pdf.setFont("Helvetica-Bold", 14)
+    pdf.drawString(48, y, title)
+    y -= 24
+    pdf.setFont("Helvetica", 9)
+    for line in lines:
+        if y < 55:
+            pdf.showPage()
+            y = height - 52
+            pdf.setFont("Helvetica", 9)
+        text_line = str(line or "")
+        while len(text_line) > 105:
+            pdf.drawString(48, y, text_line[:105])
+            text_line = text_line[105:]
+            y -= 14
+        pdf.drawString(48, y, text_line)
+        y -= 14
+    pdf.save()
+    buffer.seek(0)
+    response = send_file(buffer, mimetype="application/pdf", as_attachment=True, download_name=filename)
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@main_bp.get("/clients/<int:client_id>/statement.pdf")
+@login_required
+@permission_required("clients.view")
+def client_statement_pdf(client_id):
+    client = scoped_client(client_id)
+    for contract in client.contracts:
+        sync_contract_late_fees(contract, commit=False)
+    db.session.commit()
+    contracts = sorted(client.contracts, key=lambda item: item.created_at or datetime.min, reverse=True)
+    active = [item for item in contracts if item.status == "active"]
+    paid = sum((item.paid_total for item in contracts), Decimal("0.00"))
+    balance = sum((item.balance for item in active), Decimal("0.00"))
+    lines = [
+        f"Cliente: {client.full_name}",
+        f"Telefono: {client.phone or '-'}",
+        f"Documento: {client.document_id or '-'}",
+        f"Total pagado: {format_money(paid)}",
+        f"Saldo pendiente: {format_money(balance)}",
+        "",
+        "Acuerdos:",
+    ]
+    for contract in contracts:
+        lines.append(f"{contract.code} | {contract.asset.name} | {contract_status_label(contract.status)} | Saldo {format_money(contract.balance)}")
+    payments = sorted([p for c in contracts for p in c.payments], key=lambda p: p.paid_at, reverse=True)[:30]
+    if payments:
+        lines.extend(["", "Ultimos pagos:"])
+        for payment in payments:
+            lines.append(f"{payment.paid_at.strftime('%d/%m/%Y')} | {payment.receipt_code or payment.id} | {format_money(payment.amount)} | {payment_method_label(payment.method)}")
+    return _pdf_response(f"estado-{client.id}.pdf", f"Estado de cuenta - {client.full_name}", lines)
+
+
+@main_bp.get("/payments/<int:payment_id>/receipt.pdf")
+@login_required
+@permission_required("collections.view")
+def payment_receipt_pdf(payment_id):
+    payment = scoped_payment(payment_id)
+    contract = payment.contract
+    receipt = payment.receipt_code or f"CGP-{contract.organization_id}-{payment.id:06d}"
+    lines = [
+        f"Recibo: {receipt}",
+        f"Cliente: {contract.client.full_name}",
+        f"Acuerdo: {contract.code}",
+        f"Articulo: {contract.asset.name}",
+        f"Fecha: {payment.paid_at.strftime('%d/%m/%Y')}",
+        f"Monto: {format_money(payment.amount)}",
+        f"Metodo: {payment_method_label(payment.method)}",
+        f"Referencia: {payment.reference or '-'}",
+        f"Concepto: {'Inicial' if payment.payment_kind == 'down_payment' else ('Abono' if payment.payment_kind == 'advance' else 'Pago')}",
+        f"Saldo pendiente: {format_money(contract.balance)}",
+    ]
+    return _pdf_response(f"{receipt}.pdf", f"Recibo {receipt}", lines)
+
+
+@main_bp.get("/backup/export.zip")
+@login_required
+@permission_required("backup.export")
+def backup_export():
+    org_id = current_user.organization_id
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        datasets = [
+            ("clientes.csv", ["id","nombre","telefono","correo","documento","direccion"],
+             [[x.id,x.full_name,x.phone or "",x.email or "",x.document_id or "",x.address or ""] for x in Client.query.filter_by(organization_id=org_id).all()]),
+            ("acuerdos.csv", ["id","codigo","cliente","articulo","estado","total","inicial","saldo","creado"],
+             [[x.id,x.code,x.client.full_name,x.asset.name,x.status,str(x.total_amount),str(x.down_payment),str(x.balance),x.created_at.isoformat()] for x in Contract.query.filter_by(organization_id=org_id).all()]),
+            ("pagos.csv", ["id","recibo","acuerdo","cliente","monto","metodo","referencia","fecha"],
+             [[x.id,x.receipt_code or "",x.contract.code,x.contract.client.full_name,str(x.amount),x.method,x.reference or "",x.paid_at.isoformat()] for x in Payment.query.join(Contract).filter(Contract.organization_id==org_id).all()]),
+            ("inventario.csv", ["id","articulo","tipo","costo","precio_venta","existencia","estado"],
+             [[x.id,x.name,x.kind,str(x.estimated_value),str(x.sale_price),x.quantity_total,x.status] for x in Asset.query.filter_by(organization_id=org_id).all()]),
+            ("gastos.csv", ["id","fecha","categoria","monto","metodo","referencia","nota"],
+             [[x.id,x.expense_date.isoformat(),x.category,str(x.amount),x.method,x.reference or "",x.note or ""] for x in Expense.query.filter_by(organization_id=org_id, voided_at=None).all()]),
+        ]
+        for filename, headers, rows in datasets:
+            text_buffer = io.StringIO()
+            writer = csv.writer(text_buffer)
+            writer.writerow(headers)
+            writer.writerows(rows)
+            archive.writestr(filename, '\ufeff' + text_buffer.getvalue())
+    buffer.seek(0)
+    tenant_audit("backup.exported", "organization", org_id, "Respaldo CSV exportado por el usuario.")
+    db.session.commit()
+    response = send_file(buffer, mimetype="application/zip", as_attachment=True, download_name=f"cuotago-respaldo-{local_today().isoformat()}.zip")
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
 @main_bp.get("/documents")
 @login_required
 def documents():
-    modules = module_catalog()
+    modules = [m for m in module_catalog() if not m.get("permission") or has_permission(current_user, m["permission"])]
     return render_template(
         "documents/index.html",
         modules=modules,
@@ -563,6 +729,7 @@ def documents():
 
 @main_bp.get("/reminders")
 @login_required
+@permission_required("collections.view")
 def reminders():
     sync_payment_promises(commit=True)
     items = payment_notification_items(limit=500)
@@ -587,6 +754,7 @@ def reminders():
 
 @main_bp.get("/notifications")
 @login_required
+@permission_required("collections.view")
 def notifications():
     items = payment_notification_items(limit=100)
     overdue = [item for item in items if item["type"] == "overdue"]
@@ -604,6 +772,7 @@ def notifications():
 
 @main_bp.get("/api/notifications")
 @login_required
+@permission_required("collections.view")
 def notifications_api():
     items = payment_notification_items(limit=30)
     urgent_count = sum(1 for item in items if item["urgent"])
@@ -617,9 +786,10 @@ def notifications_api():
 
 @main_bp.route("/clients", methods=["GET"])
 @login_required
+@permission_required("clients.view")
 def clients():
     q = request.args.get("q", "").strip()
-    query = Client.query.filter_by(organization_id=current_user.organization_id)
+    query = Client.query.filter_by(organization_id=current_user.organization_id).options(selectinload(Client.contracts))
     if q:
         pattern = f"%{q}%"
         query = query.filter(
@@ -629,12 +799,13 @@ def clients():
                 Client.document_id.ilike(pattern),
             )
         )
-    items = query.order_by(Client.full_name.asc()).all()
-    return render_template("clients/list.html", clients=items, q=q)
+    items, pagination = paginate_query(query, Client.full_name.asc())
+    return render_template("clients/list.html", clients=items, q=q, pagination=pagination)
 
 
 @main_bp.route("/clients/new", methods=["GET", "POST"])
 @login_required
+@permission_required("clients.manage")
 def client_new():
     if request.method == "POST":
         full_name = request.form.get("full_name", "").strip()
@@ -663,6 +834,7 @@ def client_new():
 
 @main_bp.route("/clients/<int:client_id>/edit", methods=["GET", "POST"])
 @login_required
+@permission_required("clients.manage")
 def client_edit(client_id):
     client = scoped_client(client_id)
     if request.method == "POST":
@@ -689,6 +861,7 @@ def client_edit(client_id):
 
 @main_bp.get("/clients/<int:client_id>")
 @login_required
+@permission_required("clients.view")
 def client_detail(client_id):
     client = scoped_client(client_id)
     sync_payment_promises(commit=True)
@@ -773,6 +946,7 @@ def client_detail(client_id):
 
 @main_bp.post("/clients/<int:client_id>/notes")
 @login_required
+@permission_required("clients.manage")
 def client_note_add(client_id):
     client = scoped_client(client_id)
     body = (request.form.get("body") or "").strip()
@@ -802,6 +976,7 @@ def client_note_add(client_id):
 
 @main_bp.post("/clients/<int:client_id>/promises")
 @login_required
+@permission_required("collections.collect")
 def client_promise_add(client_id):
     client = scoped_client(client_id)
     promised_date = parse_date(request.form.get("promised_date"))
@@ -835,6 +1010,7 @@ def client_promise_add(client_id):
 
 @main_bp.post("/promises/<int:promise_id>/status")
 @login_required
+@permission_required("collections.collect")
 def promise_status(promise_id):
     promise = scoped_promise(promise_id)
     status = (request.form.get("status") or "").strip()
@@ -857,6 +1033,7 @@ def promise_status(promise_id):
 
 @main_bp.get("/clients/<int:client_id>/statement")
 @login_required
+@permission_required("clients.view")
 def client_statement(client_id):
     client = scoped_client(client_id)
     sync_payment_promises(commit=True)
@@ -882,6 +1059,7 @@ def client_statement(client_id):
 
 @main_bp.get("/assets/<int:asset_id>/image")
 @login_required
+@permission_required("inventory.view")
 def asset_image(asset_id):
     asset = scoped_asset(asset_id)
     if not asset.image_mime or not asset.image_data:
@@ -894,6 +1072,7 @@ def asset_image(asset_id):
 
 @main_bp.get("/assets")
 @login_required
+@permission_required("inventory.view")
 def assets():
     q = request.args.get("q", "").strip()
     status = request.args.get("status", "").strip()
@@ -924,6 +1103,7 @@ def assets():
 
 @main_bp.route("/assets/new", methods=["GET", "POST"])
 @login_required
+@permission_required("inventory.manage")
 def asset_new():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
@@ -968,6 +1148,7 @@ def asset_new():
 
 @main_bp.route("/assets/<int:asset_id>/edit", methods=["GET", "POST"])
 @login_required
+@permission_required("inventory.manage")
 def asset_edit(asset_id):
     asset = scoped_asset(asset_id)
     if request.method == "POST":
@@ -1019,6 +1200,7 @@ def asset_edit(asset_id):
 
 @main_bp.get("/purchases")
 @login_required
+@permission_required("purchases.view")
 def purchases():
     items = (
         Purchase.query.filter_by(organization_id=current_user.organization_id)
@@ -1073,6 +1255,7 @@ def purchases():
 
 @main_bp.route("/purchases/new", methods=["GET", "POST"])
 @login_required
+@permission_required("purchases.manage")
 def purchase_new():
     assets_list = (
         Asset.query.filter_by(organization_id=current_user.organization_id)
@@ -1312,18 +1495,23 @@ def purchase_new():
 
 @main_bp.get("/contracts")
 @login_required
+@permission_required("contracts.view")
 def contracts():
     sync_org_late_fees(commit=True)
     status = request.args.get("status", "").strip()
-    query = Contract.query.filter_by(organization_id=current_user.organization_id)
+    query = Contract.query.filter_by(organization_id=current_user.organization_id).options(
+        selectinload(Contract.client), selectinload(Contract.asset),
+        selectinload(Contract.installments), selectinload(Contract.payments),
+    )
     if status:
         query = query.filter_by(status=status)
-    items = query.order_by(Contract.created_at.desc()).all()
-    return render_template("contracts/list.html", contracts=items, status=status)
+    items, pagination = paginate_query(query, Contract.created_at.desc())
+    return render_template("contracts/list.html", contracts=items, status=status, pagination=pagination)
 
 
 @main_bp.route("/contracts/new", methods=["GET", "POST"])
 @login_required
+@permission_required("contracts.create")
 def contract_new():
     """Create an agreement in one mobile-first screen.
 
@@ -1393,6 +1581,11 @@ def contract_new():
             installment = money_decimal(financed / Decimal(installment_count))
         elif installment_count and financed is not None:
             installment = Decimal("0.00")
+
+        down_method = (request.form.get("down_payment_method") or "cash").strip()
+        if down_method not in {"cash", "transfer", "deposit", "card", "other"}:
+            down_method = "cash"
+        down_reference = (request.form.get("down_payment_reference") or "").strip()[:120]
 
         daily_late_interest = parse_money(request.form.get("daily_late_interest"), Decimal("0.00"))
         frequency = request.form.get("frequency", "monthly")
@@ -1518,6 +1711,16 @@ def contract_new():
                 default_due=default_due,
             )
 
+        if down > Decimal("0.009"):
+            initial_payment = Payment(
+                contract=contract, amount=down, late_fee_amount=Decimal("0.00"),
+                method=down_method, reference=down_reference, payment_kind="down_payment",
+                created_by_user_id=current_user.id, note="Inicial", paid_at=datetime.utcnow(),
+            )
+            db.session.add(initial_payment)
+            db.session.flush()
+            initial_payment.receipt_code = f"CGP-{current_user.organization_id}-{initial_payment.id:06d}"
+
         if total - down <= Decimal("0.009"):
             contract.status = "completed"
         refresh_asset_status(asset)
@@ -1541,6 +1744,7 @@ def contract_new():
 
 @main_bp.get("/contracts/<int:contract_id>")
 @login_required
+@permission_required("contracts.view")
 def contract_detail(contract_id):
     contract = scoped_contract(contract_id)
     return render_template("contracts/detail.html", contract=contract)
@@ -1548,6 +1752,7 @@ def contract_detail(contract_id):
 
 @main_bp.post("/contracts/<int:contract_id>/late-fee")
 @login_required
+@permission_required("contracts.manage")
 def contract_enable_late_fee(contract_id):
     """Enable mora from today without charging prior overdue days."""
     contract = scoped_contract(contract_id)
@@ -1580,6 +1785,7 @@ def contract_enable_late_fee(contract_id):
 
 @main_bp.post("/contracts/<int:contract_id>/reschedule")
 @login_required
+@permission_required("contracts.manage")
 def contract_reschedule(contract_id):
     contract = scoped_contract(contract_id)
     if contract.status != "active":
@@ -1685,25 +1891,39 @@ def contract_reschedule(contract_id):
 
 @main_bp.post("/contracts/<int:contract_id>/delete")
 @login_required
+@permission_required("contracts.manage")
 def contract_delete(contract_id):
-    """Delete one tenant-owned agreement and release its inventory quantity."""
+    """Delete only untouched agreements; otherwise void them and preserve the financial trail."""
     contract = scoped_contract(contract_id)
     asset = contract.asset
-    installment_ids = [item.id for item in contract.installments if item.id is not None]
+    reason = (request.form.get("reason") or "").strip()[:240]
+    has_money = bool(contract.payments) or money_decimal(contract.down_payment) > Decimal("0.009")
 
+    if has_money:
+        if contract.status == "voided":
+            flash("Este acuerdo ya está anulado.", "error")
+            return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        contract.status = "voided"
+        contract.voided_at = datetime.utcnow()
+        contract.voided_by_user_id = current_user.id
+        contract.void_reason = reason or "Anulado desde administración del acuerdo"
+        tenant_audit(
+            "contract.voided", "contract", contract.id,
+            f"Acuerdo {contract.code} de {contract.client.full_name} anulado sin eliminar pagos.",
+            json.dumps({"reason": contract.void_reason, "payments": len(contract.payments)}, ensure_ascii=False),
+        )
+        refresh_asset_status(asset)
+        db.session.commit()
+        flash("Acuerdo anulado. Pagos, recibos y cuotas se conservaron.", "success")
+        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+
+    installment_ids = [item.id for item in contract.installments if item.id is not None]
     try:
         if installment_ids:
-            PushNotificationLog.query.filter(
-                PushNotificationLog.installment_id.in_(installment_ids)
-            ).delete(synchronize_session=False)
-        tenant_audit(
-            "contract.deleted", "contract", contract.id,
-            f"Acuerdo {contract.code} de {contract.client.full_name} eliminado.",
-        )
+            PushNotificationLog.query.filter(PushNotificationLog.installment_id.in_(installment_ids)).delete(synchronize_session=False)
+        tenant_audit("contract.deleted", "contract", contract.id, f"Acuerdo {contract.code} sin pagos eliminado.")
         db.session.delete(contract)
         db.session.flush()
-        # Reload the relationship after the delete so stock/status are computed
-        # only from agreements that still exist.
         db.session.expire(asset, ["contracts"])
         refresh_asset_status(asset)
         db.session.commit()
@@ -1713,12 +1933,13 @@ def contract_delete(contract_id):
         flash("No se pudo eliminar el acuerdo. Intenta nuevamente.", "error")
         return redirect(url_for("main.contract_detail", contract_id=contract_id))
 
-    flash("Acuerdo eliminado. El producto volvió a quedar disponible para crear otro acuerdo.", "success")
+    flash("Acuerdo sin pagos eliminado. El artículo volvió a estar disponible.", "success")
     return redirect(url_for("main.contracts"))
 
 
 @main_bp.post("/contracts/<int:contract_id>/pay")
 @login_required
+@permission_required("collections.collect")
 def contract_pay(contract_id):
     contract = scoped_contract(contract_id)
     if contract.status != "active":
@@ -1832,6 +2053,7 @@ def contract_pay(contract_id):
 
 @main_bp.get("/payments/<int:payment_id>/receipt")
 @login_required
+@permission_required("collections.view")
 def payment_receipt(payment_id):
     payment = scoped_payment(payment_id)
     contract = payment.contract
@@ -1845,6 +2067,7 @@ def payment_receipt(payment_id):
 
 @main_bp.get("/collections")
 @login_required
+@permission_required("collections.view")
 def collections():
     today_value = local_today()
     installments = tenant_installments(active_only=True)
@@ -1863,6 +2086,7 @@ def collections():
 
 @main_bp.get("/calendar")
 @login_required
+@permission_required("collections.view")
 def payment_calendar():
     """Interactive payment calendar with client-side, real-time filtering."""
     today_value = local_today()
@@ -1912,8 +2136,11 @@ def payment_calendar():
 
 @main_bp.route("/expenses", methods=["GET", "POST"])
 @login_required
+@permission_required("expenses.view")
 def expenses():
     if request.method == "POST":
+        if not has_permission(current_user, "expenses.manage"):
+            abort(403)
         expense_date = parse_date(request.form.get("expense_date")) or local_today()
         amount = parse_money(request.form.get("amount"))
         category = (request.form.get("category") or "other").strip()
@@ -1953,34 +2180,39 @@ def expenses():
     else:
         period = "month"
         start = today_value.replace(day=1)
-    query = Expense.query.filter_by(organization_id=current_user.organization_id)
+    query = Expense.query.filter_by(organization_id=current_user.organization_id, voided_at=None)
     if start:
         query = query.filter(Expense.expense_date >= start)
-    rows = query.order_by(Expense.expense_date.desc(), Expense.created_at.desc()).all()
-    total = sum((money_decimal(item.amount) for item in rows), Decimal("0.00"))
-    category_totals = {}
-    for item in rows:
-        category_totals[item.category] = category_totals.get(item.category, Decimal("0.00")) + money_decimal(item.amount)
-    top_categories = sorted(category_totals.items(), key=lambda pair: pair[1], reverse=True)[:5]
+    total = money_decimal(query.with_entities(func.coalesce(func.sum(Expense.amount), 0)).scalar())
+    category_rows = (
+        query.with_entities(Expense.category, func.coalesce(func.sum(Expense.amount), 0))
+        .group_by(Expense.category).order_by(func.sum(Expense.amount).desc()).limit(5).all()
+    )
+    top_categories = [(category, money_decimal(value)) for category, value in category_rows]
+    rows, pagination = paginate_query(query, Expense.expense_date.desc())
     return render_template(
-        "expenses/index.html", expenses=rows, total=total, period=period, top_categories=top_categories, today_value=today_value,
+        "expenses/index.html", expenses=rows, total=total, period=period, top_categories=top_categories, today_value=today_value, pagination=pagination,
     )
 
 
 @main_bp.post("/expenses/<int:expense_id>/delete")
 @login_required
+@permission_required("expenses.manage")
 def expense_delete(expense_id):
-    expense = Expense.query.filter_by(id=expense_id, organization_id=current_user.organization_id).first_or_404()
-    summary = f"Gasto de {format_money(expense.amount)} · {expense_category_label(expense.category)} eliminado."
-    tenant_audit("expense.deleted", "expense", expense.id, summary)
-    db.session.delete(expense)
+    expense = Expense.query.filter_by(id=expense_id, organization_id=current_user.organization_id, voided_at=None).first_or_404()
+    expense.voided_at = datetime.utcnow()
+    expense.voided_by_user_id = current_user.id
+    expense.void_reason = (request.form.get("reason") or "Anulado por el usuario").strip()[:240]
+    summary = f"Gasto de {format_money(expense.amount)} · {expense_category_label(expense.category)} anulado."
+    tenant_audit("expense.voided", "expense", expense.id, summary, json.dumps({"reason": expense.void_reason}, ensure_ascii=False))
     db.session.commit()
-    flash("Gasto eliminado.", "success")
+    flash("Gasto anulado. Se conserva en auditoría.", "success")
     return redirect(url_for("main.expenses"))
 
 
 @main_bp.get("/audit")
 @login_required
+@permission_required("audit.view")
 def audit_log():
     if getattr(current_user, "role", "") not in {"owner", "admin"}:
         abort(403)
@@ -1994,6 +2226,7 @@ def audit_log():
 
 @main_bp.get("/reports")
 @login_required
+@permission_required("reports.view")
 def reports():
     """Simple business report focused on collections, portfolio and profit."""
     sync_org_late_fees(commit=True)
@@ -2034,6 +2267,12 @@ def reports():
 
     contracts_all = (
         Contract.query.filter_by(organization_id=org_id)
+        .options(
+            selectinload(Contract.installments),
+            selectinload(Contract.payments),
+            selectinload(Contract.client),
+            selectinload(Contract.asset),
+        )
         .order_by(Contract.created_at.desc())
         .all()
     )
@@ -2055,10 +2294,13 @@ def reports():
     else:
         contracts_scope = list(contracts_all)
 
-    active = [contract for contract in contracts_scope if contract.status == "active"]
-    completed = [contract for contract in contracts_scope if contract.status == "completed"]
+    # Voided agreements remain in history so their collected cash is auditable, but
+    # they no longer contribute to the live portfolio, expected profit or pending mora.
+    financial_contracts = [contract for contract in contracts_scope if contract.status != "voided"]
+    active = [contract for contract in financial_contracts if contract.status == "active"]
+    completed = [contract for contract in financial_contracts if contract.status == "completed"]
     active_installments = [item for contract in active for item in contract.installments]
-    all_installments = [item for contract in contracts_scope for item in contract.installments]
+    all_installments = [item for contract in financial_contracts for item in contract.installments]
     all_payments = [payment for contract in contracts_scope for payment in contract.payments]
 
     receivable = sum((contract.balance for contract in active), Decimal("0.00"))
@@ -2085,7 +2327,9 @@ def reports():
     period_payments = [payment for payment in all_payments if date_in_period(payment.paid_at)]
     period_down_payments = [
         contract for contract in contracts_scope
-        if money_decimal(contract.down_payment) > 0 and date_in_period(contract.created_at)
+        if money_decimal(contract.down_payment) > 0
+        and contract.recorded_down_payment_total <= Decimal("0.009")
+        and date_in_period(contract.created_at)
     ]
     period_collected = (
         sum((money_decimal(payment.amount) for payment in period_payments), Decimal("0.00"))
@@ -2096,19 +2340,24 @@ def reports():
     for payment in period_payments:
         key = payment.method if payment.method in payment_method_totals else "other"
         payment_method_totals[key] += money_decimal(payment.amount)
-    down_payment_total = sum((money_decimal(contract.down_payment) for contract in period_down_payments), Decimal("0.00"))
+    down_payment_total = (
+        sum((money_decimal(payment.amount) for payment in period_payments if payment.payment_kind == "down_payment"), Decimal("0.00"))
+        + sum((money_decimal(contract.down_payment) for contract in period_down_payments), Decimal("0.00"))
+    )
 
-    expense_rows = Expense.query.filter_by(organization_id=org_id).all()
-    period_expenses = [item for item in expense_rows if date_in_period(item.expense_date)]
+    expense_query = Expense.query.filter_by(organization_id=org_id, voided_at=None)
+    if period_start is not None:
+        expense_query = expense_query.filter(Expense.expense_date >= period_start, Expense.expense_date <= today_value)
+    period_expenses = expense_query.all()
     expenses_period_total = sum((money_decimal(item.amount) for item in period_expenses), Decimal("0.00"))
     cash_flow_net = period_collected - expenses_period_total
 
-    financed_total = sum((money_decimal(contract.total_amount) for contract in contracts_scope), Decimal("0.00"))
+    financed_total = sum((money_decimal(contract.total_amount) for contract in financial_contracts), Decimal("0.00"))
     profit_contracts = [
-        contract for contract in contracts_scope
+        contract for contract in financial_contracts
         if money_decimal(contract.base_amount) > 0 and money_decimal(contract.total_amount) > 0
     ]
-    profit_untracked_count = len(contracts_scope) - len(profit_contracts)
+    profit_untracked_count = len(financial_contracts) - len(profit_contracts)
     capital_total = sum((money_decimal(contract.base_amount) for contract in profit_contracts), Decimal("0.00"))
     profit_expected = sum((contract.profit_amount for contract in profit_contracts), Decimal("0.00"))
     capital_recovered = Decimal("0.00")
@@ -2147,8 +2396,10 @@ def reports():
     )
     inventory_potential_profit = inventory_sale_value - inventory_available_value
 
-    purchases_scope = Purchase.query.filter_by(organization_id=org_id).all()
-    period_purchases = [item for item in purchases_scope if date_in_period(item.purchase_date)]
+    purchase_query = Purchase.query.filter_by(organization_id=org_id)
+    if period_start is not None:
+        purchase_query = purchase_query.filter(Purchase.purchase_date >= period_start, Purchase.purchase_date <= today_value)
+    period_purchases = purchase_query.all()
     purchases_period_invested = sum((money_decimal(item.total_cost) for item in period_purchases), Decimal("0.00"))
     purchases_period_expected_profit = sum((money_decimal(item.expected_profit) for item in period_purchases), Decimal("0.00"))
 
@@ -2165,7 +2416,11 @@ def reports():
             daily_collected[payment_day] += money_decimal(payment.amount)
     for contract in contracts_scope:
         created_day = contract.created_at.date() if contract.created_at else None
-        if created_day in daily_collected and money_decimal(contract.down_payment) > 0:
+        if (
+            created_day in daily_collected
+            and money_decimal(contract.down_payment) > 0
+            and contract.recorded_down_payment_total <= Decimal("0.009")
+        ):
             daily_collected[created_day] += money_decimal(contract.down_payment)
 
     chart_values = [money_decimal(daily_collected[day]) for day in chart_days]
@@ -2286,6 +2541,65 @@ def reports():
     )
 
 
+@main_bp.route("/settings/team", methods=["GET", "POST"])
+@login_required
+@permission_required("team.manage")
+def team_settings():
+    org_id = current_user.organization_id
+    allowed_roles = {"admin", "collector", "sales", "staff", "viewer"}
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password") or ""
+        role = (request.form.get("role") or "staff").strip().lower()
+        errors = []
+        if len(name) < 2: errors.append("Escribe el nombre del usuario.")
+        if "@" not in email or "." not in email: errors.append("Escribe un correo válido.")
+        if len(password) < 8: errors.append("La contraseña debe tener al menos 8 caracteres.")
+        if role not in allowed_roles: errors.append("Selecciona un rol válido.")
+        if User.query.filter_by(email=email).first(): errors.append("Ese correo ya está registrado.")
+        if errors:
+            for error in errors: flash(error, "error")
+        else:
+            user = User(organization_id=org_id, name=name, email=email, role=role, is_enabled=True)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.flush()
+            tenant_audit("user.created", "user", user.id, f"Usuario {user.name} creado con rol {role}.")
+            db.session.commit()
+            flash("Usuario creado.", "success")
+            return redirect(url_for("main.team_settings"))
+    users = User.query.filter_by(organization_id=org_id).order_by(User.role.asc(), User.name.asc()).all()
+    return render_template("settings/team.html", users=users)
+
+
+@main_bp.post("/settings/team/<int:user_id>")
+@login_required
+@permission_required("team.manage")
+def team_user_update(user_id):
+    user = User.query.filter_by(id=user_id, organization_id=current_user.organization_id).first_or_404()
+    if user.role == "superadmin": abort(403)
+    if user.role == "owner" and current_user.role != "owner": abort(403)
+    role = (request.form.get("role") or user.role).strip().lower()
+    if role == "owner" and current_user.role != "owner": abort(403)
+    if role not in {"owner", "admin", "collector", "sales", "staff", "viewer"}: abort(400)
+    if user.id == current_user.id and role not in {"owner", "admin"}:
+        flash("No puedes quitarte tu propio acceso administrativo.", "error")
+        return redirect(url_for("main.team_settings"))
+    if user.role == "owner" and role != "owner":
+        owners = User.query.filter_by(organization_id=current_user.organization_id, role="owner", is_enabled=True).count()
+        if owners <= 1:
+            flash("Debe quedar al menos un propietario activo.", "error")
+            return redirect(url_for("main.team_settings"))
+    user.name = (request.form.get("name") or user.name).strip()[:100] or user.name
+    user.role = role
+    user.is_enabled = request.form.get("is_enabled") == "1" if user.id != current_user.id else True
+    tenant_audit("user.updated", "user", user.id, f"Usuario {user.name} actualizado a rol {role}.")
+    db.session.commit()
+    flash("Usuario actualizado.", "success")
+    return redirect(url_for("main.team_settings"))
+
+
 @main_bp.get("/subscription-status")
 @login_required
 def subscription_status():
@@ -2312,6 +2626,8 @@ def subscription_status():
 @login_required
 def settings():
     if request.method == "POST":
+        if not has_permission(current_user, "settings.manage"):
+            abort(403)
         business_name = request.form.get("business_name", "").strip()
         user_name = request.form.get("name", "").strip()
         currency = request.form.get("currency", "DOP").strip().upper()

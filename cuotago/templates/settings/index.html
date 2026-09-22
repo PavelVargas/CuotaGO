@@ -48,10 +48,27 @@
     </div>
   </section>
 
-  {% if current_user.role in ['owner', 'admin'] %}
+  {% if can('audit.view') %}
   <a class="surface settings-audit-link-v15" href="{{ url_for('main.audit_log') }}">
     <span class="settings-row-icon">{{ icon('shield',20) }}</span>
     <span><strong>Auditoría</strong><small>Revisa pagos, acuerdos, promesas, reprogramaciones y gastos.</small></span>
+    <b>›</b>
+  </a>
+  {% endif %}
+
+
+  {% if can('team.manage') %}
+  <a class="surface settings-audit-link-v15" href="{{ url_for('main.team_settings') }}">
+    <span class="settings-row-icon">{{ icon('users',20) }}</span>
+    <span><strong>Equipo y permisos</strong><small>Cobradores, vendedores y accesos administrativos.</small></span>
+    <b>›</b>
+  </a>
+  {% endif %}
+
+  {% if can('backup.export') %}
+  <a class="surface settings-audit-link-v15" href="{{ url_for('main.backup_export') }}">
+    <span class="settings-row-icon">{{ icon('download',20) }}</span>
+    <span><strong>Exportar respaldo</strong><small>Descarga clientes, acuerdos, pagos, inventario y gastos en un ZIP.</small></span>
     <b>›</b>
   </a>
   {% endif %}
@@ -63,12 +80,12 @@
       <small>Datos básicos del negocio.</small>
     </div>
     <div class="settings-account-grid">
-      <label class="field"><span>Negocio</span><input name="business_name" value="{{ current_user.organization.name }}" required autocomplete="organization"></label>
-      <label class="field"><span>Tu nombre</span><input name="name" value="{{ current_user.name }}" required autocomplete="name"></label>
-      <label class="field"><span>Moneda</span><select name="currency"><option value="DOP" {{ 'selected' if current_user.organization.currency=='DOP' }}>DOP · Peso dominicano</option><option value="USD" {{ 'selected' if current_user.organization.currency=='USD' }}>USD · Dólar</option><option value="EUR" {{ 'selected' if current_user.organization.currency=='EUR' }}>EUR · Euro</option></select></label>
+      <label class="field"><span>Negocio</span><input name="business_name" value="{{ current_user.organization.name }}" required autocomplete="organization" {{ 'readonly' if not can('settings.manage') }}></label>
+      <label class="field"><span>Tu nombre</span><input name="name" value="{{ current_user.name }}" required autocomplete="name" {{ 'readonly' if not can('settings.manage') }}></label>
+      <label class="field"><span>Moneda</span><select name="currency" {{ 'disabled' if not can('settings.manage') }}><option value="DOP" {{ 'selected' if current_user.organization.currency=='DOP' }}>DOP · Peso dominicano</option><option value="USD" {{ 'selected' if current_user.organization.currency=='USD' }}>USD · Dólar</option><option value="EUR" {{ 'selected' if current_user.organization.currency=='EUR' }}>EUR · Euro</option></select></label>
       <label class="field"><span>Correo</span><input value="{{ current_user.email }}" disabled></label>
     </div>
-    <div class="settings-save-row"><button class="btn btn-primary" type="submit">Guardar cambios</button></div>
+    {% if can('settings.manage') %}<div class="settings-save-row"><button class="btn btn-primary" type="submit">Guardar cambios</button></div>{% endif %}
   </form>
 </section>
 {% endblock %}

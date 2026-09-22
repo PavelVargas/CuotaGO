@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
+{% from 'macros/pagination.html' import pager %}
 {% block title %}Gastos · {{ app_name }}{% endblock %}
 {% block content %}
 <section class="content-page expenses-page-v15">
   <div class="page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back',22) }}</a><div><span class="eyebrow">GASTOS</span><h1>Salidas de dinero</h1><p>Registra lo que sale para conocer el flujo real.</p></div></div></div>
 
   <div class="expense-top-grid-v15">
-    <section class="surface expense-entry-v15">
+    {% if can('expenses.manage') %}<section class="surface expense-entry-v15">
       <div class="section-heading"><div><span class="eyebrow">NUEVO</span><h2>Registrar gasto</h2></div></div>
       <form method="post" class="expense-form-v15">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -18,7 +19,7 @@
         <label class="field expense-note-v15"><span>Concepto</span><input name="note" maxlength="240" placeholder="Ej. gasolina para cobranzas"></label>
         <button class="btn btn-primary" type="submit">Guardar gasto</button>
       </form>
-    </section>
+    </section>{% endif %}
 
     <section class="surface expense-summary-v15">
       <span class="eyebrow">RESUMEN</span><strong>{{ money(total) }}</strong><small>{% if period == 'today' %}gastado hoy{% elif period == '7d' %}últimos 7 días{% elif period == 'all' %}histórico{% else %}gastado este mes{% endif %}</small>
@@ -29,7 +30,8 @@
 
   <section class="surface expense-list-card-v15">
     <div class="section-heading"><div><span class="eyebrow">MOVIMIENTOS</span><h2>Gastos registrados</h2></div><span>{{ expenses|length }}</span></div>
-    <div class="expense-list-v15">{% for expense in expenses %}<div class="expense-row-v15"><span class="expense-symbol-v15">−</span><span><strong>{{ expense_category_label(expense.category) }}</strong><small>{{ expense.expense_date.strftime('%d/%m/%Y') }} · {{ payment_method_label(expense.method) }}{% if expense.note %} · {{ expense.note }}{% endif %}</small></span><b>{{ money(expense.amount) }}</b><form method="post" action="{{ url_for('main.expense_delete', expense_id=expense.id) }}" onsubmit="return confirm('¿Eliminar este gasto?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="icon-action" type="submit" aria-label="Eliminar">{{ icon('trash',16) }}</button></form></div>{% else %}<div class="empty-inline">No hay gastos para mostrar.</div>{% endfor %}</div>
+    <div class="expense-list-v15">{% for expense in expenses %}<div class="expense-row-v15"><span class="expense-symbol-v15">−</span><span><strong>{{ expense_category_label(expense.category) }}</strong><small>{{ expense.expense_date.strftime('%d/%m/%Y') }} · {{ payment_method_label(expense.method) }}{% if expense.note %} · {{ expense.note }}{% endif %}</small></span><b>{{ money(expense.amount) }}</b>{% if can('expenses.manage') %}<form method="post" action="{{ url_for('main.expense_delete', expense_id=expense.id) }}" onsubmit="return confirm('¿Anular este gasto? Se conservará en auditoría.')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="icon-action" type="submit" aria-label="Anular gasto">{{ icon('trash',16) }}</button></form>{% endif %}</div>{% else %}<div class="empty-inline">No hay gastos para mostrar.</div>{% endfor %}</div>
   </section>
+  {{ pager(pagination) }}
 </section>
 {% endblock %}

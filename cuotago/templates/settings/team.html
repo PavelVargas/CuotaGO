@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Equipo · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page narrow-page team-page-v16">
+  <div class="page-head simple-page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.settings') }}">{{ icon('back',22) }}</a><div><span class="eyebrow">EQUIPO</span><h1>Usuarios y accesos</h1><p>Asigna solo lo que cada persona necesita.</p></div></div></div>
+
+  <section class="surface team-list-v16">
+    {% for user in users %}
+    {% set protected_owner = user.role == 'owner' and current_user.role != 'owner' %}
+    <form method="post" action="{{ url_for('main.team_user_update', user_id=user.id) }}" class="team-row-v16">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <span class="avatar">{{ user.name[:1]|upper }}</span>
+      <div class="team-copy-v16"><input name="name" value="{{ user.name }}" aria-label="Nombre" {{ 'readonly' if protected_owner }}><small>{{ user.email }}</small></div>
+      {% if protected_owner %}
+        <input type="hidden" name="role" value="owner"><span class="team-role-static-v16">Propietario</span>
+      {% else %}
+      <select name="role" aria-label="Rol" {{ 'disabled' if user.role == 'owner' and users|selectattr('role','equalto','owner')|list|length == 1 }}>
+        {% if current_user.role == 'owner' %}<option value="owner" {{ 'selected' if user.role=='owner' }}>Propietario</option>{% endif %}
+        <option value="admin" {{ 'selected' if user.role=='admin' }}>Administrador</option>
+        <option value="collector" {{ 'selected' if user.role=='collector' }}>Cobrador</option>
+        <option value="sales" {{ 'selected' if user.role=='sales' }}>Vendedor</option>
+        <option value="staff" {{ 'selected' if user.role=='staff' }}>Usuario</option>
+        <option value="viewer" {{ 'selected' if user.role=='viewer' }}>Consulta</option>
+      </select>
+      {% endif %}
+      {% if protected_owner %}<span class="team-you-v16">Protegido</span>{% elif user.id != current_user.id %}<label class="team-enabled-v16"><input type="checkbox" name="is_enabled" value="1" {{ 'checked' if user.is_enabled }}><span>Activo</span></label>{% else %}<input type="hidden" name="is_enabled" value="1"><span class="team-you-v16">Tú</span>{% endif %}
+      {% if not protected_owner %}<button class="btn btn-secondary btn-sm" type="submit">Guardar</button>{% else %}<span></span>{% endif %}
+    </form>
+    {% endfor %}
+  </section>
+
+  <details class="surface team-add-v16">
+    <summary>+ Agregar usuario</summary>
+    <form method="post" class="form-stack team-add-form-v16">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid two"><label class="field"><span>Nombre</span><input name="name" required></label><label class="field"><span>Correo</span><input type="email" name="email" required></label><label class="field"><span>Contraseña inicial</span><input type="password" name="password" minlength="8" required></label><label class="field"><span>Rol</span><select name="role"><option value="collector">Cobrador</option><option value="sales">Vendedor</option><option value="staff" selected>Usuario</option><option value="viewer">Consulta</option><option value="admin">Administrador</option></select></label></div>
+      <button class="btn btn-primary" type="submit">Crear usuario</button>
+    </form>
+  </details>
+</section>
+{% endblock %}

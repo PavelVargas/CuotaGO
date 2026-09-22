@@ -120,7 +120,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = '1.15.0-ui-v33';
+  const APP_VERSION = '1.16.0-ui-v34';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -1507,3 +1507,21 @@
   });
 
 })();
+
+// v1.16 · share generated PDFs through the native share sheet when available.
+document.addEventListener('click', async (event) => {
+  const link = event.target.closest('[data-share-pdf]');
+  if (!link || !navigator.share || !navigator.canShare) return;
+  event.preventDefault();
+  try {
+    const response = await fetch(link.href, {credentials: 'same-origin'});
+    if (!response.ok) throw new Error('pdf');
+    const blob = await response.blob();
+    const filename = (link.href.split('/').pop() || 'documento.pdf').replace(/\?.*$/, '');
+    const file = new File([blob], filename.endsWith('.pdf') ? filename : `${filename}.pdf`, {type: 'application/pdf'});
+    if (!navigator.canShare({files: [file]})) { window.location.href = link.href; return; }
+    await navigator.share({title: link.dataset.shareTitle || 'CuotaGo', files: [file]});
+  } catch (error) {
+    if (error?.name !== 'AbortError') window.location.href = link.href;
+  }
+});

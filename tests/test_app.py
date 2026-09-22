@@ -1094,3 +1094,94 @@ def test_expense_enters_cash_flow_report(client, app):
     with app.app_context():
         assert Expense.query.count() == 1
         assert TenantAuditLog.query.filter_by(action='expense.created').count() == 1
+
+
+def test_initial_payment_creates_real_receipt(client, app):
+    register(client)
+    start = date.today()
+    response = client.post(
+        "/contracts/new",
+        data={
+            "client_name": "Inicial Real",
+            "asset_name": "Motor Inicial",
+            "asset_kind": "motorcycle",
+            "asset_stock_quantity": "1",
+            "quantity": "1",
+            "unit_price": "50000",
+            "profit_margin_percent": "0",
+            "down_payment": "10000",
+            "down_payment_method": "transfer",
+            "down_payment_reference": "TRX-123",
+            "installment_count": "4",
+            "frequency": "monthly",
+            "start_date": start.isoformat(),
+            "first_due_date": (start + timedelta(days=30)).isoformat(),
+        },
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    with app.app_context():
+        contract = Contract.query.one()
+        payment = Payment.query.filter_by(payment_kind="down_payment").one()
+        assert payment.amount == Decimal("10000.00")
+        assert payment.method == "transfer"
+        assert payment.reference == "TRX-123"
+        assert payment.receipt_code.startswith("CGP-")
+        assert contract.paid_total == Decimal("10000.00")
+        assert contract.balance == Decimal("40000.00")
+
+
+def test_contract_with_money_is_voided_not_deleted(client, app):
+    register(client)
+    start = date.today()
+    client.post(
+        "/contracts/new",
+        data={
+            "client_name": "Cliente Anulacion",
+            "asset_name": "Telefono Anulacion",
+            "asset_kind": "phone",
+            "asset_stock_quantity": "1",
+            "quantity": "1",
+            "unit_price": "30000",
+            "down_payment": "5000",
+            "installment_count": "5",
+            "frequency": "monthly",
+            "start_date": start.isoformat(),
+            "first_due_date": (start + timedelta(days=30)).isoformat(),
+        },
+        follow_redirects=True,
+    )
+    with app.app_context():
+        contract_id = Contract.query.one().id
+        payment_count = Payment.query.count()
+    response = client.post(
+        f"/contracts/{contract_id}/delete",
+        data={"reason": "Cliente desistio"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    with app.app_context():
+        contract = db.session.get(Contract, contract_id)
+        assert contract is not None
+        assert contract.status == "voided"
+        assert contract.void_reason == "Cliente desistio"
+        assert Payment.query.count() == payment_count
+
+
+def test_collector_cannot_create_contract_or_manage_expenses(client, app):
+    register(client)
+    with app.app_context():
+        user = User.query.filter_by(email="pavel@example.com").one()
+        user.role = "collector"
+        db.session.commit()
+    assert client.get("/contracts/new").status_code == 403
+    assert client.post("/expenses", data={"amount": "100"}).status_code == 403
+    assert client.get("/collections").status_code == 200
+
+
+def test_owner_can_export_backup(client):
+    register(client)
+    response = client.get("/backup/export.zip")
+    assert response.status_code == 200
+    assert response.mimetype == "application/zip"
+    assert response.data[:2] == b"PK"

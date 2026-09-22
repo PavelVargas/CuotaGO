@@ -1,4 +1,4 @@
-const VERSION = '1.15.0-ui-v33';
+const VERSION = '1.16.0-ui-v34';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const RUNTIME_CACHE = `cuotago-runtime-${VERSION}`;
 const CORE = [

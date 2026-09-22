@@ -1,12 +1,53 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-from datetime import datetime
+from datetime import datetime, timedelta
+import hashlib
 
 from flask_login import confirm_login, current_user, login_fresh, login_user, logout_user
 
 from .extensions import db
-from .models import Organization, OrganizationSubscription, User
+from .models import LoginAttempt, Organization, OrganizationSubscription, User
 
 auth_bp = Blueprint("auth", __name__)
+
+
+def _login_fingerprint(email):
+    forwarded = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+    ip = forwarded or request.remote_addr or "unknown"
+    raw = f"{email}|{ip}".encode("utf-8", "ignore")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _login_attempt(email):
+    fingerprint = _login_fingerprint(email)
+    return LoginAttempt.query.filter_by(fingerprint=fingerprint).first(), fingerprint
+
+
+def _login_is_blocked(email):
+    attempt, _ = _login_attempt(email)
+    return bool(attempt and attempt.blocked_until and attempt.blocked_until > datetime.utcnow())
+
+
+def _register_failed_login(email):
+    now = datetime.utcnow()
+    attempt, fingerprint = _login_attempt(email)
+    if attempt is None:
+        attempt = LoginAttempt(fingerprint=fingerprint, failed_count=0, window_started_at=now)
+        db.session.add(attempt)
+    if not attempt.window_started_at or now - attempt.window_started_at > timedelta(minutes=15):
+        attempt.window_started_at = now
+        attempt.failed_count = 0
+        attempt.blocked_until = None
+    attempt.failed_count += 1
+    if attempt.failed_count >= 7:
+        attempt.blocked_until = now + timedelta(minutes=15)
+    db.session.commit()
+
+
+def _clear_failed_logins(email):
+    attempt, _ = _login_attempt(email)
+    if attempt is not None:
+        db.session.delete(attempt)
+        db.session.commit()
 
 
 def _safe_next(default_endpoint="main.dashboard"):
@@ -30,14 +71,20 @@ def login():
         password = request.form.get("password", "")
         remember = request.form.get("remember") == "on"
 
+        if _login_is_blocked(email):
+            flash("Demasiados intentos. Intenta nuevamente en unos minutos.", "error")
+            return render_template("auth/login.html", email=email), 429
+
         user = User.query.filter_by(email=email).first()
         if not user or not user.check_password(password):
+            _register_failed_login(email)
             flash("Correo o contraseña incorrectos.", "error")
             return render_template("auth/login.html", email=email)
         if not user.is_enabled:
             flash("Esta cuenta fue deshabilitada. Contacta al administrador.", "error")
             return render_template("auth/login.html", email=email)
 
+        _clear_failed_logins(email)
         user.last_login_at = datetime.utcnow()
         db.session.commit()
         login_user(user, remember=remember)

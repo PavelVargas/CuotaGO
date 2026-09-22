@@ -55,6 +55,17 @@ class User(UserMixin, db.Model):
         return bool(self.is_enabled)
 
 
+class LoginAttempt(db.Model):
+    __tablename__ = "login_attempts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    fingerprint = db.Column(db.String(190), nullable=False, index=True)
+    failed_count = db.Column(db.Integer, nullable=False, default=0)
+    window_started_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
+    blocked_until = db.Column(db.DateTime, index=True)
+    updated_at = db.Column(db.DateTime, default=now_utc_naive, onupdate=now_utc_naive, nullable=False)
+
+
 @login_manager.user_loader
 def load_user(user_id):
     try:
@@ -332,6 +343,9 @@ class Contract(db.Model):
     start_date = db.Column(db.Date, nullable=False)
     first_due_date = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(30), nullable=False, default="active")
+    voided_at = db.Column(db.DateTime)
+    voided_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    void_reason = db.Column(db.String(240))
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
 
@@ -375,13 +389,22 @@ class Contract(db.Model):
         return max(self.payments_total - self.interest_paid_total, Decimal("0.00"))
 
     @property
+    def recorded_down_payment_total(self):
+        return sum((Decimal(str(p.amount or 0)) for p in self.payments if p.payment_kind == "down_payment"), Decimal("0.00"))
+
+    @property
+    def legacy_down_payment_total(self):
+        # Legacy agreements stored the initial only on contracts. New agreements also create a Payment row.
+        return Decimal("0.00") if self.recorded_down_payment_total > 0 else Decimal(str(self.down_payment or 0))
+
+    @property
     def principal_paid_total(self):
-        return Decimal(str(self.down_payment or 0)) + self.principal_payments_total
+        return self.legacy_down_payment_total + self.principal_payments_total
 
     @property
     def paid_total(self):
-        # Dinero realmente recibido, incluyendo recargos por atraso.
-        return Decimal(str(self.down_payment or 0)) + self.payments_total
+        # Dinero realmente recibido, incluyendo inicial y recargos por atraso.
+        return self.legacy_down_payment_total + self.payments_total
 
     @property
     def principal_balance(self):
@@ -394,6 +417,8 @@ class Contract(db.Model):
 
     @property
     def balance(self):
+        if self.status == "voided":
+            return Decimal("0.00")
         return self.principal_balance + self.late_fee_balance
 
     @property
@@ -406,6 +431,8 @@ class Contract(db.Model):
 
     @property
     def next_installment(self):
+        if self.status == "voided":
+            return None
         for installment in self.installments:
             if installment.remaining > Decimal("0.009"):
                 return installment
@@ -543,6 +570,9 @@ class Expense(db.Model):
     reference = db.Column(db.String(120))
     note = db.Column(db.String(240))
     created_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    voided_at = db.Column(db.DateTime, index=True)
+    voided_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    void_reason = db.Column(db.String(240))
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
 
 

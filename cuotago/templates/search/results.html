@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Buscar · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page narrow-page global-search-page">
+  <div class="page-head simple-page-head">
+    <div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back',22) }}</a><div><h1>Buscar</h1><p>Cliente, acuerdo, artículo o recibo.</p></div></div>
+  </div>
+  <form class="surface global-search-box" method="get">
+    {{ icon('search',20) }}
+    <input name="q" value="{{ q }}" placeholder="Nombre, teléfono, código, IMEI…" autofocus autocomplete="off">
+    {% if q %}<a href="{{ url_for('main.global_search') }}" aria-label="Limpiar">×</a>{% endif %}
+  </form>
+
+  {% if q|length >= 2 %}
+  <div class="global-search-results">
+    {% if results.clients %}<section><h2>Clientes</h2>{% for item in results.clients %}<a class="search-result-row" href="{{ url_for('main.client_detail', client_id=item.id) }}"><span>{{ icon('person-card',19) }}</span><div><strong>{{ item.full_name }}</strong><small>{{ item.phone or item.document_id or 'Cliente' }}</small></div><b>›</b></a>{% endfor %}</section>{% endif %}
+    {% if results.contracts %}<section><h2>Acuerdos</h2>{% for item in results.contracts %}<a class="search-result-row" href="{{ url_for('main.contract_detail', contract_id=item.id) }}"><span>{{ icon('contract',19) }}</span><div><strong>{{ item.code }}</strong><small>{{ item.client.full_name }} · {{ item.asset.name }}</small></div><b>›</b></a>{% endfor %}</section>{% endif %}
+    {% if results.assets %}<section><h2>Inventario</h2>{% for item in results.assets %}<a class="search-result-row" href="{{ url_for('main.assets', q=item.name) }}"><span>{{ icon('inventory',19) }}</span><div><strong>{{ item.name }}</strong><small>{{ item.identifier or item.serial_number or asset_status_label(item.status) }}</small></div><b>›</b></a>{% endfor %}</section>{% endif %}
+    {% if results.payments %}<section><h2>Recibos</h2>{% for item in results.payments %}<a class="search-result-row" href="{{ url_for('main.payment_receipt', payment_id=item.id) }}"><span>{{ icon('wallet',19) }}</span><div><strong>{{ item.receipt_code }}</strong><small>{{ item.contract.client.full_name }} · {{ money(item.amount) }}</small></div><b>›</b></a>{% endfor %}</section>{% endif %}
+    {% if not results.clients and not results.contracts and not results.assets and not results.payments %}<div class="surface empty-state compact-empty"><strong>No encontré coincidencias</strong><p>Prueba con otro nombre, teléfono, código de acuerdo o recibo.</p></div>{% endif %}
+  </div>
+  {% else %}<div class="search-empty-hint">Escribe al menos 2 caracteres.</div>{% endif %}
+</section>
+{% endblock %}

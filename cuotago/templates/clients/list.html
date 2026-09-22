@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
+{% from 'macros/pagination.html' import pager %}
 {% block title %}Clientes · {{ app_name }}{% endblock %}
 {% block content %}
 <section class="content-page">
@@ -8,7 +9,7 @@
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
       <div><span class="eyebrow">CLIENTES</span><h1>Personas</h1><p>Contactos ligados a tus acuerdos.</p></div>
     </div>
-    <a class="btn btn-primary" href="{{ url_for('main.client_new') }}">+ Nuevo cliente</a>
+    {% if can('clients.manage') %}<a class="btn btn-primary" href="{{ url_for('main.client_new') }}">+ Nuevo cliente</a>{% endif %}
   </div>
 
   <div class="toolbar">
@@ -16,7 +17,7 @@
       {{ icon('search', 19) }}
       <input name="q" value="{{ q }}" placeholder="Buscar por nombre, teléfono o documento">
     </form>
-    <span class="result-count">{{ clients|length }} cliente{{ 's' if clients|length != 1 }}</span>
+    <span class="result-count">{{ pagination.total }} cliente{{ 's' if pagination.total != 1 }}</span>
   </div>
 
   <div class="surface table-surface">
@@ -30,14 +31,15 @@
           <td data-label="Teléfono">{{ client.phone or '—' }}</td>
           <td data-label="Documento">{{ client.document_id or '—' }}</td>
           <td data-label="Acuerdos">{{ client.contracts|length }}</td>
-          <td class="table-actions"><a class="text-link" href="{{ url_for('main.client_detail', client_id=client.id) }}">Ver</a><a class="text-link" href="{{ url_for('main.client_edit', client_id=client.id) }}">Editar</a></td>
+          <td class="table-actions"><a class="text-link" href="{{ url_for('main.client_detail', client_id=client.id) }}">Ver</a>{% if can('clients.manage') %}<a class="text-link" href="{{ url_for('main.client_edit', client_id=client.id) }}">Editar</a>{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
     {% else %}
-      <div class="empty-state"><span class="empty-icon">{{ icon('users', 34) }}</span><h3>No hay clientes</h3><p>Agrega la primera persona para poder crear un acuerdo.</p><a class="btn btn-primary" href="{{ url_for('main.client_new') }}">Crear cliente</a></div>
+      <div class="empty-state"><span class="empty-icon">{{ icon('users', 34) }}</span><h3>No hay clientes</h3><p>Agrega la primera persona para poder crear un acuerdo.</p>{% if can('clients.manage') %}<a class="btn btn-primary" href="{{ url_for('main.client_new') }}">Crear cliente</a>{% endif %}</div>
     {% endif %}
   </div>
+  {{ pager(pagination) }}
 </section>
 {% endblock %}

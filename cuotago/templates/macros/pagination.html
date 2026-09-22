@@ -1,0 +1,9 @@
+{% macro pager(pagination) -%}
+  {% if pagination and pagination.pages > 1 %}
+  <nav class="simple-pagination" aria-label="Paginación">
+    {% if pagination.prev_url %}<a class="btn btn-secondary btn-sm" href="{{ pagination.prev_url }}">‹ Anterior</a>{% else %}<span></span>{% endif %}
+    <small>{{ pagination.page }} de {{ pagination.pages }} · {{ pagination.total }} registros</small>
+    {% if pagination.next_url %}<a class="btn btn-secondary btn-sm" href="{{ pagination.next_url }}">Siguiente ›</a>{% else %}<span></span>{% endif %}
+  </nav>
+  {% endif %}
+{%- endmacro %}

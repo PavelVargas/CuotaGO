@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Sin acceso · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="error-page">
+  <div class="surface error-card">
+    <span class="error-code">403</span>
+    <h1>Esta función no está habilitada para tu rol</h1>
+    <p>Puedes seguir usando las áreas que tienes asignadas. Si necesitas esta acción, pídesela al administrador del negocio.</p>
+    <a class="btn btn-primary" href="{{ url_for('main.dashboard') }}">Volver al inicio</a>
+  </div>
+</section>
+{% endblock %}

@@ -1,4 +1,5 @@
 from pathlib import Path
+import hashlib
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, send_from_directory, url_for
 from flask_login import current_user, logout_user
@@ -135,6 +136,11 @@ def _ensure_feature_schema(app):
         "CREATE INDEX IF NOT EXISTS ix_expenses_organization_id ON expenses (organization_id)",
         "CREATE INDEX IF NOT EXISTS ix_expenses_expense_date ON expenses (expense_date)",
         "CREATE INDEX IF NOT EXISTS ix_expenses_category ON expenses (category)",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS voided_at TIMESTAMP NULL",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS voided_by_user_id INTEGER NULL",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS void_reason VARCHAR(240) NULL",
+        "CREATE INDEX IF NOT EXISTS ix_expenses_voided_at ON expenses (voided_at)",
+        "CREATE INDEX IF NOT EXISTS ix_expenses_voided_by_user_id ON expenses (voided_by_user_id)",
         """CREATE TABLE IF NOT EXISTS tenant_audit_logs (
             id SERIAL PRIMARY KEY,
             organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -151,6 +157,20 @@ def _ensure_feature_schema(app):
         "CREATE INDEX IF NOT EXISTS ix_tenant_audit_logs_action ON tenant_audit_logs (action)",
         "CREATE INDEX IF NOT EXISTS ix_tenant_audit_logs_entity_type ON tenant_audit_logs (entity_type)",
         "CREATE INDEX IF NOT EXISTS ix_tenant_audit_logs_created_at ON tenant_audit_logs (created_at)",
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS voided_at TIMESTAMP NULL",
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS voided_by_user_id INTEGER NULL",
+        "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS void_reason VARCHAR(240) NULL",
+        "CREATE INDEX IF NOT EXISTS ix_contracts_voided_by_user_id ON contracts (voided_by_user_id)",
+        """CREATE TABLE IF NOT EXISTS login_attempts (
+            id SERIAL PRIMARY KEY,
+            fingerprint VARCHAR(190) NOT NULL,
+            failed_count INTEGER NOT NULL DEFAULT 0,
+            window_started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            blocked_until TIMESTAMP NULL,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )""",
+        "CREATE INDEX IF NOT EXISTS ix_login_attempts_fingerprint ON login_attempts (fingerprint)",
+        "CREATE INDEX IF NOT EXISTS ix_login_attempts_blocked_until ON login_attempts (blocked_until)",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN NOT NULL DEFAULT TRUE",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP NULL",
         "ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS previous_period_start DATE NULL",
@@ -163,8 +183,20 @@ def _ensure_feature_schema(app):
     if db.engine.dialect.name != "postgresql":
         return
     with db.engine.begin() as connection:
+        connection.execute(text("""CREATE TABLE IF NOT EXISTS schema_migrations (
+            migration_key VARCHAR(80) PRIMARY KEY,
+            applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )"""))
+        applied = {row[0] for row in connection.execute(text("SELECT migration_key FROM schema_migrations"))}
         for statement in statements:
+            migration_key = "ddl-" + hashlib.sha256(statement.encode("utf-8")).hexdigest()[:32]
+            if migration_key in applied:
+                continue
             connection.execute(text(statement))
+            connection.execute(
+                text("INSERT INTO schema_migrations (migration_key) VALUES (:key) ON CONFLICT (migration_key) DO NOTHING"),
+                {"key": migration_key},
+            )
 
 
 def _ensure_superadmin(app):
@@ -239,6 +271,15 @@ def create_app(test_config=None):
     app.register_blueprint(push_bp)
     app.register_blueprint(admin_bp)
 
+    from .permissions import ROLE_LABELS, has_permission
+
+    @app.context_processor
+    def inject_permission_helpers():
+        return {
+            "can": lambda permission: has_permission(current_user, permission),
+            "role_label": lambda role: ROLE_LABELS.get(role, role.title() if role else "Usuario"),
+        }
+
     @app.before_request
     def enforce_account_and_subscription_state():
         if not current_user.is_authenticated:
@@ -295,7 +336,14 @@ def create_app(test_config=None):
         response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        response.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://wa.me https://api.whatsapp.com")
+        if request.is_secure:
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         return response
+
+    @app.errorhandler(403)
+    def forbidden(_error):
+        return render_template("errors/403.html"), 403
 
     @app.errorhandler(404)
     def not_found(_error):
