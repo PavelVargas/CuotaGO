@@ -228,7 +228,7 @@ def scan_overdue_and_notify(app):
 
     today_local = now_local.date()
     now_utc = datetime.utcnow()
-    repeat_hours = max(1, int(app.config.get("PUSH_OVERDUE_REPEAT_HOURS", 4)))
+    repeat_hours = max(1, int(app.config.get("PUSH_OVERDUE_REPEAT_HOURS", 2)))
     repeat_after = timedelta(hours=repeat_hours)
     with app.app_context():
         due_today = (
@@ -358,7 +358,7 @@ def start_push_scheduler(app):
     app.logger.info(
         "Push de cobros activo: revision cada %s minuto(s), recordatorio de atrasos cada %s hora(s) entre %s:00 y %s:00.",
         interval,
-        app.config.get("PUSH_OVERDUE_REPEAT_HOURS", 4),
+        app.config.get("PUSH_OVERDUE_REPEAT_HOURS", 2),
         app.config.get("PUSH_ALERT_START_HOUR", 8),
         app.config.get("PUSH_ALERT_END_HOUR", 22),
     )

@@ -55,7 +55,8 @@ PUSH_SCHEDULER_ENABLED=true
 PUSH_CHECK_INTERVAL_MINUTES=5
 PUSH_ALERT_START_HOUR=8
 PUSH_ALERT_END_HOUR=22
-PUSH_OVERDUE_REPEAT_HOURS=4
+PUSH_OVERDUE_REPEAT_HOURS=2
+# Los recordatorios de atraso se limitan a un máximo de 2 horas, incluso si una variable heredada tenia 4.
 
 # Superadmin
 SUPERADMIN_EMAIL=admin@cuotago.app

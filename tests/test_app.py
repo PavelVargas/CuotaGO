@@ -923,6 +923,8 @@ def test_overdue_push_repeats_outside_app_without_notification_pileup():
     config = Path('config.py').read_text(encoding='utf-8')
     worker = Path('cuotago/static/service-worker.js').read_text(encoding='utf-8')
     assert 'PUSH_OVERDUE_REPEAT_HOURS' in config
+    assert 'min(2, max(1, int(os.getenv("PUSH_OVERDUE_REPEAT_HOURS", "2"))))' in config
+    assert 'PUSH_OVERDUE_REPEAT_HOURS", 2' in push
     assert 'PUSH_ALERT_END_HOUR' in config
     assert 'repeat_after = timedelta(hours=repeat_hours)' in push
     assert 'reminder_log.sent_at = now_utc' in push
