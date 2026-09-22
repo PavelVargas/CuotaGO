@@ -155,7 +155,7 @@ MODULE_CATALOG = [
         "name": "Documentos",
         "endpoint": "main.documents",
         "icon": "home-documents",
-        "accent": "accent-orange",
+        "accent": "accent-indigo",
         "home_description": "Guía y documentos",
         "guide_summary": "Consulta la guía de uso de CuotaGo, generada a partir de los módulos activos del sistema.",
         "guide_steps": [
