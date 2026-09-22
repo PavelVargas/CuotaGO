@@ -1,4 +1,4 @@
-const VERSION = '1.17.1-ui-v38';
+const VERSION = '1.17.1-ui-v39';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const CORE = [
   '/offline',
