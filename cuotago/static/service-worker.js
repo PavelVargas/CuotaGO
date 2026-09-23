@@ -1,7 +1,6 @@
-const VERSION = '1.17.4-ui-v43';
+const VERSION = new URL(self.location.href).searchParams.get('v') || '1.17.5-ui-v44';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
-const CORE = [
-  '/offline',
+const CORE_ASSETS = [
   '/static/css/app.css',
   '/static/js/app.js',
   '/static/manifest.webmanifest',
@@ -19,6 +18,8 @@ const CORE = [
   '/static/icons/favicon-32.png',
   '/static/sounds/alert.wav'
 ];
+const versionedAsset = (path) => `${path}${path.includes('?') ? '&' : '?'}v=${encodeURIComponent(VERSION)}`;
+const CORE = ['/offline', ...CORE_ASSETS.map(versionedAsset)];
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
@@ -120,11 +121,29 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.pathname.startsWith('/static/')) {
+    const isVersioned = url.searchParams.has('v');
+    if (isVersioned) {
+      event.respondWith((async () => {
+        try {
+          const response = await fetch(request, { cache: 'reload' });
+          if (response && response.ok && response.type === 'basic') {
+            const cache = await caches.open(STATIC_CACHE);
+            await cache.put(request, response.clone());
+          }
+          return response;
+        } catch (_) {
+          return (await caches.match(request)) || (await caches.match(url.pathname)) || Response.error();
+        }
+      })());
+      return;
+    }
+
     event.respondWith((async () => {
-      const cached = await caches.match(request, { ignoreSearch: true });
-      const network = fetch(request, { cache: 'no-cache' }).then((response) => {
+      const cached = await caches.match(request);
+      const network = fetch(request, { cache: 'no-cache' }).then(async (response) => {
         if (response && response.ok && response.type === 'basic') {
-          caches.open(STATIC_CACHE).then((cache) => cache.put(request, response.clone()));
+          const cache = await caches.open(STATIC_CACHE);
+          await cache.put(request, response.clone());
         }
         return response;
       }).catch(() => null);

@@ -427,7 +427,7 @@ def create_app(test_config=None):
     def service_worker():
         response = send_from_directory(app.static_folder, "service-worker.js")
         response.headers["Service-Worker-Allowed"] = "/"
-        response.headers["Cache-Control"] = "no-cache"
+        response.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
         return response
 
     @app.route("/offline")
@@ -461,8 +461,15 @@ def create_app(test_config=None):
         )
         if app.config.get("APP_ENV") not in {"local", "development", "test"} and request.is_secure:
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-        if current_user.is_authenticated and response.mimetype == "text/html":
-            response.headers.setdefault("Cache-Control", "private, no-store")
+        if response.mimetype == "text/html":
+            response.headers["Cache-Control"] = "private, no-store, max-age=0, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        elif request.endpoint == "static":
+            if request.args.get("v"):
+                response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            elif request.path.endswith(("/app.css", "/app.js", "/manifest.webmanifest")):
+                response.headers["Cache-Control"] = "public, max-age=0, must-revalidate"
         return response
 
     @app.errorhandler(403)

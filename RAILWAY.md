@@ -1,4 +1,4 @@
-# CuotaGo v1.17.3 · Railway
+# CuotaGo v1.17.5 · Railway
 
 Esta versión mantiene las variables existentes y añade optimizaciones de PWA/rendimiento. Los índices y columnas nuevas se aplican mediante el ledger propio `cuotago_schema_migrations` al iniciar contra PostgreSQL; una tabla externa llamada `schema_migrations` se respeta y no se modifica.
 
@@ -7,9 +7,11 @@ Esta versión mantiene las variables existentes y añade optimizaciones de PWA/r
 Esta carpeta esta preparada para Railway con PostgreSQL.
 
 
-### Identidad/PWA v1.17.3
+### Identidad/PWA v1.17.5
 
-La interfaz, iconos y splash usan la nueva identidad minimalista. El Service Worker y `app.js` comparten `1.17.3-ui-v42`; al desplegar, los clientes reciben la nueva caché automáticamente. El modo `Sistema` sigue el tema claro/oscuro del dispositivo también en login y reentrada rápida.
+No configures `APP_VERSION` en Railway: CuotaGo controla internamente la versión de release y de assets para que los despliegues invaliden caché de forma confiable.
+
+La interfaz, iconos y splash usan la nueva identidad minimalista. El Service Worker y `app.js` comparten `1.17.5-ui-v44`; al desplegar, los clientes reciben la nueva caché automáticamente. El modo `Sistema` sigue el tema claro/oscuro del dispositivo también en login y reentrada rápida.
 
 ## 1. GitHub
 
@@ -48,7 +50,6 @@ Agrega estas variables en el servicio WEB de CuotaGo:
 
 ```text
 APP_NAME=CuotaGo
-APP_VERSION=1.17.3
 APP_ENV=production
 APP_CURRENCY=DOP
 APP_TIMEZONE=America/Santo_Domingo
@@ -137,6 +138,6 @@ Esta actualización es **hacia adelante y no borra datos existentes**. `db.creat
 - Amplía `payments` con referencia, tipo de pago, código de recibo y usuario que registró el movimiento.
 - Amplía `installments` con base de mora reprogramada para conservar recargos previos sin detener la acumulación futura.
 - Agrega Expediente del cliente, Agenda de cobranza, reprogramación, recibos/estado de cuenta, módulo Gastos y flujo neto en Reportes.
-- El Service Worker usa caché `1.17.3-ui-v42`.
+- El Service Worker usa caché `1.17.5-ui-v44`.
 
 La actualización es hacia adelante: usa `CREATE TABLE IF NOT EXISTS` y `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`; no borra acuerdos ni pagos existentes.

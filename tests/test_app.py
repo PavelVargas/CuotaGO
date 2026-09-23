@@ -959,8 +959,8 @@ def test_reminders_v20_compacts_dashboard_and_adds_dedicated_view():
     assert 'reminder-v20-row' in reminders
     assert '.home-reminder-button{' in css
     assert '.reminders-page-v20{' in css
-    assert '-ui-v37' in base
-    assert "1.17.3-ui-v42" in sw
+    assert 'cuotago-build-version' in base
+    assert "new URL(self.location.href).searchParams.get('v')" in sw
 
 
 
@@ -978,7 +978,7 @@ def test_overdue_push_repeats_outside_app_without_notification_pileup():
     assert 'Recordatorio de cobro' in push
     assert 'replaceKey' in push
     assert 'getNotifications()' in worker
-    assert "1.17.3-ui-v42" in worker
+    assert "new URL(self.location.href).searchParams.get('v')" in worker
 
 
 def test_purchase_batch_registers_multiple_items_in_one_submit(client, app):
@@ -1236,7 +1236,7 @@ def test_v116_statement_has_real_pdf_and_hardening_assets():
     assert '@main_bp.get("/clients/<int:client_id>/statement.pdf")' in main
     assert '@main_bp.get("/payments/<int:payment_id>/receipt.pdf")' in main
     assert 'data-share-pdf' in Path('cuotago/templates/clients/statement.html').read_text(encoding='utf-8')
-    assert "1.17.3-ui-v42" in sw
+    assert "new URL(self.location.href).searchParams.get('v')" in sw
     assert '-dark.png' in base
     assert 'cuotago_schema_migrations' in init
     assert 'Strict-Transport-Security' in init
@@ -1257,7 +1257,7 @@ def test_v117_pwa_performance_and_calm_ux_are_wired():
     models = Path('cuotago/models.py').read_text(encoding='utf-8')
     requirements = Path('requirements.txt').read_text(encoding='utf-8')
     assert 'navigationPreload.enable()' in sw
-    assert "1.17.3-ui-v42" in sw
+    assert "new URL(self.location.href).searchParams.get('v')" in sw
     assert 'data-global-search-open' in base
     assert 'setupGlobalQuickSearch' in js
     assert 'setupCalmFormGuard' in js
@@ -1279,8 +1279,8 @@ def test_v1171_migration_ledger_does_not_assume_legacy_schema():
     assert "column_name = 'version'" in init
     assert 'SELECT version FROM cuotago_schema_migrations' in init
     assert 'SELECT version FROM schema_migrations"))' not in init
-    assert "1.17.3-ui-v42" in js
-    assert "1.17.3-ui-v42" in sw
+    assert "cuotago-build-version" in js
+    assert "new URL(self.location.href).searchParams.get('v')" in sw
 
 
 def test_ui_v37_sora_unified_and_client_prefill(client, app):
@@ -1307,3 +1307,34 @@ def test_ui_v37_sora_unified_and_client_prefill(client, app):
     assert 'compact-optional-fields-v37' in expense_template
     assert 'capa visual unificada CuotaGo' in css
     assert 'font-family:"Sora",sans-serif' in css
+
+
+def test_v1175_cache_updates_without_manual_clear():
+    from pathlib import Path
+    base = Path('cuotago/templates/base.html').read_text(encoding='utf-8')
+    worker = Path('cuotago/static/service-worker.js').read_text(encoding='utf-8')
+    app_js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
+    init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
+    config = Path('config.py').read_text(encoding='utf-8')
+    assert 'ASSET_VERSION = "1.17.5-ui-v44"' in config
+    assert 'cuotago-build-version' in base
+    assert 'controllerchange' in base
+    assert "updateViaCache: 'none'" in base
+    assert "searchParams.get('v')" in worker
+    assert "ignoreSearch: true" not in worker
+    assert "cache: 'reload'" in worker
+    assert 'cuotago-build-version' in app_js
+    assert 'no-store, max-age=0, must-revalidate' in init
+    assert 'public, max-age=31536000, immutable' in init
+
+
+def test_v1175_topbar_uses_compact_logo_and_blue_brand():
+    from pathlib import Path
+    base = Path('cuotago/templates/base.html').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    assert 'brand-modern-v2' in base
+    assert 'logo-symbol-light.png' in base
+    assert 'logo-word-light.png' in base
+    assert '--primary:#2b78ff' in css
+    assert 'linear-gradient(145deg,#0f2f6b,#2b78ff)' in css
+    assert 'v1.17.5 ui-v44' in css

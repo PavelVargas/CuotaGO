@@ -36,7 +36,9 @@ def normalize_database_url(url: str) -> str:
 
 class Config:
     APP_NAME = os.getenv("APP_NAME", "CuotaGo")
-    APP_VERSION = os.getenv("APP_VERSION", "1.17.4")
+    # Release/build identifiers are code-owned so stale Railway/.env values cannot pin old assets.
+    APP_VERSION = "1.17.5"
+    ASSET_VERSION = "1.17.5-ui-v44"
     APP_ENV = os.getenv("APP_ENV", "local").strip().lower()
     APP_CURRENCY = os.getenv("APP_CURRENCY", "DOP")
     APP_TIMEZONE = os.getenv("APP_TIMEZONE", "America/Santo_Domingo")
@@ -70,8 +72,8 @@ class Config:
 
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
-    # Static assets are fingerprinted with APP_VERSION in templates. Let browsers
-    # keep them aggressively; /service-worker.js is explicitly no-cache.
+    # Static assets are fingerprinted with ASSET_VERSION. Versioned files may be cached
+    # aggressively; /service-worker.js and HTML are always revalidated/no-store.
     SEND_FILE_MAX_AGE_DEFAULT = 31536000
 
     # Compress HTML/JSON/CSS/JS over mobile networks.
