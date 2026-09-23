@@ -4116,3 +4116,24 @@ html[data-theme="dark"] .auth-form-v2 .field input{background:rgba(255,255,255,.
 @media(max-width:980px){.auth-layout-v2,.auth-layout-register-v2,.auth-layout-resume-v2{grid-template-columns:1fr;gap:16px}.auth-showcase-surface{padding:24px 22px}.auth-card-modern-v2{padding:26px 22px}.auth-copy-v2 h1{font-size:31px}}
 @media(max-width:760px){html[data-auth-screen="1"] .auth-main{padding:calc(var(--safe-top) + 18px) max(18px,var(--safe-right)) calc(var(--safe-bottom) + 20px) max(18px,var(--safe-left));align-items:flex-start}.auth-screen-v2{width:min(100%,430px);margin:0 auto}.auth-layout-v2,.auth-layout-register-v2,.auth-layout-resume-v2{display:block}.auth-showcase-v2{display:none}.auth-card-modern-v2{padding:18px 2px 6px;border:0;border-radius:0;background:transparent!important;box-shadow:none!important}.auth-mobile-brand-v2{display:flex;align-items:center;justify-content:center;min-height:58px;margin:0 0 26px}.auth-mobile-logo{display:block;width:min(176px,54vw);height:auto;max-height:58px;object-fit:contain}.auth-card-top-v2{margin-bottom:22px}.auth-section-tag{display:none}.auth-heading-v2{margin:0;text-align:center}.auth-heading-v2 h2{font-size:25px}.auth-heading-v2 p{margin-top:7px;font-size:12px}.auth-grid-v2{grid-template-columns:1fr}.auth-grid-v2 .field-span-2{grid-column:auto}.auth-form-v2{gap:14px}.auth-form-v2 .field input{min-height:54px;background:var(--surface);box-shadow:0 8px 22px rgba(20,34,56,.045)}html[data-theme="dark"] .auth-form-v2 .field input{background:rgba(255,255,255,.045)}.auth-submit{min-height:54px;margin-top:3px}.auth-card-footer-v2{margin-top:18px;padding-top:16px}.auth-card-footer-v2 .auth-switch,.auth-card-footer-v2 .auth-pwa-note{text-align:center}.resume-account-v2{margin-top:2px}.auth-card-resume-v2 .auth-card-top-v2{margin-bottom:16px}}
 @media(max-width:380px){html[data-auth-screen="1"] .auth-main{padding-left:15px;padding-right:15px}.auth-mobile-brand-v2{margin-bottom:22px}.auth-heading-v2 h2{font-size:23px}.auth-form-v2 .field input{min-height:52px}.auth-submit{min-height:52px}}
+
+
+/* v1.17.9 ui-v48 · desktop launcher/topbar final */
+@media (min-width:720px){
+  .topbar-inner{
+    max-width:1600px!important;
+    height:64px!important;
+    padding-inline:20px!important;
+    gap:16px!important;
+  }
+  body.dashboard-home .dashboard-launcher-v3 .module-grid{
+    position:absolute!important;
+    left:50%!important;
+    top:26.5%!important;
+    width:min(850px,calc(100% - 56px))!important;
+    max-width:850px!important;
+    margin:0!important;
+    transform:translate(-50%,-50%)!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  }
+}
