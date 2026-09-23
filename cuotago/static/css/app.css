@@ -9,16 +9,16 @@
   --text-strong:#101828;
   --muted:#6b7788;
   --muted-2:#98a2b3;
-  --primary:#ff672b;
-  --primary-deep:#e75118;
-  --primary-soft:#fff0e9;
+  --primary:#2b78ff;
+  --primary-deep:#0f2f6b;
+  --primary-soft:#eaf1ff;
   --success:#15966a;
   --success-soft:#eaf8f2;
   --danger:#d64b4b;
   --danger-soft:#fff0f0;
-  --warning:#bd7714;
-  --warning-soft:#fff7e8;
-  --blue:#4d7fd1;
+  --warning:#b87a1f;
+  --warning-soft:#fff8eb;
+  --blue:#2b78ff;
   --purple:#8059be;
   --shadow:0 16px 40px rgba(35,49,66,.10);
   --shadow-soft:0 7px 22px rgba(35,49,66,.07);
@@ -46,16 +46,16 @@ html[data-theme="dark"]{
   --text-strong:#f4f6f8;
   --muted:#9ca5b0;
   --muted-2:#747f8c;
-  --primary:#ff7438;
-  --primary-deep:#ff8a57;
-  --primary-soft:#312018;
+  --primary:#5b98ff;
+  --primary-deep:#a9c8ff;
+  --primary-soft:#13233d;
   --success:#42c997;
   --success-soft:#183128;
   --danger:#f07171;
   --danger-soft:#321d1f;
   --warning:#e7a74c;
   --warning-soft:#30271a;
-  --blue:#82a9e8;
+  --blue:#8cb6ff;
   --purple:#a997d2;
   --shadow:0 16px 42px rgba(0,0,0,.30);
   --shadow-soft:0 8px 24px rgba(0,0,0,.18);
@@ -88,7 +88,7 @@ img,svg{display:block}
 
 .profile-trigger{display:flex;align-items:center;gap:8px;min-height:44px;padding:4px;border:0;border-radius:15px;background:transparent;color:var(--text);cursor:pointer;user-select:none;outline:none;-webkit-tap-highlight-color:transparent}
 .profile-trigger:active{background:var(--surface-3)}
-.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#ff7b35,#ef501a);color:white;font-weight:900;font-size:13px;box-shadow:0 6px 16px rgba(244,89,31,.22);flex:0 0 auto}
+.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#0f2f6b,#2b78ff);color:white;font-weight:900;font-size:13px;box-shadow:0 6px 16px rgba(43,120,255,.24);flex:0 0 auto}
 .avatar-large{width:44px;height:44px;font-size:15px}
 .user-copy{display:none;flex-direction:column;line-height:1.16;min-width:88px;text-align:left}
 .user-copy strong{font-size:12px;color:var(--text-strong)}
@@ -148,7 +148,7 @@ img,svg{display:block}
 .module-icon{width:min(96px,100%);aspect-ratio:1;border-radius:25px;border:1px solid color-mix(in srgb,var(--line-strong) 82%,transparent);display:grid;place-items:center;background:var(--surface);box-shadow:0 9px 22px rgba(58,68,82,.085);position:relative;overflow:hidden;color:var(--accent,var(--primary))}
 .module-icon:before{content:"";position:absolute;width:76%;height:76%;border-radius:23px;background:color-mix(in srgb,var(--accent,var(--primary)) 15%,var(--surface));transform:rotate(-2deg)}
 .module-icon svg{position:relative;z-index:1;width:52px;height:52px;filter:drop-shadow(0 3px 3px rgba(0,0,0,.06))}
-.accent-orange{--accent:#ff632b;color:#ff632b}.accent-indigo{--accent:#5867d8;color:#5867d8}.accent-rose{--accent:#c65273;color:#c65273}.accent-green{--accent:#2c9a61;color:#2c9a61}.accent-coral{--accent:#f05d40;color:#f05d40}.accent-red{--accent:#e14f54;color:#e14f54}.accent-cyan{--accent:#1996ae;color:#1996ae}.accent-teal{--accent:#16988e;color:#16988e}.accent-blue{--accent:#4b7fce;color:#4b7fce}.accent-purple{--accent:#815bbc;color:#815bbc}.accent-gold{--accent:#b97b1a;color:#b97b1a}.accent-slate{--accent:#748092;color:#748092}
+.accent-orange{--accent:#2b78ff;color:#2b78ff}.accent-indigo{--accent:#5867d8;color:#5867d8}.accent-rose{--accent:#c65273;color:#c65273}.accent-green{--accent:#2c9a61;color:#2c9a61}.accent-coral{--accent:#0f5eea;color:#0f5eea}.accent-red{--accent:#e14f54;color:#e14f54}.accent-cyan{--accent:#1996ae;color:#1996ae}.accent-teal{--accent:#16988e;color:#16988e}.accent-blue{--accent:#4b7fce;color:#4b7fce}.accent-purple{--accent:#815bbc;color:#815bbc}.accent-gold{--accent:#b97b1a;color:#b97b1a}.accent-slate{--accent:#748092;color:#748092}
 .module-badge{max-width:74px;font-size:8px!important;padding:3px 6px;border-radius:999px;font-weight:850;line-height:1!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .badge-danger{color:var(--danger);background:var(--danger-soft);border:1px solid color-mix(in srgb,var(--danger) 24%,transparent)}
 .badge-warning{color:var(--warning);background:var(--warning-soft);border:1px solid color-mix(in srgb,var(--warning) 24%,transparent)}
@@ -193,7 +193,7 @@ img,svg{display:block}
 .btn{min-height:44px;padding:10px 14px;border-radius:13px;border:1px solid transparent;font-weight:820;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:transform .12s ease,background-color .15s ease,border-color .15s ease;white-space:nowrap}
 .btn:active{transform:scale(.975)}
 .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
-.btn-primary{background:linear-gradient(180deg,#ff753b,#f45b20);color:#fff;box-shadow:0 7px 16px rgba(244,89,31,.20)}
+.btn-primary{background:linear-gradient(180deg,#2f84ff,#0f5eea);color:#fff;box-shadow:0 7px 16px rgba(43,120,255,.22)}
 .btn-secondary{background:var(--surface);border-color:var(--line-strong);color:var(--text)}
 .btn-ghost{background:var(--surface-2);border-color:var(--line);color:var(--text)}
 .btn-whatsapp{background:#25d366;border-color:#25d366;color:#fff;box-shadow:0 6px 14px rgba(37,211,102,.18)}
@@ -258,7 +258,7 @@ img,svg{display:block}
 .contract-card{display:block;padding:15px;background:var(--surface);border:1px solid var(--line);border-radius:19px;box-shadow:var(--shadow-soft)}
 .contract-card:active{transform:scale(.99)}
 .contract-card-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.contract-card-top>div{min-width:0}.contract-code{font-size:9px;letter-spacing:.08em;font-weight:900;color:var(--muted)}.contract-card h3{margin:3px 0 1px;color:var(--text-strong);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.contract-card p{margin:0;color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.progress-track{height:6px;margin:14px 0 11px;border-radius:999px;background:var(--surface-3);overflow:hidden}.progress-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff763c,#ff5e24)}.progress-track.big{height:8px;margin:16px 0}
+.progress-track{height:6px;margin:14px 0 11px;border-radius:999px;background:var(--surface-3);overflow:hidden}.progress-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#4b95ff,#0f5eea)}.progress-track.big{height:8px;margin:16px 0}
 .contract-numbers{display:grid;grid-template-columns:1fr 1fr;gap:8px}.contract-numbers>div{padding:9px 10px;background:var(--surface-2);border-radius:12px;display:flex;flex-direction:column}.contract-numbers small{font-size:9px;color:var(--muted)}.contract-numbers strong{margin-top:2px;font-size:12px;color:var(--text-strong)}
 .contract-footer{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-top:11px;padding-top:11px;border-top:1px solid var(--line);font-size:9px;color:var(--muted)}.contract-footer strong{font-size:10px;color:var(--text);text-align:right}
 
@@ -475,7 +475,7 @@ html[data-auth-screen="1"] .auth-main{color:#253142}
 .resume-app-icon{width:88px;height:88px;border-radius:24px;box-shadow:0 16px 36px rgba(229,81,24,.14)}
 .resume-brand h1{margin:12px 0 0;font-size:26px;line-height:1;color:#162033}.resume-brand p{margin:7px 0 0;max-width:310px;color:#758093;font-size:12px;line-height:1.5}
 .resume-account{padding:14px 15px;border:1px solid #e8ebf0;border-radius:18px;background:#fff;display:flex;align-items:center;gap:12px;text-align:left;box-shadow:0 8px 24px rgba(31,41,55,.05)}
-.resume-avatar{width:48px;height:48px;flex:0 0 48px;border-radius:16px;display:grid;place-items:center;background:#fff0e9;color:#f45b20;font-size:18px;font-weight:700}
+.resume-avatar{width:48px;height:48px;flex:0 0 48px;border-radius:16px;display:grid;place-items:center;background:#eaf1ff;color:#0f5eea;font-size:18px;font-weight:700}
 .resume-account>div{min-width:0;display:flex;flex-direction:column}.resume-account strong{font-size:13px;color:#182230}.resume-account small{margin-top:2px;color:#6f7a89;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.resume-account span:not(.resume-avatar){margin-top:2px;color:#98a1ae;font-size:9px}
 .resume-actions{margin-top:14px}.resume-other-account{margin-top:7px}.resume-other-account .btn{color:#6d7786;background:transparent;border-color:transparent}
 
@@ -3252,7 +3252,7 @@ html[data-theme="dark"] .admin-nav a.is-active{background:var(--surface-3);color
 
 /* ui-v26 · Superadmin visual refresh: SaaS moderno, iconos con color y menos peso visual. */
 .superadmin-shell{
-  --admin-orange:#ff672b;
+  --admin-orange:#2b78ff;
   --admin-blue:#3b82f6;
   --admin-green:#16a674;
   --admin-purple:#8b5cf6;
@@ -3314,7 +3314,7 @@ body.superadmin-shell .admin-console{width:min(1500px,100%);max-width:1500px}
   flex-basis:48px;
   border-radius:16px;
   color:#fff;
-  background:linear-gradient(145deg,#ff7d43,#f1531d);
+  background:linear-gradient(145deg,#2f84ff,#0f5eea);
   box-shadow:0 10px 24px rgba(244,89,31,.24),inset 0 1px 0 rgba(255,255,255,.34);
 }
 .admin-shield-purple{background:linear-gradient(145deg,#9f7aea,#7450c7);box-shadow:0 10px 24px rgba(128,89,190,.22)}
@@ -3945,13 +3945,17 @@ html[data-theme="dark"] .surface{box-shadow:0 6px 20px rgba(0,0,0,.14)}
   }
 }
 
-/* v1.17.3 ui-v42 · identidad minimal CuotaGo + branding adaptable a light/dark */
+/* v1.17.4 ui-v43 · identidad minimal CuotaGo + branding adaptable a light/dark */
 .brand-logo-dark{display:none!important}
 html[data-theme="dark"] .brand-logo-light{display:none!important}
 html[data-theme="dark"] .brand-logo-dark{display:block!important}
-.brand-modern{display:flex;align-items:center;gap:8px;min-width:0}
-.brand-modern .brand-logo{display:block;width:auto;height:30px;max-width:132px;object-fit:contain;object-position:left center;flex:0 1 auto}
-.brand-modern .brand-badge{margin-left:1px;flex:0 0 auto}
+.brand-modern{display:flex;align-items:center;gap:9px;min-width:0}
+.brand-modern-v2{max-width:min(186px,46vw);overflow:hidden;line-height:0}
+.brand-mark-shell{width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;border-radius:11px;overflow:hidden}
+.brand-mark{display:block;width:32px!important;height:32px!important;max-width:32px!important;max-height:32px!important;object-fit:contain}
+.brand-word-shell{display:block;min-width:0;flex:0 1 118px;width:118px;overflow:hidden}
+.brand-wordmark{display:block;width:118px!important;height:22px!important;max-width:118px!important;max-height:22px!important;object-fit:contain;object-position:left center}
+.brand-modern .brand-badge{margin-left:2px;flex:0 0 auto}
 .auth-brand-modern,.resume-brand-modern{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
 .auth-brand-logo{display:block;width:min(224px,72vw);height:auto;max-height:84px;object-fit:contain}
 .resume-brand-logo{display:block;width:min(218px,70vw);height:auto;max-height:82px;object-fit:contain}
@@ -3962,13 +3966,19 @@ html[data-theme="dark"] .brand-logo-dark{display:block!important}
 html[data-theme="dark"] .auth-card,
 html[data-theme="dark"] .resume-card{background:color-mix(in srgb,var(--surface) 96%,#09111d);border-color:color-mix(in srgb,var(--line) 84%,transparent)}
 @media(max-width:719px){
-  .brand-modern .brand-logo{height:27px;max-width:116px}
+  .brand-modern-v2{max-width:min(164px,48vw)}
+  .brand-mark-shell{width:30px;height:30px;flex-basis:30px}
+  .brand-mark{width:30px!important;height:30px!important;max-width:30px!important;max-height:30px!important}
+  .brand-word-shell{width:102px;flex-basis:102px}
+  .brand-wordmark{width:102px!important;height:20px!important;max-width:102px!important;max-height:20px!important}
   .auth-brand-logo{width:min(208px,68vw)}
   .resume-brand-logo{width:min(204px,66vw)}
   .billing-lock-logo{width:116px}
 }
 @media(max-width:370px){
-  .brand-modern .brand-logo{height:25px;max-width:106px}
+  .brand-modern-v2{max-width:min(150px,50vw)}
+  .brand-word-shell{width:92px;flex-basis:92px}
+  .brand-wordmark{width:92px!important;height:18px!important;max-width:92px!important;max-height:18px!important}
 }
 
 /* Recupera la capa de bloqueo de mensualidad v1.17.2 que debía convivir con ui-v39. */
