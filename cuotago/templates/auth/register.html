@@ -5,60 +5,42 @@
   <div class="auth-layout-v2 auth-layout-register-v2">
     <aside class="auth-showcase-v2">
       <div class="auth-showcase-surface">
-        <span class="auth-kicker">Empieza hoy · sin complicarte</span>
+        <span class="auth-kicker">Empieza sin complicarte</span>
         <div class="auth-brand auth-brand-centered auth-brand-modern auth-brand-hero-v2">
-          <img class="auth-brand-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.17.7-ui-v46') }}" alt="{{ app_name }}">
-          <img class="auth-brand-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.17.7-ui-v46') }}" alt="{{ app_name }}">
-          <p>Crea tu espacio y empieza a usar CuotaGo en minutos.</p>
+          <img class="auth-brand-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.17.8-ui-v47') }}" alt="{{ app_name }}">
+          <img class="auth-brand-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.17.8-ui-v47') }}" alt="{{ app_name }}">
+          <p>Crea tu espacio y empieza a controlar tus cobros.</p>
         </div>
-
         <div class="auth-copy-v2">
-          <h1>Abre tu cuenta y pon orden a tu cobranza.</h1>
-          <p>Tu negocio, tus clientes y tus pagos en una sola app, con un registro simple y sin pasos de sobra.</p>
+          <h1>Tu negocio listo para cobrar mejor.</h1>
+          <p>Abre tu cuenta con lo esencial. Sin formularios eternos y sin configuraciones complicadas.</p>
         </div>
-
-        <div class="auth-chip-row">
-          <span class="auth-chip">Cuenta lista en 1 minuto</span>
-          <span class="auth-chip">Diseño fácil de entender</span>
-          <span class="auth-chip">Instalable como PWA</span>
-        </div>
-
         <div class="auth-preview-grid auth-preview-grid-steps">
-          <article class="auth-preview-card auth-step-card">
-            <span class="auth-step-index">1</span>
-            <strong>Tu negocio</strong>
-            <p>Pon el nombre con el que vas a trabajar.</p>
-          </article>
-          <article class="auth-preview-card auth-step-card">
-            <span class="auth-step-index">2</span>
-            <strong>Tu cuenta</strong>
-            <p>Crea el acceso principal para administrar todo.</p>
-          </article>
-          <article class="auth-preview-card auth-step-card">
-            <span class="auth-step-index">3</span>
-            <strong>Listo para cobrar</strong>
-            <p>Entras y ya puedes empezar a registrar acuerdos.</p>
-          </article>
+          <article class="auth-preview-card auth-step-card"><span class="auth-step-index">1</span><strong>Tu negocio</strong><p>Indica cómo se llama.</p></article>
+          <article class="auth-preview-card auth-step-card"><span class="auth-step-index">2</span><strong>Tu cuenta</strong><p>Crea el acceso principal.</p></article>
+          <article class="auth-preview-card auth-step-card"><span class="auth-step-index">3</span><strong>Listo</strong><p>Entra y crea tu primer acuerdo.</p></article>
         </div>
       </div>
     </aside>
 
     <section class="auth-card auth-card-modern-v2 auth-card-register-v2">
+      <div class="auth-mobile-brand-v2" aria-label="{{ app_name }}">
+        <img class="auth-mobile-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.17.8-ui-v47') }}" alt="{{ app_name }}">
+        <img class="auth-mobile-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.17.8-ui-v47') }}" alt="{{ app_name }}">
+      </div>
       <div class="auth-card-top-v2">
         <span class="auth-section-tag">Crear cuenta</span>
         <div class="auth-heading auth-heading-v2">
           <h2>Empieza con lo esencial</h2>
-          <p>Solo te pedimos lo necesario para abrir tu espacio.</p>
+          <p>Solo necesitamos estos datos para crear tu espacio.</p>
         </div>
       </div>
-
       <form method="post" class="form-stack auth-form auth-form-v2">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-grid two auth-grid-v2">
           <label class="field field-span-2">
             <span>Nombre del negocio</span>
             <input type="text" name="business_name" value="{{ business_name or '' }}" autocomplete="organization" required placeholder="Ej. Préstamos Rivera">
-            <small class="field-hint">Este nombre se mostrará dentro de tu app.</small>
           </label>
           <label class="field"><span>Tu nombre</span><input type="text" name="name" value="{{ name or '' }}" autocomplete="name" required placeholder="Nombre completo"></label>
           <label class="field"><span>Correo</span><input type="email" name="email" value="{{ email or '' }}" autocomplete="email" autocapitalize="none" spellcheck="false" inputmode="email" required placeholder="tu@correo.com"></label>
@@ -67,10 +49,9 @@
         </div>
         <button class="btn btn-primary btn-lg btn-block auth-submit" type="submit">Crear mi cuenta</button>
       </form>
-
       <div class="auth-card-footer-v2">
         <p class="auth-switch">¿Ya tienes cuenta? <a href="{{ url_for('auth.login') }}">Entrar</a></p>
-        <p class="auth-pwa-note">Luego podrás usar CuotaGo como app instalada en tu celular o en tu escritorio.</p>
+        <p class="auth-pwa-note">Después podrás instalar CuotaGo como app en tu dispositivo.</p>
       </div>
     </section>
   </div>

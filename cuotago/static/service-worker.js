@@ -1,4 +1,4 @@
-const VERSION = new URL(self.location.href).searchParams.get('v') || '1.17.7-ui-v46';
+const VERSION = new URL(self.location.href).searchParams.get('v') || '1.17.8-ui-v47';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const CORE_ASSETS = [
   '/static/css/app.css',

@@ -5,56 +5,46 @@
   <div class="auth-layout-v2">
     <aside class="auth-showcase-v2">
       <div class="auth-showcase-surface">
-        <span class="auth-kicker">Minimalista · rápido · fácil</span>
+        <span class="auth-kicker">Simple · rápido · claro</span>
         <div class="auth-brand auth-brand-centered auth-brand-modern auth-brand-hero-v2">
-          <img class="auth-brand-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.17.7-ui-v46') }}" alt="{{ app_name }}">
-          <img class="auth-brand-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.17.7-ui-v46') }}" alt="{{ app_name }}">
-          <p>Tu negocio de cobros, más claro y más bonito.</p>
+          <img class="auth-brand-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.17.8-ui-v47') }}" alt="{{ app_name }}">
+          <img class="auth-brand-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.17.8-ui-v47') }}" alt="{{ app_name }}">
+          <p>Tu negocio de cobros, más ordenado y fácil de usar.</p>
         </div>
-
         <div class="auth-copy-v2">
-          <h1>Entra y sigue cobrando sin enredos.</h1>
-          <p>Controla acuerdos, clientes, calendario y pagos desde una experiencia limpia, entendible y rápida tanto en escritorio como en PWA.</p>
+          <h1>Entra y sigue trabajando sin enredos.</h1>
+          <p>Acuerdos, clientes, calendario y cobros en una experiencia limpia para escritorio, iPhone y Android.</p>
         </div>
-
         <div class="auth-chip-row">
           <span class="auth-chip">Agenda de cobranza</span>
-          <span class="auth-chip">Instalable como app</span>
-          <span class="auth-chip">Recordatorios inteligentes</span>
+          <span class="auth-chip">PWA instalable</span>
+          <span class="auth-chip">Recordatorios</span>
         </div>
-
         <div class="auth-preview-grid">
-          <article class="auth-preview-card">
-            <strong>Todo claro</strong>
-            <p>Ve lo importante sin perderte entre pantallas cargadas.</p>
-          </article>
-          <article class="auth-preview-card">
-            <strong>Menos pasos</strong>
-            <p>Accede rápido y entra directo a trabajar.</p>
-          </article>
-          <article class="auth-preview-card">
-            <strong>Hecho para móvil</strong>
-            <p>Se siente nativo en iPhone, Android y también en PC.</p>
-          </article>
+          <article class="auth-preview-card"><strong>Todo claro</strong><p>Ves lo importante sin una interfaz cargada.</p></article>
+          <article class="auth-preview-card"><strong>Menos pasos</strong><p>Entras y vas directo a trabajar.</p></article>
+          <article class="auth-preview-card"><strong>Hecho para móvil</strong><p>Se adapta a tu celular y a tu PC.</p></article>
         </div>
       </div>
     </aside>
 
     <section class="auth-card auth-card-modern-v2">
+      <div class="auth-mobile-brand-v2" aria-label="{{ app_name }}">
+        <img class="auth-mobile-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.17.8-ui-v47') }}" alt="{{ app_name }}">
+        <img class="auth-mobile-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.17.8-ui-v47') }}" alt="{{ app_name }}">
+      </div>
       <div class="auth-card-top-v2">
         <span class="auth-section-tag">Entrar</span>
         <div class="auth-heading auth-heading-v2">
-          <h2>Bienvenido de nuevo</h2>
-          <p>Accede en segundos y continúa con tus cobros.</p>
+          <h2>Bienvenido</h2>
+          <p>Accede a tu cuenta y continúa donde lo dejaste.</p>
         </div>
       </div>
-
       <form method="post" class="form-stack auth-form auth-form-v2">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label class="field">
           <span>Correo</span>
           <input type="email" name="email" value="{{ email or '' }}" autocomplete="email" autocapitalize="none" spellcheck="false" inputmode="email" required placeholder="tu@correo.com">
-          <small class="field-hint">Usa el correo con el que registraste tu negocio.</small>
         </label>
         <label class="field">
           <span>Contraseña</span>
@@ -62,10 +52,9 @@
         </label>
         <button class="btn btn-primary btn-lg btn-block auth-submit" type="submit">Entrar</button>
       </form>
-
       <div class="auth-card-footer-v2">
         <p class="auth-switch">¿Es tu primera vez? <a href="{{ url_for('auth.register') }}">Crear cuenta</a></p>
-        <p class="auth-pwa-note">Disponible como app para escritorio, iPhone y Android.</p>
+        <p class="auth-pwa-note">Puedes instalar CuotaGo como app en tu celular o computadora.</p>
       </div>
     </section>
   </div>

@@ -1319,7 +1319,7 @@ def test_v1175_cache_updates_without_manual_clear():
     app_js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
     init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
     config = Path('config.py').read_text(encoding='utf-8')
-    assert 'ASSET_VERSION = "1.17.7-ui-v46"' in config
+    assert 'ASSET_VERSION = "1.17.8-ui-v47"' in config
     assert 'cuotago-build-version' in base
     assert 'controllerchange' in base
     assert "updateViaCache: 'none'" in base
@@ -1348,3 +1348,20 @@ def test_dashboard_catalog_has_ten_modules_and_settings_stays_outside_launcher()
     modules = module_catalog()
     assert len(modules) == 10
     assert all(module["slug"] != "settings" for module in modules)
+
+
+def test_v1178_auth_is_minimal_on_mobile_and_split_on_desktop():
+    from pathlib import Path
+    login = Path('cuotago/templates/auth/login.html').read_text(encoding='utf-8')
+    register = Path('cuotago/templates/auth/register.html').read_text(encoding='utf-8')
+    resume = Path('cuotago/templates/auth/resume.html').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    for template in (login, register, resume):
+        assert 'auth-layout-v2' in template
+        assert 'auth-mobile-brand-v2' in template
+    assert 'auth-layout-register-v2' in register
+    assert 'resume-account-v2' in resume
+    assert '@media(max-width:760px)' in css
+    assert '.auth-showcase-v2{display:none}' in css
+    assert '.auth-card-modern-v2{padding:18px 2px 6px;border:0' in css
+    assert 'v1.17.8 ui-v47' in css
