@@ -11,19 +11,19 @@
     <span class="status-pill status-{{ contract.status }}">{{ contract_status_label(contract.status) }}</span>
   </div>
 
+  {% set suggested_payment = contract.next_installment.remaining if contract.next_installment else contract.balance %}
   <section class="surface balance-card simple-balance-card">
     <div class="balance-top"><div><span>{{ 'Saldo registrado' if contract.status == 'cancelled' else 'Saldo pendiente' }}</span><strong>{{ money(contract.balance) }}</strong></div><div class="progress-number">{{ '%.0f'|format(contract.progress_percent) }}%</div></div>
     <div class="progress-track big"><span style="width: {{ contract.progress_percent }}%"></span></div>
     <div class="balance-metrics compact-balance-metrics">
-      <div><small>Total</small><strong>{{ money(contract.total_amount) }}</strong></div>
+      <div><small>Total acordado</small><strong>{{ money(contract.total_amount) }}</strong></div>
       <div><small>Pagado</small><strong>{{ money(contract.paid_total) }}</strong></div>
-      <div><small>Cuota</small><strong>{{ money(contract.installment_amount) }}</strong></div>
-      {% if contract.late_fee_balance > 0 %}<div><small>Interés acumulado</small><strong class="text-danger">{{ money(contract.late_fee_balance) }}</strong></div>{% endif %}
+      <div class="balance-due-now"><small>Próximo pago</small><strong>{{ money(suggested_payment) }}</strong>{% if contract.next_installment and contract.next_installment.late_fee_remaining > 0 %}<span>Incluye {{ money(contract.next_installment.late_fee_remaining) }} de mora</span>{% endif %}</div>
+      {% if contract.late_fee_balance > 0 %}<div><small>Mora pendiente</small><strong class="text-danger">{{ money(contract.late_fee_balance) }}</strong></div>{% endif %}
     </div>
   </section>
 
   {% if contract.status == 'active' and can('payments.record') %}
-  {% set suggested_payment = contract.next_installment.remaining if contract.next_installment else contract.balance %}
   <div class="contract-payment-launch" id="pay">
     <div class="contract-payment-primary-actions">
       <button class="btn btn-primary contract-payment-button" type="button" data-open-payment data-payment-kind="payment" data-payment-amount="{{ suggested_payment }}">
@@ -45,7 +45,7 @@
         <div>
           <span class="eyebrow" data-payment-dialog-eyebrow>REGISTRAR PAGO</span>
           <h2 id="paymentDialogTitle">{{ contract.client.full_name }}</h2>
-          <p>Saldo pendiente <strong>{{ money(contract.balance) }}</strong>{% if contract.next_installment %} · Próxima cuota {{ money(contract.next_installment.remaining) }}{% endif %}</p>
+          <p>Saldo pendiente <strong>{{ money(contract.balance) }}</strong>{% if contract.next_installment %} · A pagar ahora <strong>{{ money(contract.next_installment.remaining) }}</strong>{% if contract.next_installment.late_fee_remaining > 0 %} · incluye {{ money(contract.next_installment.late_fee_remaining) }} de mora{% endif %}{% endif %}</p>
         </div>
         <button class="payment-dialog-close" type="button" data-payment-close aria-label="Cerrar">×</button>
       </div>
@@ -66,7 +66,7 @@
           <label><input type="radio" name="method" value="card"><span>Tarjeta</span></label>
           <label><input type="radio" name="method" value="other"><span>Otro</span></label>
         </div>
-        <p class="payment-allocation-hint">Si el monto supera una cuota, CuotaGo lo aplica automáticamente a las siguientes. Si es menor, queda como abono parcial.</p>
+        <p class="payment-allocation-hint">La mora pendiente se cobra primero y ya está incluida en el monto sugerido. Si el pago supera una cuota, CuotaGo aplica el restante automáticamente a las siguientes.</p>
         <details class="advanced-options small-advanced payment-note-option">
           <summary>Referencia o nota</summary>
           <div class="advanced-options-body payment-extra-grid-v15"><label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="Transferencia, depósito..."></label><label class="field"><span>Nota</span><input name="note" maxlength="240" placeholder="Nota opcional"></label></div>

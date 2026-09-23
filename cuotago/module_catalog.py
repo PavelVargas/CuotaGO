@@ -58,7 +58,7 @@ MODULE_CATALOG = [
         ],
         "guide_tips": [
             "Una alerta desaparece automáticamente cuando el pago queda saldado.",
-            "Puedes activar notificaciones del dispositivo desde Ajustes.",
+            "Puedes activar las notificaciones del dispositivo desde Configuración en el menú superior.",
         ],
     },
     {
@@ -182,23 +182,6 @@ MODULE_CATALOG = [
         ],
         "guide_tips": [
             "La guía y el Inicio usan el mismo catálogo de módulos, por lo que permanecen sincronizados al ampliar CuotaGo.",
-        ],
-    },
-    {
-        "slug": "settings",
-        "name": "Ajustes",
-        "endpoint": "main.settings",
-        "icon": "home-settings",
-        "accent": "accent-slate",
-        "home_description": "Cuenta y aplicación",
-        "guide_summary": "Configura la cuenta, apariencia y funciones de la aplicación.",
-        "guide_steps": [
-            "Entra a Ajustes desde Inicio.",
-            "Activa o desactiva las opciones disponibles.",
-            "Guarda los cambios de cuenta o configuración cuando corresponda.",
-        ],
-        "guide_tips": [
-            "Desde aquí puedes probar y activar las notificaciones del dispositivo cuando el navegador lo permita.",
         ],
     },
 ]
