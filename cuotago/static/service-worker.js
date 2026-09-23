@@ -1,4 +1,4 @@
-const VERSION = '1.17.2-ui-v41';
+const VERSION = '1.17.3-ui-v42';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const CORE = [
   '/offline',
@@ -9,6 +9,12 @@ const CORE = [
   '/static/icons/icon-512.png',
   '/static/icons/apple-touch-icon.png',
   '/static/icons/icon-maskable-512.png',
+  '/static/icons/logo-full-light.png',
+  '/static/icons/logo-full-dark.png',
+  '/static/icons/logo-symbol-light.png',
+  '/static/icons/logo-symbol-dark.png',
+  '/static/icons/logo-word-light.png',
+  '/static/icons/logo-word-dark.png',
   '/static/icons/favicon-64.png',
   '/static/icons/favicon-32.png',
   '/static/sounds/alert.wav'

@@ -3945,14 +3945,35 @@ html[data-theme="dark"] .surface{box-shadow:0 6px 20px rgba(0,0,0,.14)}
   }
 }
 
+/* v1.17.3 ui-v42 · identidad minimal CuotaGo + branding adaptable a light/dark */
+.brand-logo-dark{display:none!important}
+html[data-theme="dark"] .brand-logo-light{display:none!important}
+html[data-theme="dark"] .brand-logo-dark{display:block!important}
+.brand-modern{display:flex;align-items:center;gap:8px;min-width:0}
+.brand-modern .brand-logo{display:block;width:auto;height:30px;max-width:132px;object-fit:contain;object-position:left center;flex:0 1 auto}
+.brand-modern .brand-badge{margin-left:1px;flex:0 0 auto}
+.auth-brand-modern,.resume-brand-modern{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.auth-brand-logo{display:block;width:min(224px,72vw);height:auto;max-height:84px;object-fit:contain}
+.resume-brand-logo{display:block;width:min(218px,70vw);height:auto;max-height:82px;object-fit:contain}
+.auth-brand-modern p{margin:2px auto 0;max-width:330px}
+.boot-splash-logo{object-fit:contain}
+.billing-lock-logo{display:block;width:128px;height:auto;max-height:34px;object-fit:contain}
+.billing-lock-brand{min-height:36px}
+html[data-theme="dark"] .auth-card,
+html[data-theme="dark"] .resume-card{background:color-mix(in srgb,var(--surface) 96%,#09111d);border-color:color-mix(in srgb,var(--line) 84%,transparent)}
+@media(max-width:719px){
+  .brand-modern .brand-logo{height:27px;max-width:116px}
+  .auth-brand-logo{width:min(208px,68vw)}
+  .resume-brand-logo{width:min(204px,66vw)}
+  .billing-lock-logo{width:116px}
+}
+@media(max-width:370px){
+  .brand-modern .brand-logo{height:25px;max-width:106px}
+}
 
-/* v1.17.2 ui-v40 · bloqueo de mensualidad / prueba desde Superadmin */
-body.subscription-lock-screen{min-height:100dvh;background:var(--bg)}
-body.subscription-lock-screen .topbar,body.subscription-lock-screen .footer,body.subscription-lock-screen .pull-refresh-indicator{display:none!important}
-body.subscription-lock-screen .page-shell{min-height:100dvh;padding:0!important;display:block}
+/* Recupera la capa de bloqueo de mensualidad v1.17.2 que debía convivir con ui-v39. */
 .billing-lock-screen{min-height:100dvh;display:grid;place-items:center;padding:max(22px,env(safe-area-inset-top)) 18px max(22px,env(safe-area-inset-bottom));position:relative}
 .billing-lock-brand{position:absolute;top:max(20px,env(safe-area-inset-top));left:0;right:0;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text-strong)}
-.billing-lock-brand img{width:28px;height:28px;border-radius:8px}.billing-lock-brand strong{font-size:15px;letter-spacing:-.04em}.billing-lock-brand strong span{color:var(--primary)}
 .billing-lock-card{width:min(100%,460px);display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 24px 24px;border:1px solid var(--line);border-radius:24px;background:var(--surface);box-shadow:0 22px 70px rgba(31,45,61,.10)}
 .billing-lock-icon{width:82px;height:82px;border-radius:26px;display:grid;place-items:center;margin-bottom:18px;background:color-mix(in srgb,var(--primary) 10%,var(--surface));color:var(--primary);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary) 12%,transparent)}
 .billing-lock-card>.eyebrow{color:var(--muted);font-size:10px;letter-spacing:.12em}.billing-lock-card h1{margin:7px 0 0;font-size:25px;line-height:1.15;letter-spacing:-.04em;color:var(--text-strong)}
@@ -3965,4 +3986,5 @@ body.subscription-lock-screen .page-shell{min-height:100dvh;padding:0!important;
 .admin-billing-lock-test{margin-top:16px;padding:13px 14px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:11px}
 .admin-billing-lock-test.is-active{border-color:color-mix(in srgb,var(--danger) 28%,var(--line));background:color-mix(in srgb,var(--danger) 6%,var(--surface))}.admin-billing-lock-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--surface);color:var(--primary)}.admin-billing-lock-test.is-active .admin-billing-lock-icon{color:var(--danger)}
 .admin-billing-lock-copy{min-width:0;display:flex;flex-direction:column;gap:2px}.admin-billing-lock-copy strong{font-size:11px;color:var(--text-strong)}.admin-billing-lock-copy small{font-size:9px;line-height:1.35;color:var(--muted)}.admin-billing-lock-test form{margin:0}
+html[data-theme="dark"] .billing-lock-card{box-shadow:0 22px 70px rgba(0,0,0,.26)}
 @media(max-width:600px){.billing-lock-screen{padding-inline:14px}.billing-lock-card{padding:24px 17px 20px;border-radius:21px}.billing-lock-icon{width:74px;height:74px;border-radius:23px}.billing-lock-card h1{font-size:21px}.billing-lock-card>p{font-size:12px}.billing-lock-plan{grid-template-columns:1fr}.billing-lock-plan span{padding:4px}.admin-billing-lock-test{grid-template-columns:auto 1fr}.admin-billing-lock-test form{grid-column:1/-1}.admin-billing-lock-test .btn{width:100%}}

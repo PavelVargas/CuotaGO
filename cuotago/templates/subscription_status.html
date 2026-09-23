@@ -5,8 +5,8 @@
 {% block content %}
 <section class="billing-lock-screen">
   <div class="billing-lock-brand" aria-label="{{ app_name }}">
-    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="">
-    <strong>Cuota<span>Go</span></strong>
+    <img class="billing-lock-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v=brand-minimal-v2" alt="{{ app_name }}">
+    <img class="billing-lock-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v=brand-minimal-v2" alt="{{ app_name }}">
   </div>
 
   <section class="billing-lock-card" role="status">

@@ -960,7 +960,7 @@ def test_reminders_v20_compacts_dashboard_and_adds_dedicated_view():
     assert '.home-reminder-button{' in css
     assert '.reminders-page-v20{' in css
     assert '-ui-v37' in base
-    assert "1.17.1-ui-v37" in sw
+    assert "1.17.3-ui-v42" in sw
 
 
 
@@ -978,7 +978,7 @@ def test_overdue_push_repeats_outside_app_without_notification_pileup():
     assert 'Recordatorio de cobro' in push
     assert 'replaceKey' in push
     assert 'getNotifications()' in worker
-    assert "1.17.1-ui-v37" in worker
+    assert "1.17.3-ui-v42" in worker
 
 
 def test_purchase_batch_registers_multiple_items_in_one_submit(client, app):
@@ -1236,7 +1236,7 @@ def test_v116_statement_has_real_pdf_and_hardening_assets():
     assert '@main_bp.get("/clients/<int:client_id>/statement.pdf")' in main
     assert '@main_bp.get("/payments/<int:payment_id>/receipt.pdf")' in main
     assert 'data-share-pdf' in Path('cuotago/templates/clients/statement.html').read_text(encoding='utf-8')
-    assert "1.17.1-ui-v37" in sw
+    assert "1.17.3-ui-v42" in sw
     assert '-dark.png' in base
     assert 'cuotago_schema_migrations' in init
     assert 'Strict-Transport-Security' in init
@@ -1257,7 +1257,7 @@ def test_v117_pwa_performance_and_calm_ux_are_wired():
     models = Path('cuotago/models.py').read_text(encoding='utf-8')
     requirements = Path('requirements.txt').read_text(encoding='utf-8')
     assert 'navigationPreload.enable()' in sw
-    assert "1.17.1-ui-v37" in sw
+    assert "1.17.3-ui-v42" in sw
     assert 'data-global-search-open' in base
     assert 'setupGlobalQuickSearch' in js
     assert 'setupCalmFormGuard' in js
@@ -1279,8 +1279,8 @@ def test_v1171_migration_ledger_does_not_assume_legacy_schema():
     assert "column_name = 'version'" in init
     assert 'SELECT version FROM cuotago_schema_migrations' in init
     assert 'SELECT version FROM schema_migrations"))' not in init
-    assert "1.17.1-ui-v37" in js
-    assert "1.17.1-ui-v37" in sw
+    assert "1.17.3-ui-v42" in js
+    assert "1.17.3-ui-v42" in sw
 
 
 def test_ui_v37_sora_unified_and_client_prefill(client, app):

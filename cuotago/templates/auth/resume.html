@@ -2,9 +2,9 @@
 {% block title %}Continuar · {{ app_name }}{% endblock %}
 {% block content %}
 <section class="auth-card resume-card">
-  <div class="resume-brand">
-    <img class="resume-app-icon" src="{{ url_for('static', filename='icons/icon-192.png') }}?v=brand-orange-v1" alt="Icono de {{ app_name }}">
-    <h1>{{ app_name }}</h1>
+  <div class="resume-brand resume-brand-modern">
+    <img class="resume-brand-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v=brand-minimal-v2" alt="{{ app_name }}">
+    <img class="resume-brand-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v=brand-minimal-v2" alt="{{ app_name }}">
   </div>
 
   <div class="resume-account" aria-label="Cuenta recordada">

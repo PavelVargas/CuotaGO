@@ -55,8 +55,8 @@
     root.dataset.themeChoice = safeChoice;
     root.dataset.theme = resolved;
     const booting = root.classList.contains('show-boot');
-    document.getElementById('themeColorMeta')?.setAttribute('content', booting ? '#fffaf6' : (resolved === 'dark' ? '#101216' : '#f4f7fb'));
-    document.getElementById('appleStatusMeta')?.setAttribute('content', booting ? 'default' : (resolved === 'dark' ? 'black-translucent' : 'default'));
+    document.getElementById('themeColorMeta')?.setAttribute('content', resolved === 'dark' ? '#09111d' : '#f6f8fc');
+    document.getElementById('appleStatusMeta')?.setAttribute('content', resolved === 'dark' ? 'black-translucent' : 'default');
     syncThemeControls(safeChoice);
     if (persist) {
       try { localStorage.setItem(THEME_KEY, safeChoice); } catch (_) {}
@@ -83,7 +83,7 @@
         window.setTimeout(() => {
           splash.remove();
           root.classList.remove('show-boot');
-          applyTheme(document.body?.classList.contains('auth-shell') ? 'light' : readTheme(), false);
+          applyTheme(readTheme(), false);
         }, 210);
       }, remaining);
     };
@@ -120,7 +120,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = '1.17.2-ui-v40';
+  const APP_VERSION = '1.17.3-ui-v42';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -1432,7 +1432,7 @@
     setupGlobalQuickSearch();
     setupCalmFormGuard();
     setupNativeNavigationMemory();
-    applyTheme(document.body.classList.contains('auth-shell') ? 'light' : readTheme(), false);
+    applyTheme(readTheme(), false);
 
     document.querySelectorAll('[data-theme-choice]').forEach((button) => {
       button.addEventListener('click', () => applyTheme(button.dataset.themeChoice));
