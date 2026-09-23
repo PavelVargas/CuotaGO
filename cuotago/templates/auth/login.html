@@ -1,32 +1,73 @@
 {% extends 'base.html' %}
 {% block title %}Entrar · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="auth-card">
-  <div class="auth-brand auth-brand-centered auth-brand-modern">
-    <img class="auth-brand-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v=brand-minimal-v2" alt="{{ app_name }}">
-    <img class="auth-brand-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v=brand-minimal-v2" alt="{{ app_name }}">
-    <p>Tu cartera, tus clientes y tus fechas en un solo lugar.</p>
+<section class="auth-screen-v2 auth-screen-login">
+  <div class="auth-layout-v2">
+    <aside class="auth-showcase-v2">
+      <div class="auth-showcase-surface">
+        <span class="auth-kicker">Minimalista · rápido · fácil</span>
+        <div class="auth-brand auth-brand-centered auth-brand-modern auth-brand-hero-v2">
+          <img class="auth-brand-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.17.6-ui-v45') }}" alt="{{ app_name }}">
+          <img class="auth-brand-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.17.6-ui-v45') }}" alt="{{ app_name }}">
+          <p>Tu negocio de cobros, más claro y más bonito.</p>
+        </div>
+
+        <div class="auth-copy-v2">
+          <h1>Entra y sigue cobrando sin enredos.</h1>
+          <p>Controla acuerdos, clientes, calendario y pagos desde una experiencia limpia, entendible y rápida tanto en escritorio como en PWA.</p>
+        </div>
+
+        <div class="auth-chip-row">
+          <span class="auth-chip">Agenda de cobranza</span>
+          <span class="auth-chip">Instalable como app</span>
+          <span class="auth-chip">Recordatorios inteligentes</span>
+        </div>
+
+        <div class="auth-preview-grid">
+          <article class="auth-preview-card">
+            <strong>Todo claro</strong>
+            <p>Ve lo importante sin perderte entre pantallas cargadas.</p>
+          </article>
+          <article class="auth-preview-card">
+            <strong>Menos pasos</strong>
+            <p>Accede rápido y entra directo a trabajar.</p>
+          </article>
+          <article class="auth-preview-card">
+            <strong>Hecho para móvil</strong>
+            <p>Se siente nativo en iPhone, Android y también en PC.</p>
+          </article>
+        </div>
+      </div>
+    </aside>
+
+    <section class="auth-card auth-card-modern-v2">
+      <div class="auth-card-top-v2">
+        <span class="auth-section-tag">Entrar</span>
+        <div class="auth-heading auth-heading-v2">
+          <h2>Bienvenido de nuevo</h2>
+          <p>Accede en segundos y continúa con tus cobros.</p>
+        </div>
+      </div>
+
+      <form method="post" class="form-stack auth-form auth-form-v2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="field">
+          <span>Correo</span>
+          <input type="email" name="email" value="{{ email or '' }}" autocomplete="email" autocapitalize="none" spellcheck="false" inputmode="email" required placeholder="tu@correo.com">
+          <small class="field-hint">Usa el correo con el que registraste tu negocio.</small>
+        </label>
+        <label class="field">
+          <span>Contraseña</span>
+          <input type="password" name="password" autocomplete="current-password" required placeholder="••••••••">
+        </label>
+        <button class="btn btn-primary btn-lg btn-block auth-submit" type="submit">Entrar</button>
+      </form>
+
+      <div class="auth-card-footer-v2">
+        <p class="auth-switch">¿Es tu primera vez? <a href="{{ url_for('auth.register') }}">Crear cuenta</a></p>
+        <p class="auth-pwa-note">Disponible como app para escritorio, iPhone y Android.</p>
+      </div>
+    </section>
   </div>
-
-  <div class="auth-heading">
-    <h2>Bienvenido</h2>
-    <p>Entra para continuar con tus cobros.</p>
-  </div>
-
-  <form method="post" class="form-stack auth-form">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label class="field">
-      <span>Correo</span>
-      <input type="email" name="email" value="{{ email or '' }}" autocomplete="email" autocapitalize="none" spellcheck="false" inputmode="email" required placeholder="tu@correo.com">
-    </label>
-    <label class="field">
-      <span>Contraseña</span>
-      <input type="password" name="password" autocomplete="current-password" required placeholder="••••••••">
-    </label>
-    <button class="btn btn-primary btn-lg btn-block" type="submit">Entrar</button>
-  </form>
-
-  <p class="auth-switch">¿Es tu primera vez? <a href="{{ url_for('auth.register') }}">Crear cuenta</a></p>
-  <p class="auth-pwa-note">Diseñado para instalarse en tu iPhone o Android como app.</p>
 </section>
 {% endblock %}

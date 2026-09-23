@@ -1,25 +1,59 @@
 {% extends 'base.html' %}
 {% block title %}Continuar · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="auth-card resume-card">
-  <div class="resume-brand resume-brand-modern">
-    <img class="resume-brand-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v=brand-minimal-v2" alt="{{ app_name }}">
-    <img class="resume-brand-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v=brand-minimal-v2" alt="{{ app_name }}">
+<section class="auth-screen-v2 auth-screen-resume">
+  <div class="auth-layout-v2 auth-layout-resume-v2">
+    <aside class="auth-showcase-v2">
+      <div class="auth-showcase-surface">
+        <span class="auth-kicker">Acceso rápido</span>
+        <div class="auth-brand auth-brand-centered auth-brand-modern auth-brand-hero-v2">
+          <img class="resume-brand-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.17.6-ui-v45') }}" alt="{{ app_name }}">
+          <img class="resume-brand-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.17.6-ui-v45') }}" alt="{{ app_name }}">
+          <p>Entra rápido con la cuenta recordada.</p>
+        </div>
+
+        <div class="auth-copy-v2">
+          <h1>Vuelve a tu cuenta con un toque.</h1>
+          <p>Si esta es tu cuenta, solo continúa. Si no, puedes iniciar con otra sin complicarte.</p>
+        </div>
+
+        <div class="auth-chip-row">
+          <span class="auth-chip">Rápido</span>
+          <span class="auth-chip">Seguro</span>
+          <span class="auth-chip">Sin pasos extra</span>
+        </div>
+      </div>
+    </aside>
+
+    <section class="auth-card auth-card-modern-v2 auth-card-resume-v2 resume-card">
+      <div class="auth-card-top-v2">
+        <span class="auth-section-tag">Continuar</span>
+        <div class="auth-heading auth-heading-v2">
+          <h2>Tu cuenta está lista</h2>
+          <p>Confirma si quieres continuar con esta sesión.</p>
+        </div>
+      </div>
+
+      <div class="resume-account resume-account-v2" aria-label="Cuenta recordada">
+        <div class="resume-avatar resume-avatar-v2">{{ current_user.name[:1]|upper }}</div>
+        <div>
+          <strong>{{ current_user.name }}</strong>
+          <small>{{ current_user.organization.name }}</small>
+          <span>{{ current_user.email }}</span>
+        </div>
+      </div>
+
+      <form method="post" class="resume-actions resume-actions-v2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ next_url or '' }}">
+        <button class="btn btn-primary btn-lg btn-block auth-submit" type="submit">Continuar con esta cuenta</button>
+      </form>
+
+      <form method="post" action="{{ url_for('auth.logout') }}" class="resume-other-account resume-other-account-v2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-ghost btn-block" type="submit">Iniciar con otra cuenta</button>
+      </form>
+    </section>
   </div>
-
-  <div class="resume-account" aria-label="Cuenta recordada">
-    <div><strong>{{ current_user.name }}</strong></div>
-  </div>
-
-  <form method="post" class="resume-actions">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="next" value="{{ next_url or '' }}">
-    <button class="btn btn-primary btn-lg btn-block" type="submit">Continuar con esta cuenta</button>
-  </form>
-
-  <form method="post" action="{{ url_for('auth.logout') }}" class="resume-other-account">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="btn btn-ghost btn-block" type="submit">Iniciar con otra cuenta</button>
-  </form>
 </section>
 {% endblock %}
