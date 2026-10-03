@@ -9,7 +9,7 @@ import pytest
 from cuotago import create_app
 from cuotago.extensions import db
 from cuotago.models import (
-    AdminAuditLog, Asset, Client, CollectionNote, Contract, ContractScheduleChange, Expense, Installment,
+    AdminAuditLog, Asset, AssetInvestment, Client, CollectionNote, Contract, ContractScheduleChange, Expense, Installment,
     Organization, OrganizationSubscription, Payment, PaymentPromise, Purchase, PushNotificationLog,
     PushSubscription, SubscriptionPayment, SubscriptionPlan, Supplier, TenantAuditLog, User,
 )
@@ -607,6 +607,75 @@ def test_inventory_quantity_allows_multiple_agreements(client, app):
         'daily_late_interest': '0',
     }, follow_redirects=True)
     assert b'Solo quedan 1 unidad' in response.data
+
+
+def test_vehicle_detail_tracks_dealer_data_and_investments(client, app):
+    register(client)
+    acquisition_day = date.today() - timedelta(days=12)
+    response = client.post('/assets/new', data={
+        'kind': 'car',
+        'name': 'Toyota Corolla LE',
+        'brand': 'Toyota',
+        'model': 'Corolla LE',
+        'vehicle_year': '2022',
+        'mileage': '48500',
+        'identifier': 'A123456',
+        'serial_number': 'JT123TEST',
+        'quantity_total': '1',
+        'estimated_value': '720000',
+        'sale_price': '895000',
+        'acquisition_type': 'purchase',
+        'acquisition_origin': 'Dealer de prueba',
+        'acquisition_date': acquisition_day.isoformat(),
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert 'Resumen financiero'.encode('utf-8') in response.data
+    assert 'Historial de inversiones'.encode('utf-8') in response.data
+
+    with app.app_context():
+        asset = Asset.query.filter_by(name='Toyota Corolla LE').one()
+        asset_id = asset.id
+        assert asset.vehicle_year == 2022
+        assert asset.mileage == 48500
+        assert asset.acquisition_origin == 'Dealer de prueba'
+        assert asset.acquisition_date == acquisition_day
+
+    response = client.post(f'/assets/{asset_id}/investments', data={
+        'investment_date': date.today().isoformat(),
+        'category': 'oil',
+        'description': 'Cambio de aceite y filtro',
+        'amount': '4500',
+        'notes': 'Mantenimiento preventivo',
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'RD$724,500.00' in response.data
+    assert b'RD$170,500.00' in response.data
+
+    with app.app_context():
+        investment = AssetInvestment.query.one()
+        assert investment.asset_id == asset_id
+        assert investment.amount == Decimal('4500.00')
+        assert investment.category == 'oil'
+
+
+def test_vehicle_inventory_static_ui_has_dossier_and_migration():
+    from pathlib import Path
+    detail = Path('cuotago/templates/assets/detail.html').read_text(encoding='utf-8')
+    form = Path('cuotago/templates/assets/form.html').read_text(encoding='utf-8')
+    listing = Path('cuotago/templates/assets/list.html').read_text(encoding='utf-8')
+    init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    assert 'Resumen financiero' in detail
+    assert 'Información de adquisición' in detail
+    assert 'Historial de inversiones' in detail
+    assert 'Historial de actividad' in detail
+    assert 'data-investment-open' in detail
+    assert 'name="vehicle_year"' in form
+    assert 'name="mileage"' in form
+    assert "url_for('main.asset_detail'" in listing
+    assert '2026-10-v118-dealer-inventory' in init
+    assert 'CREATE TABLE IF NOT EXISTS asset_investments' in init
+    assert 'v1.18.0 ui-v49' in css
 
 
 def test_daily_late_interest_is_added_and_paid(client, app):
@@ -1319,7 +1388,7 @@ def test_v1175_cache_updates_without_manual_clear():
     app_js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
     init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
     config = Path('config.py').read_text(encoding='utf-8')
-    assert 'ASSET_VERSION = "1.17.9-ui-v48"' in config
+    assert 'ASSET_VERSION = "1.18.0-ui-v49"' in config
     assert 'cuotago-build-version' in base
     assert 'controllerchange' in base
     assert "updateViaCache: 'none'" in base
@@ -1364,7 +1433,7 @@ def test_v1178_auth_is_minimal_on_mobile_and_split_on_desktop():
     assert '@media(max-width:760px)' in css
     assert '.auth-showcase-v2{display:none}' in css
     assert '.auth-card-modern-v2{padding:18px 2px 6px;border:0' in css
-    assert 'v1.17.9 ui-v48' in css
+    assert 'v1.18.0 ui-v49' in css
 
 
 def test_v1179_desktop_topbar_and_launcher_geometry():

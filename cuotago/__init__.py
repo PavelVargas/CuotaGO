@@ -245,6 +245,31 @@ def _ensure_feature_schema(app):
         "ALTER TABLE organization_subscriptions ADD COLUMN IF NOT EXISTS billing_lock_by_user_id INTEGER NULL",
     ]
 
+    dealer_inventory_statements = [
+        "ALTER TABLE assets ADD COLUMN IF NOT EXISTS vehicle_year INTEGER NULL",
+        "ALTER TABLE assets ADD COLUMN IF NOT EXISTS mileage INTEGER NULL",
+        "ALTER TABLE assets ADD COLUMN IF NOT EXISTS acquisition_type VARCHAR(30) NULL",
+        "ALTER TABLE assets ADD COLUMN IF NOT EXISTS acquisition_origin VARCHAR(160) NULL",
+        "ALTER TABLE assets ADD COLUMN IF NOT EXISTS acquisition_date DATE NULL",
+        """CREATE TABLE IF NOT EXISTS asset_investments (
+            id SERIAL PRIMARY KEY,
+            organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            asset_id INTEGER NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+            investment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+            category VARCHAR(40) NOT NULL DEFAULT 'other',
+            description VARCHAR(180) NOT NULL,
+            amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+            notes VARCHAR(240),
+            created_by_user_id INTEGER NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )""",
+        "CREATE INDEX IF NOT EXISTS ix_asset_investments_organization_id ON asset_investments (organization_id)",
+        "CREATE INDEX IF NOT EXISTS ix_asset_investments_asset_id ON asset_investments (asset_id)",
+        "CREATE INDEX IF NOT EXISTS ix_asset_investments_investment_date ON asset_investments (investment_date)",
+        "CREATE INDEX IF NOT EXISTS ix_asset_investments_created_by_user_id ON asset_investments (created_by_user_id)",
+        "CREATE INDEX IF NOT EXISTS ix_asset_investments_created_at ON asset_investments (created_at)",
+    ]
+
     with db.engine.begin() as connection:
         # Use a CuotaGo-owned ledger instead of the generic ``schema_migrations``
         # name. Existing installations may already have a table with that name
@@ -303,6 +328,10 @@ def _ensure_feature_schema(app):
             for statement in billing_lock_statements:
                 connection.execute(text(statement))
             connection.execute(text("INSERT INTO cuotago_schema_migrations(version) VALUES ('2026-09-v1172-billing-lock') ON CONFLICT DO NOTHING"))
+        if "2026-10-v118-dealer-inventory" not in applied:
+            for statement in dealer_inventory_statements:
+                connection.execute(text(statement))
+            connection.execute(text("INSERT INTO cuotago_schema_migrations(version) VALUES ('2026-10-v118-dealer-inventory') ON CONFLICT DO NOTHING"))
 
 
 def _ensure_superadmin(app):

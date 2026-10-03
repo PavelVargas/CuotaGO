@@ -5,8 +5,8 @@
 <section class="content-page narrow-page simple-form-page inventory-editor-page">
   <div class="page-head simple-page-head">
     <div class="page-head-left">
-      <a class="icon-btn" href="{{ url_for('main.assets') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><h1>{{ 'Editar producto' if asset else 'Nuevo producto' }}</h1><p>Lo esencial primero. Puedes completar los detalles cuando quieras.</p></div>
+      <a class="icon-btn" href="{{ url_for('main.asset_detail', asset_id=asset.id) if asset else url_for('main.assets') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <div><h1>{{ ('Editar vehículo' if asset and asset.kind in ['car','motorcycle'] else 'Editar producto') if asset else 'Nuevo producto' }}</h1><p>Datos claros para controlar compra, venta y estado.</p></div>
     </div>
   </div>
 
@@ -28,7 +28,7 @@
       <div class="asset-photo-copy">
         <strong>Foto del producto</strong>
         <span data-asset-photo-name>{{ 'Toca la imagen para reemplazarla' if asset and asset.image_mime else 'Toca para elegir una foto' }}</span>
-        <small>JPG, PNG o WebP · máximo 4 MB</small>
+        <small>JPG, PNG o WebP · máximo 12 MB</small>
         {% if asset and asset.image_mime %}
         <label class="asset-photo-remove"><input type="checkbox" name="remove_image" value="1"> Quitar foto actual</label>
         {% endif %}
@@ -37,7 +37,7 @@
 
     {% set kind_value = asset.kind if asset else request.form.get('kind','other') %}
     <div class="form-stack primary-fields">
-      <label class="field"><span>Tipo</span><select name="kind">
+      <label class="field"><span>Tipo</span><select name="kind" data-asset-kind-select>
         <option value="car" {{ 'selected' if kind_value=='car' }}>Vehículo</option>
         <option value="phone" {{ 'selected' if kind_value=='phone' }}>Celular</option>
         <option value="motorcycle" {{ 'selected' if kind_value=='motorcycle' }}>Motor</option>
@@ -45,8 +45,12 @@
         <option value="appliance" {{ 'selected' if kind_value=='appliance' }}>Electrodoméstico</option>
         <option value="other" {{ 'selected' if kind_value=='other' }}>Otro</option>
       </select></label>
-      <label class="field"><span>Nombre del producto *</span><input name="name" required value="{{ asset.name if asset else request.form.get('name','') }}" placeholder="Ej. iPhone 15 Pro"></label>
-      <label class="field"><span>IMEI / serial / código</span><input name="identifier" value="{{ asset.identifier if asset else request.form.get('identifier','') }}" placeholder="Opcional pero recomendado"></label>
+      <label class="field"><span>Nombre del producto *</span><input name="name" required value="{{ asset.name if asset else request.form.get('name','') }}" placeholder="Ej. Toyota Corolla 2022"></label>
+      <div class="form-grid two compact-grid vehicle-form-fields" data-vehicle-fields>
+        <label class="field"><span>Año</span><input type="number" min="1886" max="{{ today.year + 1 }}" name="vehicle_year" value="{{ asset.vehicle_year if asset and asset.vehicle_year is not none else request.form.get('vehicle_year','') }}" placeholder="Ej. 2022" inputmode="numeric"></label>
+        <label class="field"><span>Kilometraje</span><input type="number" min="0" step="1" name="mileage" value="{{ asset.mileage if asset and asset.mileage is not none else request.form.get('mileage','') }}" placeholder="Ej. 65000" inputmode="numeric"></label>
+      </div>
+      <label class="field"><span>Placa / IMEI / código</span><input name="identifier" value="{{ asset.identifier if asset else request.form.get('identifier','') }}" placeholder="Identificador principal"></label>
       <label class="field"><span>Existencia total *</span><input type="number" min="1" step="1" name="quantity_total" required value="{{ asset.quantity_total if asset else request.form.get('quantity_total','1') }}" inputmode="numeric"><small>{% if asset %}{{ asset.committed_quantity }} comprometida{{ 's' if asset.committed_quantity != 1 }} · {{ asset.available_quantity }} disponible{{ 's' if asset.available_quantity != 1 }}{% else %}¿Cuántas unidades iguales tienes?{% endif %}</small></label>
       <div class="form-grid two compact-grid inventory-money-grid">
         <label class="field"><span>Costo por unidad</span><input type="number" step="0.01" min="0" name="estimated_value" value="{{ asset.estimated_value if asset else request.form.get('estimated_value','') }}" placeholder="Ej. 45000" inputmode="decimal"><small>Lo que realmente te costó.</small></label>
@@ -55,7 +59,7 @@
       {% if asset and asset.estimated_value and asset.sale_price %}<div class="asset-margin-summary"><span>Margen estimado</span><strong>{{ '%.2f'|format(asset.expected_margin_percent) }}%</strong><small>{{ money(asset.expected_profit_per_unit) }} por unidad</small></div>{% endif %}
     </div>
 
-    {% set has_more = asset and (asset.brand or asset.model or asset.serial_number or asset.notes or asset.status == 'maintenance') %}
+    {% set has_more = asset and (asset.brand or asset.model or asset.serial_number or asset.notes or asset.status == 'maintenance' or asset.acquisition_type or asset.acquisition_origin or asset.acquisition_date) %}
     <details class="advanced-options" {% if has_more %}open{% endif %}>
       <summary>Más datos</summary>
       <div class="advanced-options-body">
@@ -64,6 +68,23 @@
           <label class="field"><span>Modelo</span><input name="model" value="{{ asset.model if asset else request.form.get('model','') }}" placeholder="Corolla, 15 Pro..."></label>
           <label class="field"><span>Serial / chasis</span><input name="serial_number" value="{{ asset.serial_number if asset else request.form.get('serial_number','') }}" placeholder="Opcional"></label>
           {% if asset and asset.committed_quantity == 0 %}<label class="field field-span-2"><span>Estado</span><select name="status"><option value="available" {{ 'selected' if asset.status=='available' }}>Disponible</option><option value="maintenance" {{ 'selected' if asset.status=='maintenance' }}>Mantenimiento</option></select></label>{% endif %}
+          {% set acquisition_value = asset.acquisition_type if asset else request.form.get('acquisition_type','') %}
+          <div class="field-span-2 vehicle-acquisition-fields" data-vehicle-fields>
+            <div class="form-subsection-title"><strong>Adquisición</strong><span>De dónde salió y cuándo entró.</span></div>
+            <div class="form-grid two compact-grid">
+              <label class="field"><span>Tipo de adquisición</span><select name="acquisition_type">
+                <option value="">Sin especificar</option>
+                <option value="purchase" {{ 'selected' if acquisition_value=='purchase' }}>Compra</option>
+                <option value="trade_in" {{ 'selected' if acquisition_value=='trade_in' }}>Recibido / cambio</option>
+                <option value="consignment" {{ 'selected' if acquisition_value=='consignment' }}>Consignación</option>
+                <option value="import" {{ 'selected' if acquisition_value=='import' }}>Importación</option>
+                <option value="auction" {{ 'selected' if acquisition_value=='auction' }}>Subasta</option>
+                <option value="other" {{ 'selected' if acquisition_value=='other' }}>Otro</option>
+              </select></label>
+              <label class="field"><span>Fecha de adquisición</span><input type="date" name="acquisition_date" value="{{ asset.acquisition_date.isoformat() if asset and asset.acquisition_date else request.form.get('acquisition_date','') }}"></label>
+              <label class="field field-span-2"><span>Origen / vendedor</span><input name="acquisition_origin" maxlength="160" value="{{ asset.acquisition_origin if asset else request.form.get('acquisition_origin','') }}" placeholder="Ej. Juan Pérez, Auto Import, subasta..."></label>
+            </div>
+          </div>
           <label class="field field-span-2"><span>Notas</span><textarea name="notes" rows="2" placeholder="Color, condición, accesorios...">{{ asset.notes if asset else request.form.get('notes','') }}</textarea></label>
         </div>
       </div>
@@ -72,4 +93,20 @@
     <div class="quick-create-actions inside-card"><button class="btn btn-primary btn-lg btn-block" type="submit">Guardar producto</button></div>
   </form>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+  const select = document.querySelector('[data-asset-kind-select]');
+  const groups = document.querySelectorAll('[data-vehicle-fields]');
+  if (!select || !groups.length) return;
+  const sync = () => {
+    const show = select.value === 'car' || select.value === 'motorcycle';
+    groups.forEach((group) => { group.hidden = !show; });
+  };
+  select.addEventListener('change', sync);
+  sync();
+})();
+</script>
 {% endblock %}

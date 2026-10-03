@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% set is_vehicle = asset.kind in ['car', 'motorcycle'] %}
+{% block title %}{{ asset.name }} · Inventario · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page vehicle-detail-page">
+  <div class="page-head vehicle-detail-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.assets') }}" aria-label="Volver al inventario">{{ icon('back', 22) }}</a>
+      <div>
+        <span class="eyebrow">{{ 'VEHÍCULO' if is_vehicle else 'INVENTARIO' }}</span>
+        <h1>{{ asset.name }}</h1>
+      </div>
+    </div>
+    {% if can('inventory.manage') %}
+    <a class="btn btn-secondary vehicle-edit-button" href="{{ url_for('main.asset_edit', asset_id=asset.id) }}">{{ icon('edit', 17) }} <span>Editar</span></a>
+    {% endif %}
+  </div>
+
+  <article class="surface vehicle-hero-card">
+    <div class="vehicle-hero-media">
+      {% if asset.image_mime %}
+      <img src="{{ url_for('main.asset_image', asset_id=asset.id, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}">
+      {% else %}
+      <div class="vehicle-hero-placeholder">
+        {{ icon('car' if is_vehicle else 'inventory', 54) }}
+        <span>Agrega una foto desde Editar</span>
+      </div>
+      {% endif %}
+    </div>
+    <div class="vehicle-hero-copy">
+      <div class="vehicle-title-row">
+        <div>
+          <span class="vehicle-kind-label">{{ asset_kind_label(asset.kind) }}</span>
+          <h2>{{ asset.name }}</h2>
+          {% if asset.brand or asset.model %}<p>{{ [asset.brand, asset.model]|select|join(' · ') }}</p>{% endif %}
+        </div>
+        <span class="vehicle-status vehicle-status-{{ asset.status }}">{{ asset_status_label(asset.status) }}</span>
+      </div>
+
+      {% if is_vehicle %}
+      <div class="vehicle-primary-facts">
+        <div><span>Año</span><strong>{{ asset.vehicle_year or '—' }}</strong></div>
+        <div><span>Kilometraje</span><strong>{{ '{:,.0f}'.format(asset.mileage) ~ ' km' if asset.mileage is not none else '—' }}</strong></div>
+        <div><span>Chasis / código</span><strong>{{ asset.serial_number or asset.identifier or '—' }}</strong></div>
+      </div>
+      {% else %}
+      <div class="vehicle-primary-facts">
+        <div><span>Estado</span><strong>{{ asset_status_label(asset.status) }}</strong></div>
+        <div><span>Disponible</span><strong>{{ asset.available_quantity }} / {{ asset.quantity_total }}</strong></div>
+        <div><span>Serial / código</span><strong>{{ asset.serial_number or asset.identifier or '—' }}</strong></div>
+      </div>
+      {% endif %}
+    </div>
+  </article>
+
+  <section class="vehicle-section finance-section">
+    <div class="vehicle-section-heading">
+      <div>
+        <span class="eyebrow">NÚMEROS</span>
+        <h2>Resumen financiero</h2>
+      </div>
+      {% if asset.sale_price %}<small>Precio de venta: {{ money(asset.sale_price) }}</small>{% endif %}
+    </div>
+    <div class="surface vehicle-finance-strip">
+      <div class="finance-cell">
+        <span>Precio de compra</span>
+        <strong>{{ money(purchase_price) }}</strong>
+      </div>
+      <div class="finance-cell">
+        <span>Inversión total</span>
+        <strong>{{ money(total_investment) }}</strong>
+        <small>Compra + gastos del vehículo</small>
+      </div>
+      <div class="finance-cell">
+        <span>Gastos totales</span>
+        <strong>{{ money(expenses_total) }}</strong>
+      </div>
+      <div class="finance-cell finance-result {{ 'is-positive' if profit_loss is not none and profit_loss >= 0 else 'is-negative' if profit_loss is not none else '' }}">
+        <span>Ganancia / pérdida</span>
+        <strong>{{ money(profit_loss) if profit_loss is not none else '—' }}</strong>
+        <small>{{ revenue_basis }}</small>
+      </div>
+    </div>
+  </section>
+
+  {% if is_vehicle %}
+  <section class="vehicle-info-layout">
+    <article class="surface acquisition-panel">
+      <div class="vehicle-section-heading compact">
+        <div><span class="eyebrow">ENTRADA</span><h2>Información de adquisición</h2></div>
+      </div>
+      <dl class="vehicle-info-list">
+        <div><dt>Origen</dt><dd>{{ acquisition_origin or 'No registrado' }}</dd></div>
+        <div><dt>Tipo de adquisición</dt><dd>{{ acquisition_type_label(acquisition_type) }}</dd></div>
+        <div><dt>Fecha de adquisición</dt><dd>{{ acquisition_date.strftime('%d/%m/%Y') if acquisition_date else 'No registrada' }}</dd></div>
+        <div><dt>Precio de compra</dt><dd>{{ money(purchase_price) }}</dd></div>
+      </dl>
+      {% if latest_purchase and latest_purchase.reference %}
+      <div class="acquisition-reference"><span>Referencia</span><strong>{{ latest_purchase.reference }}</strong></div>
+      {% endif %}
+    </article>
+
+    <article class="surface investment-panel">
+      <div class="vehicle-section-heading compact investment-heading">
+        <div>
+          <span class="eyebrow">COSTOS DEL VEHÍCULO</span>
+          <h2>Historial de inversiones</h2>
+        </div>
+        {% if can('inventory.manage') %}
+        <button class="investment-add-button" type="button" data-investment-open aria-label="Agregar inversión" title="Agregar inversión">{{ icon('plus', 20) }}</button>
+        {% endif %}
+      </div>
+
+      <div class="investment-list">
+        {% for item in investments %}
+        <div class="investment-row">
+          <span class="investment-icon">{{ icon('wrench', 18) }}</span>
+          <div class="investment-main">
+            <div class="investment-title"><strong>{{ item.description }}</strong><span>{{ money(item.amount) }}</span></div>
+            <div class="investment-meta">
+              <span>{{ investment_category_label(item.category) }}</span>
+              <span>{{ item.investment_date.strftime('%d/%m/%Y') }}</span>
+            </div>
+            {% if item.notes %}<p>{{ item.notes }}</p>{% endif %}
+          </div>
+          {% if can('inventory.manage') %}
+          <form method="post" action="{{ url_for('main.asset_investment_delete', asset_id=asset.id, investment_id=item.id) }}" class="investment-delete-form" onsubmit="return confirm('¿Eliminar esta inversión?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" aria-label="Eliminar inversión">{{ icon('trash', 15) }}</button>
+          </form>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="investment-empty">
+          <span>{{ icon('wrench', 23) }}</span>
+          <div><strong>Sin gastos adicionales</strong><small>Registra aceite, reparaciones, piezas, interior o cualquier mejora.</small></div>
+        </div>
+        {% endfor %}
+      </div>
+      {% if investments %}<div class="investment-total"><span>Total invertido después de compra</span><strong>{{ money(expenses_total) }}</strong></div>{% endif %}
+    </article>
+  </section>
+  {% else %}
+  <section class="vehicle-info-layout single-column">
+    <article class="surface acquisition-panel">
+      <div class="vehicle-section-heading compact"><div><span class="eyebrow">DATOS</span><h2>Información del producto</h2></div></div>
+      <dl class="vehicle-info-list">
+        <div><dt>Tipo</dt><dd>{{ asset_kind_label(asset.kind) }}</dd></div>
+        <div><dt>Marca / modelo</dt><dd>{{ [asset.brand, asset.model]|select|join(' · ') or 'No registrado' }}</dd></div>
+        <div><dt>Existencia</dt><dd>{{ asset.available_quantity }} disponible{{ 's' if asset.available_quantity != 1 }} de {{ asset.quantity_total }}</dd></div>
+        <div><dt>Costo por unidad</dt><dd>{{ money(asset.estimated_value) }}</dd></div>
+      </dl>
+    </article>
+  </section>
+  {% endif %}
+
+  <section class="vehicle-section activity-section">
+    <div class="vehicle-section-heading">
+      <div><span class="eyebrow">MOVIMIENTOS</span><h2>Historial de actividad</h2></div>
+    </div>
+    <div class="surface vehicle-activity-list">
+      {% for item in activity %}
+      <{% if item.url %}a href="{{ item.url }}"{% else %}div{% endif %} class="vehicle-activity-row">
+        <span class="activity-marker">{{ icon('history', 16) }}</span>
+        <span class="activity-copy"><strong>{{ item.title }}</strong><small>{{ item.detail }}</small></span>
+        <time>{{ item.at.strftime('%d/%m/%Y') if item.at else '—' }}</time>
+        {% if item.url %}<span class="activity-chevron">›</span>{% endif %}
+      </{% if item.url %}a{% else %}div{% endif %}>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if asset.notes %}
+  <section class="vehicle-notes"><span>Notas</span><p>{{ asset.notes }}</p></section>
+  {% endif %}
+</section>
+
+{% if is_vehicle and can('inventory.manage') %}
+<dialog class="payment-dialog compact-contract-dialog asset-investment-dialog" id="assetInvestmentDialog" aria-labelledby="assetInvestmentTitle">
+  <div class="payment-dialog-sheet asset-investment-sheet">
+    <div class="payment-dialog-handle" aria-hidden="true"></div>
+    <div class="payment-dialog-head">
+      <div><span class="eyebrow">NUEVO GASTO</span><h2 id="assetInvestmentTitle">Agregar inversión</h2><p>{{ asset.name }}</p></div>
+      <button class="payment-dialog-close" type="button" data-investment-close aria-label="Cerrar">×</button>
+    </div>
+    <form method="post" action="{{ url_for('main.asset_investment_add', asset_id=asset.id) }}" class="form-stack asset-investment-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid two compact-grid">
+        <label class="field"><span>Fecha</span><input type="date" name="investment_date" value="{{ today.isoformat() }}" required></label>
+        <label class="field"><span>Tipo</span><select name="category" required>
+          <option value="maintenance">Mantenimiento</option>
+          <option value="repair">Reparación</option>
+          <option value="oil">Aceite / fluidos</option>
+          <option value="interior">Interior</option>
+          <option value="bodywork">Pintura / carrocería</option>
+          <option value="parts">Piezas</option>
+          <option value="tires">Gomas</option>
+          <option value="documents">Documentos</option>
+          <option value="other">Otro</option>
+        </select></label>
+        <label class="field field-span-2"><span>¿Qué se hizo? *</span><input name="description" maxlength="180" required placeholder="Ej. Cambio de aceite y filtro"></label>
+        <label class="field field-span-2"><span>Monto *</span><input type="number" name="amount" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
+        <label class="field field-span-2"><span>Nota</span><textarea name="notes" rows="2" maxlength="240" placeholder="Taller, pieza, detalle opcional..."></textarea></label>
+      </div>
+      <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-investment-close>Cancelar</button><button class="btn btn-primary" type="submit">Guardar inversión</button></div>
+    </form>
+  </div>
+</dialog>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if is_vehicle and can('inventory.manage') %}
+<script>
+(() => {
+  const dialog = document.getElementById('assetInvestmentDialog');
+  const openButton = document.querySelector('[data-investment-open]');
+  if (!dialog || !openButton) return;
+  const open = () => typeof dialog.showModal === 'function' ? dialog.showModal() : dialog.setAttribute('open', '');
+  const close = () => typeof dialog.close === 'function' ? dialog.close() : dialog.removeAttribute('open');
+  openButton.addEventListener('click', open);
+  dialog.querySelectorAll('[data-investment-close]').forEach((button) => button.addEventListener('click', close));
+  dialog.addEventListener('click', (event) => { if (event.target === dialog) close(); });
+})();
+</script>
+{% endif %}
+{% endblock %}

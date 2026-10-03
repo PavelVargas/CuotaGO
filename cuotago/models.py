@@ -229,6 +229,11 @@ class Asset(db.Model):
     sale_price = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     quantity_total = db.Column(db.Integer, nullable=False, default=1)
     status = db.Column(db.String(30), nullable=False, default="available")
+    vehicle_year = db.Column(db.Integer)
+    mileage = db.Column(db.Integer)
+    acquisition_type = db.Column(db.String(30))
+    acquisition_origin = db.Column(db.String(160))
+    acquisition_date = db.Column(db.Date)
     notes = db.Column(db.Text)
     image_mime = db.Column(db.String(80))
     image_data = deferred(db.Column(db.LargeBinary))
@@ -238,6 +243,12 @@ class Asset(db.Model):
 
     contracts = db.relationship("Contract", back_populates="asset")
     purchases = db.relationship("Purchase", back_populates="asset", order_by="Purchase.purchase_date.desc()")
+    investments = db.relationship(
+        "AssetInvestment",
+        back_populates="asset",
+        cascade="all, delete-orphan",
+        order_by="AssetInvestment.investment_date.desc()",
+    )
 
     @property
     def expected_profit_per_unit(self):
@@ -262,6 +273,23 @@ class Asset(db.Model):
     @property
     def available_quantity(self):
         return max(int(self.quantity_total or 1) - self.committed_quantity, 0)
+
+
+class AssetInvestment(db.Model):
+    __tablename__ = "asset_investments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    asset_id = db.Column(db.Integer, db.ForeignKey("assets.id", ondelete="CASCADE"), nullable=False, index=True)
+    investment_date = db.Column(db.Date, nullable=False, default=date.today, index=True)
+    category = db.Column(db.String(40), nullable=False, default="other")
+    description = db.Column(db.String(180), nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    notes = db.Column(db.String(240))
+    created_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
+
+    asset = db.relationship("Asset", back_populates="investments")
 
 
 class Purchase(db.Model):

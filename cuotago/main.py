@@ -17,7 +17,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from .extensions import db
 from .models import (
-    Asset, Client, CollectionNote, Contract, ContractScheduleChange, Expense, Installment, Payment,
+    Asset, AssetInvestment, Client, CollectionNote, Contract, ContractScheduleChange, Expense, Installment, Payment,
     PaymentPromise, Purchase, PushNotificationLog, Supplier, TenantAuditLog, User,
 )
 from .module_catalog import module_catalog
@@ -518,6 +518,31 @@ def asset_status_label(value):
     }.get(value, value or "—")
 
 
+def acquisition_type_label(value):
+    return {
+        "purchase": "Compra",
+        "trade_in": "Recibido / cambio",
+        "consignment": "Consignación",
+        "import": "Importación",
+        "auction": "Subasta",
+        "other": "Otro",
+    }.get(value, "—" if not value else value.replace("_", " ").capitalize())
+
+
+def investment_category_label(value):
+    return {
+        "maintenance": "Mantenimiento",
+        "repair": "Reparación",
+        "oil": "Aceite / fluidos",
+        "interior": "Interior",
+        "bodywork": "Pintura / carrocería",
+        "parts": "Piezas",
+        "tires": "Gomas",
+        "documents": "Documentos",
+        "other": "Otro",
+    }.get(value, "Otro")
+
+
 def contract_status_label(value):
     return {"active": "Activo", "completed": "Completado", "cancelled": "Anulado", "voided": "Anulado"}.get(value, value or "—")
 
@@ -577,6 +602,8 @@ def inject_helpers():
         "money": format_money,
         "asset_kind_label": asset_kind_label,
         "asset_status_label": asset_status_label,
+        "acquisition_type_label": acquisition_type_label,
+        "investment_category_label": investment_category_label,
         "contract_status_label": contract_status_label,
         "frequency_label": frequency_label,
         "deal_type_label": deal_type_label,
@@ -1108,6 +1135,156 @@ def assets():
     return render_template("assets/list.html", assets=items, q=q, status=status, pagination=pagination)
 
 
+@main_bp.get("/assets/<int:asset_id>")
+@login_required
+@permission_required("inventory.view")
+def asset_detail(asset_id):
+    asset = (
+        Asset.query.options(
+            selectinload(Asset.investments),
+            selectinload(Asset.purchases).joinedload(Purchase.supplier_record),
+            selectinload(Asset.contracts).joinedload(Contract.client),
+        )
+        .filter_by(id=asset_id, organization_id=current_user.organization_id)
+        .first_or_404()
+    )
+
+    previous_status = asset.status
+    refresh_asset_status(asset)
+    if previous_status != asset.status:
+        db.session.commit()
+
+    investments = list(asset.investments)
+    expenses_total = sum((money_decimal(item.amount) for item in investments), Decimal("0.00"))
+    purchase_price = money_decimal(asset.estimated_value)
+    total_investment = purchase_price + expenses_total
+
+    sale_contracts = [
+        contract for contract in asset.contracts
+        if contract.deal_type == "credit_sale" and contract.status in {"active", "completed"}
+    ]
+    contracted_revenue = sum((money_decimal(contract.total_amount) for contract in sale_contracts), Decimal("0.00"))
+    target_revenue = contracted_revenue if contracted_revenue > 0 else money_decimal(asset.sale_price)
+    profit_loss = (target_revenue - total_investment) if target_revenue > 0 else None
+    revenue_basis = "Acuerdo de venta" if contracted_revenue > 0 else ("Precio de venta" if target_revenue > 0 else "Sin precio definido")
+
+    latest_purchase = asset.purchases[0] if asset.purchases else None
+    acquisition_origin = asset.acquisition_origin or (
+        latest_purchase.supplier_record.name if latest_purchase and latest_purchase.supplier_record
+        else (latest_purchase.supplier if latest_purchase else None)
+    )
+    acquisition_date = asset.acquisition_date or (latest_purchase.purchase_date if latest_purchase else None)
+    acquisition_type = asset.acquisition_type or ("purchase" if latest_purchase else None)
+
+    activity = [{
+        "at": asset.created_at,
+        "title": "Vehículo registrado" if asset.kind in {"car", "motorcycle"} else "Producto registrado",
+        "detail": "Se agregó al inventario de CuotaGo.",
+        "url": None,
+    }]
+    audit_rows = (
+        TenantAuditLog.query.filter_by(
+            organization_id=current_user.organization_id,
+            entity_type="asset",
+            entity_id=str(asset.id),
+        )
+        .filter(TenantAuditLog.action.in_(["asset.updated"]))
+        .order_by(TenantAuditLog.created_at.desc())
+        .limit(30)
+        .all()
+    )
+    for row in audit_rows:
+        activity.append({
+            "at": row.created_at,
+            "title": "Información actualizada",
+            "detail": row.summary,
+            "url": None,
+        })
+    for contract in asset.contracts:
+        if contract.status in {"cancelled", "voided"}:
+            continue
+        activity.append({
+            "at": contract.created_at,
+            "title": "Venta a crédito" if contract.deal_type == "credit_sale" else "Entrega / alquiler",
+            "detail": f"{contract.client.full_name} · {format_money(contract.total_amount)} · {contract_status_label(contract.status)}",
+            "url": url_for("main.contract_detail", contract_id=contract.id),
+        })
+    activity.sort(key=lambda item: item["at"] or datetime.min, reverse=True)
+
+    return render_template(
+        "assets/detail.html",
+        asset=asset,
+        investments=investments,
+        purchase_price=purchase_price,
+        expenses_total=money_decimal(expenses_total),
+        total_investment=money_decimal(total_investment),
+        profit_loss=(money_decimal(profit_loss) if profit_loss is not None else None),
+        revenue_basis=revenue_basis,
+        acquisition_origin=acquisition_origin,
+        acquisition_date=acquisition_date,
+        acquisition_type=acquisition_type,
+        latest_purchase=latest_purchase,
+        activity=activity[:30],
+    )
+
+
+@main_bp.post("/assets/<int:asset_id>/investments")
+@login_required
+@permission_required("inventory.manage")
+def asset_investment_add(asset_id):
+    asset = scoped_asset(asset_id)
+    description = (request.form.get("description") or "").strip()
+    category = (request.form.get("category") or "other").strip()
+    amount = parse_money(request.form.get("amount"))
+    investment_date = parse_date(request.form.get("investment_date")) or local_today()
+    notes = (request.form.get("notes") or "").strip()[:240]
+    allowed_categories = {"maintenance", "repair", "oil", "interior", "bodywork", "parts", "tires", "documents", "other"}
+
+    if len(description) < 2:
+        flash("Escribe qué se hizo al vehículo.", "error")
+        return redirect(url_for("main.asset_detail", asset_id=asset.id))
+    if amount is None or amount <= 0:
+        flash("Escribe un monto válido para la inversión.", "error")
+        return redirect(url_for("main.asset_detail", asset_id=asset.id))
+    if category not in allowed_categories:
+        category = "other"
+
+    investment = AssetInvestment(
+        organization_id=current_user.organization_id,
+        asset=asset,
+        investment_date=investment_date,
+        category=category,
+        description=description[:180],
+        amount=amount,
+        notes=notes or None,
+        created_by_user_id=current_user.id,
+    )
+    db.session.add(investment)
+    tenant_audit(
+        "asset.investment_added", "asset", asset.id,
+        f"Se agregó {investment_category_label(category).lower()}: {description[:110]} · {format_money(amount)}.",
+    )
+    db.session.commit()
+    flash("Inversión agregada al vehículo.", "success")
+    return redirect(url_for("main.asset_detail", asset_id=asset.id))
+
+
+@main_bp.post("/assets/<int:asset_id>/investments/<int:investment_id>/delete")
+@login_required
+@permission_required("inventory.manage")
+def asset_investment_delete(asset_id, investment_id):
+    asset = scoped_asset(asset_id)
+    investment = AssetInvestment.query.filter_by(
+        id=investment_id, asset_id=asset.id, organization_id=current_user.organization_id
+    ).first_or_404()
+    summary = f"Se eliminó {investment.description} · {format_money(investment.amount)} del historial de inversiones."
+    db.session.delete(investment)
+    tenant_audit("asset.investment_deleted", "asset", asset.id, summary)
+    db.session.commit()
+    flash("Inversión eliminada.", "success")
+    return redirect(url_for("main.asset_detail", asset_id=asset.id))
+
+
 @main_bp.route("/assets/new", methods=["GET", "POST"])
 @login_required
 @permission_required("inventory.manage")
@@ -1123,6 +1300,23 @@ def asset_new():
             return render_template("assets/form.html", asset=None)
         if kind not in {"car", "phone", "motorcycle", "appliance", "computer", "other"}:
             kind = "other"
+
+        vehicle_year = parse_int(request.form.get("vehicle_year"), None, minimum=1886)
+        mileage = parse_int(request.form.get("mileage"), None, minimum=0)
+        acquisition_type = (request.form.get("acquisition_type") or "").strip() or None
+        if acquisition_type not in {None, "purchase", "trade_in", "consignment", "import", "auction", "other"}:
+            acquisition_type = "other"
+        acquisition_date = parse_date(request.form.get("acquisition_date"))
+        acquisition_origin = (request.form.get("acquisition_origin") or "").strip()[:160] or None
+        if vehicle_year and vehicle_year > local_today().year + 1:
+            flash("Revisa el año del vehículo.", "error")
+            return render_template("assets/form.html", asset=None)
+        if kind not in {"car", "motorcycle"}:
+            vehicle_year = None
+            mileage = None
+            acquisition_type = None
+            acquisition_date = None
+            acquisition_origin = None
 
         try:
             image_data, image_mime, image_thumb_data = read_asset_image_upload(request.files.get("image"))
@@ -1142,6 +1336,11 @@ def asset_new():
             sale_price=sale_price or Decimal("0.00"),
             quantity_total=quantity_total,
             status="available",
+            vehicle_year=vehicle_year,
+            mileage=mileage,
+            acquisition_type=acquisition_type,
+            acquisition_origin=acquisition_origin,
+            acquisition_date=acquisition_date,
             notes=request.form.get("notes", "").strip(),
             image_data=image_data,
             image_mime=image_mime,
@@ -1149,9 +1348,11 @@ def asset_new():
             image_updated_at=(datetime.utcnow() if image_data else None),
         )
         db.session.add(asset)
+        db.session.flush()
+        tenant_audit("asset.created", "asset", asset.id, f"{asset_kind_label(asset.kind)} {asset.name} registrado en inventario.")
         db.session.commit()
         flash("Bien registrado.", "success")
-        return redirect(url_for("main.assets"))
+        return redirect(url_for("main.asset_detail", asset_id=asset.id))
     return render_template("assets/form.html", asset=None)
 
 
@@ -1161,6 +1362,15 @@ def asset_new():
 def asset_edit(asset_id):
     asset = scoped_asset(asset_id)
     if request.method == "POST":
+        before = {
+            "name": asset.name, "kind": asset.kind, "brand": asset.brand, "model": asset.model,
+            "identifier": asset.identifier, "serial_number": asset.serial_number,
+            "estimated_value": str(asset.estimated_value or 0), "sale_price": str(asset.sale_price or 0),
+            "quantity_total": int(asset.quantity_total or 1), "status": asset.status,
+            "vehicle_year": asset.vehicle_year, "mileage": asset.mileage,
+            "acquisition_type": asset.acquisition_type, "acquisition_origin": asset.acquisition_origin,
+            "acquisition_date": asset.acquisition_date.isoformat() if asset.acquisition_date else None,
+        }
         name = request.form.get("name", "").strip()
         if len(name) < 2:
             flash("Escribe un nombre para el bien.", "error")
@@ -1168,6 +1378,26 @@ def asset_edit(asset_id):
         asset.name = name
         requested_kind = request.form.get("kind", "other")
         asset.kind = requested_kind if requested_kind in {"car", "phone", "motorcycle", "appliance", "computer", "other"} else "other"
+        vehicle_year = parse_int(request.form.get("vehicle_year"), None, minimum=1886)
+        mileage = parse_int(request.form.get("mileage"), None, minimum=0)
+        acquisition_type = (request.form.get("acquisition_type") or "").strip() or None
+        if acquisition_type not in {None, "purchase", "trade_in", "consignment", "import", "auction", "other"}:
+            acquisition_type = "other"
+        if vehicle_year and vehicle_year > local_today().year + 1:
+            flash("Revisa el año del vehículo.", "error")
+            return render_template("assets/form.html", asset=asset)
+        if asset.kind in {"car", "motorcycle"}:
+            asset.vehicle_year = vehicle_year
+            asset.mileage = mileage
+            asset.acquisition_type = acquisition_type
+            asset.acquisition_origin = (request.form.get("acquisition_origin") or "").strip()[:160] or None
+            asset.acquisition_date = parse_date(request.form.get("acquisition_date"))
+        else:
+            asset.vehicle_year = None
+            asset.mileage = None
+            asset.acquisition_type = None
+            asset.acquisition_origin = None
+            asset.acquisition_date = None
         asset.brand = request.form.get("brand", "").strip()
         asset.model = request.form.get("model", "").strip()
         asset.identifier = request.form.get("identifier", "").strip()
@@ -1205,9 +1435,22 @@ def asset_edit(asset_id):
             if asset.status == "maintenance":
                 asset.status = "available"
             refresh_asset_status(asset)
+        after = {
+            "name": asset.name, "kind": asset.kind, "brand": asset.brand, "model": asset.model,
+            "identifier": asset.identifier, "serial_number": asset.serial_number,
+            "estimated_value": str(asset.estimated_value or 0), "sale_price": str(asset.sale_price or 0),
+            "quantity_total": int(asset.quantity_total or 1), "status": asset.status,
+            "vehicle_year": asset.vehicle_year, "mileage": asset.mileage,
+            "acquisition_type": asset.acquisition_type, "acquisition_origin": asset.acquisition_origin,
+            "acquisition_date": asset.acquisition_date.isoformat() if asset.acquisition_date else None,
+        }
+        tenant_audit(
+            "asset.updated", "asset", asset.id, f"Se actualizó {asset.name}.",
+            json.dumps({"before": before, "after": after}, ensure_ascii=False),
+        )
         db.session.commit()
         flash("Bien actualizado.", "success")
-        return redirect(url_for("main.assets"))
+        return redirect(url_for("main.asset_detail", asset_id=asset.id))
     return render_template("assets/form.html", asset=asset)
 
 
@@ -1453,6 +1696,9 @@ def purchase_new():
                     sale_price=0,
                     quantity_total=quantity,
                     status="available",
+                    acquisition_type=("purchase" if item["asset_kind"] in {"car", "motorcycle"} else None),
+                    acquisition_origin=(supplier_record.name if item["asset_kind"] in {"car", "motorcycle"} else None),
+                    acquisition_date=(purchase_date if item["asset_kind"] in {"car", "motorcycle"} else None),
                 )
                 db.session.add(asset)
                 db.session.flush()
@@ -1471,6 +1717,10 @@ def purchase_new():
                 # Important: purchases update cost/stock only. The selling price
                 # is managed from inventory and is never changed here.
                 asset.quantity_total = new_quantity
+                if asset.kind in {"car", "motorcycle"}:
+                    asset.acquisition_type = asset.acquisition_type or "purchase"
+                    asset.acquisition_origin = asset.acquisition_origin or supplier_record.name
+                    asset.acquisition_date = asset.acquisition_date or purchase_date
                 if asset.status != "maintenance":
                     refresh_asset_status(asset)
 
@@ -2824,7 +3074,7 @@ def global_search_api():
             Asset.organization_id == org_id,
             or_(Asset.name.ilike(starts), Asset.identifier.ilike(starts), Asset.serial_number.ilike(starts), Asset.name.ilike(like)),
         ).order_by(Asset.name.asc()).limit(6).all()
-        items.extend({"kind":"Artículo","title":row.name,"meta":row.identifier or row.serial_number or row.brand or "","url":url_for("main.asset_edit", asset_id=row.id)} for row in rows)
+        items.extend({"kind":"Artículo","title":row.name,"meta":row.identifier or row.serial_number or row.brand or "","url":url_for("main.asset_detail", asset_id=row.id)} for row in rows)
     return jsonify({"items": items[:20]})
 
 
@@ -2854,14 +3104,15 @@ def export_business_data():
     notes_rows = CollectionNote.query.filter_by(organization_id=org_id).order_by(CollectionNote.id.asc()).all()
     expenses_rows = Expense.query.filter_by(organization_id=org_id, voided_at=None).order_by(Expense.id.asc()).all()
     purchases_rows = Purchase.query.filter_by(organization_id=org_id).order_by(Purchase.id.asc()).all()
+    investments_rows = AssetInvestment.query.filter_by(organization_id=org_id).order_by(AssetInvestment.id.asc()).all()
     audit_rows = TenantAuditLog.query.filter_by(organization_id=org_id).order_by(TenantAuditLog.id.asc()).all()
 
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
         write_csv(archive, "clientes.csv", ["id","nombre","telefono","correo","documento","direccion","notas","creado"], (
             (x.id,x.full_name,x.phone,x.email,x.document_id,x.address,x.notes,x.created_at.isoformat() if x.created_at else "") for x in clients_rows
         ))
-        write_csv(archive, "inventario.csv", ["id","tipo","nombre","marca","modelo","identificador","serial","costo","precio_venta","cantidad","estado","creado"], (
-            (x.id,x.kind,x.name,x.brand,x.model,x.identifier,x.serial_number,x.estimated_value,x.sale_price,x.quantity_total,x.status,x.created_at.isoformat() if x.created_at else "") for x in assets_rows
+        write_csv(archive, "inventario.csv", ["id","tipo","nombre","marca","modelo","identificador","serial","ano","kilometraje","tipo_adquisicion","origen_adquisicion","fecha_adquisicion","costo","precio_venta","cantidad","estado","creado"], (
+            (x.id,x.kind,x.name,x.brand,x.model,x.identifier,x.serial_number,x.vehicle_year,x.mileage,x.acquisition_type,x.acquisition_origin,x.acquisition_date,x.estimated_value,x.sale_price,x.quantity_total,x.status,x.created_at.isoformat() if x.created_at else "") for x in assets_rows
         ))
         write_csv(archive, "acuerdos.csv", ["id","codigo","cliente_id","articulo_id","estado","tipo","total","base","inicial","cuota","cantidad","mora_dia","frecuencia","inicio","primer_pago","anulado","motivo"], (
             (x.id,x.code,x.client_id,x.asset_id,x.status,x.deal_type,x.total_amount,x.base_amount,x.down_payment,x.installment_amount,x.quantity,x.daily_late_interest,x.frequency,x.start_date,x.first_due_date,x.cancelled_at.isoformat() if x.cancelled_at else "",x.cancel_reason) for x in contracts_rows
@@ -2883,6 +3134,9 @@ def export_business_data():
         ))
         write_csv(archive, "compras.csv", ["id","articulo_id","proveedor_id","fecha","cantidad","costo_unitario","precio_venta","referencia","notas"], (
             (x.id,x.asset_id,x.supplier_id,x.purchase_date,x.quantity,x.unit_cost,x.unit_sale_price,x.reference,x.notes) for x in purchases_rows
+        ))
+        write_csv(archive, "inversiones_vehiculos.csv", ["id","articulo_id","fecha","categoria","descripcion","monto","nota","usuario_id","creado"], (
+            (x.id,x.asset_id,x.investment_date,x.category,x.description,x.amount,x.notes,x.created_by_user_id,x.created_at.isoformat() if x.created_at else "") for x in investments_rows
         ))
         write_csv(archive, "auditoria.csv", ["id","usuario_id","accion","tipo","entidad_id","resumen","detalle","fecha"], (
             (x.id,x.actor_user_id,x.action,x.entity_type,x.entity_id,x.summary,x.detail,x.created_at.isoformat() if x.created_at else "") for x in audit_rows
