@@ -324,12 +324,19 @@ def expense_category_label(value):
         "fuel": "Combustible",
         "rent": "Alquiler",
         "payroll": "Nómina",
+        "maintenance": "Mantenimiento",
         "repair": "Reparación",
+        "oil": "Aceite / fluidos",
+        "interior": "Interior",
+        "bodywork": "Pintura / carrocería",
+        "parts": "Piezas",
+        "tires": "Gomas",
+        "documents": "Documentos",
         "transport": "Transporte",
         "services": "Servicios",
         "supplies": "Insumos",
         "other": "Otro",
-    }.get(value, (value or "Otro").capitalize())
+    }.get(value, (value or "Otro").replace("_", " ").capitalize())
 
 
 def client_risk_summary(client):
@@ -539,8 +546,12 @@ def investment_category_label(value):
         "parts": "Piezas",
         "tires": "Gomas",
         "documents": "Documentos",
+        "fuel": "Combustible",
+        "transport": "Transporte",
+        "services": "Servicios",
+        "supplies": "Insumos",
         "other": "Otro",
-    }.get(value, "Otro")
+    }.get(value, expense_category_label(value))
 
 
 def contract_status_label(value):
@@ -1141,7 +1152,7 @@ def assets():
 def asset_detail(asset_id):
     asset = (
         Asset.query.options(
-            selectinload(Asset.investments),
+            selectinload(Asset.investments).joinedload(AssetInvestment.expense),
             selectinload(Asset.purchases).joinedload(Purchase.supplier_record),
             selectinload(Asset.contracts).joinedload(Contract.client),
         )
@@ -1238,7 +1249,12 @@ def asset_investment_add(asset_id):
     amount = parse_money(request.form.get("amount"))
     investment_date = parse_date(request.form.get("investment_date")) or local_today()
     notes = (request.form.get("notes") or "").strip()[:240]
-    allowed_categories = {"maintenance", "repair", "oil", "interior", "bodywork", "parts", "tires", "documents", "other"}
+    method = (request.form.get("method") or "cash").strip()
+    reference = (request.form.get("reference") or "").strip()[:120]
+    allowed_categories = {
+        "maintenance", "repair", "oil", "interior", "bodywork", "parts", "tires",
+        "documents", "fuel", "transport", "services", "supplies", "other",
+    }
 
     if len(description) < 2:
         flash("Escribe qué se hizo al vehículo.", "error")
@@ -1248,7 +1264,22 @@ def asset_investment_add(asset_id):
         return redirect(url_for("main.asset_detail", asset_id=asset.id))
     if category not in allowed_categories:
         category = "other"
+    if method not in {"cash", "transfer", "deposit", "card", "other"}:
+        method = "other"
 
+    expense = Expense(
+        organization_id=current_user.organization_id,
+        asset_id=asset.id,
+        expense_date=investment_date,
+        category=category,
+        amount=amount,
+        method=method,
+        reference=reference or None,
+        note=description[:240],
+        created_by_user_id=current_user.id,
+    )
+    db.session.add(expense)
+    db.session.flush()
     investment = AssetInvestment(
         organization_id=current_user.organization_id,
         asset=asset,
@@ -1257,6 +1288,7 @@ def asset_investment_add(asset_id):
         description=description[:180],
         amount=amount,
         notes=notes or None,
+        expense_id=expense.id,
         created_by_user_id=current_user.id,
     )
     db.session.add(investment)
@@ -1264,8 +1296,13 @@ def asset_investment_add(asset_id):
         "asset.investment_added", "asset", asset.id,
         f"Se agregó {investment_category_label(category).lower()}: {description[:110]} · {format_money(amount)}.",
     )
+    tenant_audit(
+        "expense.created", "expense", expense.id,
+        f"Gasto de {format_money(amount)} · {expense_category_label(category)} · {asset.name}.",
+        json.dumps({"method": method, "date": investment_date.isoformat(), "reference": reference, "asset_id": asset.id}, ensure_ascii=False),
+    )
     db.session.commit()
-    flash("Inversión agregada al vehículo.", "success")
+    flash("Inversión agregada y registrada en Gastos.", "success")
     return redirect(url_for("main.asset_detail", asset_id=asset.id))
 
 
@@ -1278,10 +1315,22 @@ def asset_investment_delete(asset_id, investment_id):
         id=investment_id, asset_id=asset.id, organization_id=current_user.organization_id
     ).first_or_404()
     summary = f"Se eliminó {investment.description} · {format_money(investment.amount)} del historial de inversiones."
+    if investment.expense_id:
+        linked_expense = Expense.query.filter_by(
+            id=investment.expense_id, organization_id=current_user.organization_id
+        ).first()
+        if linked_expense and linked_expense.voided_at is None:
+            linked_expense.voided_at = datetime.utcnow()
+            linked_expense.voided_by_user_id = current_user.id
+            linked_expense.void_reason = "Inversión eliminada desde la ficha del producto"
+            tenant_audit(
+                "expense.voided", "expense", linked_expense.id,
+                f"Gasto vinculado a {asset.name} anulado desde su historial de inversiones.",
+            )
     db.session.delete(investment)
     tenant_audit("asset.investment_deleted", "asset", asset.id, summary)
     db.session.commit()
-    flash("Inversión eliminada.", "success")
+    flash("Inversión eliminada y gasto asociado anulado.", "success")
     return redirect(url_for("main.asset_detail", asset_id=asset.id))
 
 
@@ -1300,6 +1349,11 @@ def asset_new():
             return render_template("assets/form.html", asset=None)
         if kind not in {"car", "phone", "motorcycle", "appliance", "computer", "other"}:
             kind = "other"
+        if kind in {"car", "motorcycle"}:
+            # Cada vehículo debe conservar su propio chasis, kilometraje e historial.
+            quantity_total = 1
+        requested_status = (request.form.get("status") or "available").strip()
+        initial_status = "maintenance" if requested_status == "maintenance" else "available"
 
         vehicle_year = parse_int(request.form.get("vehicle_year"), None, minimum=1886)
         mileage = parse_int(request.form.get("mileage"), None, minimum=0)
@@ -1335,7 +1389,7 @@ def asset_new():
             estimated_value=value or Decimal("0.00"),
             sale_price=sale_price or Decimal("0.00"),
             quantity_total=quantity_total,
-            status="available",
+            status=initial_status,
             vehicle_year=vehicle_year,
             mileage=mileage,
             acquisition_type=acquisition_type,
@@ -2604,6 +2658,17 @@ def payment_calendar_events_api():
 @login_required
 @permission_required("expenses.view")
 def expenses():
+    org_id = current_user.organization_id
+    assets_list = (
+        Asset.query.options(selectinload(Asset.contracts))
+        .filter_by(organization_id=org_id)
+        .order_by(Asset.created_at.desc())
+        .limit(120)
+        .all()
+    )
+    for item in assets_list:
+        refresh_asset_status(item)
+
     if request.method == "POST" and not has_permission(current_user, "expenses.manage"):
         abort(403)
     if request.method == "POST":
@@ -2611,7 +2676,10 @@ def expenses():
         amount = parse_money(request.form.get("amount"))
         category = (request.form.get("category") or "other").strip()
         method = (request.form.get("method") or "cash").strip()
-        allowed_categories = {"fuel", "rent", "payroll", "repair", "transport", "services", "supplies", "other"}
+        allowed_categories = {
+            "fuel", "rent", "payroll", "maintenance", "repair", "oil", "interior",
+            "bodywork", "parts", "tires", "documents", "transport", "services", "supplies", "other",
+        }
         if category not in allowed_categories:
             category = "other"
         if method not in {"cash", "transfer", "deposit", "card", "other"}:
@@ -2619,21 +2687,63 @@ def expenses():
         if amount is None or amount <= 0:
             flash("Escribe un monto de gasto válido.", "error")
             return redirect(url_for("main.expenses"))
+
+        asset = None
+        asset_id = parse_int(request.form.get("asset_id"), None, minimum=1)
+        if asset_id:
+            asset = Asset.query.filter_by(id=asset_id, organization_id=org_id).first()
+            if asset is None:
+                flash("El producto seleccionado no pertenece a tu inventario.", "error")
+                return redirect(url_for("main.expenses"))
+
+        note = (request.form.get("note") or "").strip()[:240]
+        reference = (request.form.get("reference") or "").strip()[:120]
         expense = Expense(
-            organization_id=current_user.organization_id, expense_date=expense_date, category=category, amount=amount,
-            method=method, reference=(request.form.get("reference") or "").strip()[:120],
-            note=(request.form.get("note") or "").strip()[:240], created_by_user_id=current_user.id,
+            organization_id=org_id,
+            asset_id=asset.id if asset else None,
+            expense_date=expense_date,
+            category=category,
+            amount=amount,
+            method=method,
+            reference=reference or None,
+            note=note or None,
+            created_by_user_id=current_user.id,
         )
         db.session.add(expense)
         db.session.flush()
+
+        if asset is not None:
+            description = note or expense_category_label(category)
+            investment = AssetInvestment(
+                organization_id=org_id,
+                asset_id=asset.id,
+                investment_date=expense_date,
+                category=category,
+                description=description[:180],
+                amount=amount,
+                notes=(f"Ref. {reference}" if reference else None),
+                expense_id=expense.id,
+                created_by_user_id=current_user.id,
+            )
+            db.session.add(investment)
+            tenant_audit(
+                "asset.investment_added", "asset", asset.id,
+                f"Gasto registrado desde Gastos: {description[:100]} · {format_money(amount)}.",
+            )
+
         tenant_audit(
             "expense.created", "expense", expense.id,
-            f"Gasto de {format_money(amount)} · {expense_category_label(category)}.",
-            json.dumps({"method": method, "date": expense_date.isoformat(), "reference": expense.reference}, ensure_ascii=False),
+            f"Gasto de {format_money(amount)} · {expense_category_label(category)}" + (f" · {asset.name}" if asset else "."),
+            json.dumps({
+                "method": method,
+                "date": expense_date.isoformat(),
+                "reference": reference,
+                "asset_id": asset.id if asset else None,
+            }, ensure_ascii=False),
         )
         db.session.commit()
-        flash("Gasto registrado.", "success")
-        return redirect(url_for("main.expenses"))
+        flash("Gasto registrado" + (f" para {asset.name}." if asset else "."), "success")
+        return redirect(url_for("main.expenses", asset_id=asset.id if asset else None))
 
     period = (request.args.get("period") or "month").strip().lower()
     today_value = local_today()
@@ -2646,25 +2756,56 @@ def expenses():
     else:
         period = "month"
         start = today_value.replace(day=1)
-    query = Expense.query.filter_by(organization_id=current_user.organization_id, voided_at=None)
+
+    selected_asset_id = parse_int(request.args.get("asset_id"), None, minimum=1)
+    if selected_asset_id and not any(item.id == selected_asset_id for item in assets_list):
+        selected_asset_id = None
+
+    period_query = Expense.query.filter_by(organization_id=org_id, voided_at=None)
     if start:
-        query = query.filter(Expense.expense_date >= start)
+        period_query = period_query.filter(Expense.expense_date >= start)
+
+    asset_total_rows = (
+        period_query.with_entities(Expense.asset_id, func.coalesce(func.sum(Expense.amount), 0).label("total"))
+        .group_by(Expense.asset_id)
+        .all()
+    )
+    asset_totals = {asset_id: money_decimal(value) for asset_id, value in asset_total_rows}
+    all_expense_total = sum(asset_totals.values(), Decimal("0.00"))
+
+    query = period_query
+    if selected_asset_id:
+        query = query.filter(Expense.asset_id == selected_asset_id)
+
     total = money_decimal(query.with_entities(func.coalesce(func.sum(Expense.amount), 0)).scalar() or 0)
     category_rows = (
         query.with_entities(Expense.category, func.coalesce(func.sum(Expense.amount), 0).label("total"))
         .group_by(Expense.category)
         .order_by(func.sum(Expense.amount).desc())
-        .limit(5)
+        .limit(7)
         .all()
     )
     top_categories = [(category, money_decimal(value)) for category, value in category_rows]
     page = max(request.args.get("page", 1, type=int) or 1, 1)
-    pagination = query.order_by(Expense.expense_date.desc(), Expense.created_at.desc()).paginate(
-        page=page, per_page=60, error_out=False
+    pagination = (
+        query.options(joinedload(Expense.asset))
+        .order_by(Expense.expense_date.desc(), Expense.created_at.desc())
+        .paginate(page=page, per_page=60, error_out=False)
     )
+    selected_asset = next((item for item in assets_list if item.id == selected_asset_id), None)
     return render_template(
-        "expenses/index.html", expenses=pagination.items, total=total, period=period, top_categories=top_categories,
-        today_value=today_value, pagination=pagination,
+        "expenses/index.html",
+        expenses=pagination.items,
+        total=total,
+        period=period,
+        top_categories=top_categories,
+        today_value=today_value,
+        pagination=pagination,
+        assets=assets_list,
+        selected_asset_id=selected_asset_id,
+        selected_asset=selected_asset,
+        asset_totals=asset_totals,
+        all_expense_total=money_decimal(all_expense_total),
     )
 
 
@@ -2675,17 +2816,29 @@ def expense_delete(expense_id):
     expense = Expense.query.filter_by(
         id=expense_id, organization_id=current_user.organization_id, voided_at=None
     ).first_or_404()
+    linked_investment = AssetInvestment.query.filter_by(
+        expense_id=expense.id, organization_id=current_user.organization_id
+    ).first()
+    if linked_investment is not None:
+        asset_id = linked_investment.asset_id
+        db.session.delete(linked_investment)
+        tenant_audit(
+            "asset.investment_deleted", "asset", asset_id,
+            f"Se retiró del historial la inversión vinculada al gasto #{expense.id}.",
+        )
     expense.voided_at = datetime.utcnow()
     expense.voided_by_user_id = current_user.id
     expense.void_reason = (request.form.get("reason") or "Anulado por el usuario").strip()[:240]
     summary = f"Gasto de {format_money(expense.amount)} · {expense_category_label(expense.category)} anulado."
     tenant_audit(
         "expense.voided", "expense", expense.id, summary,
-        json.dumps({"reason": expense.void_reason}, ensure_ascii=False),
+        json.dumps({"reason": expense.void_reason, "asset_id": expense.asset_id}, ensure_ascii=False),
     )
     db.session.commit()
     flash("Gasto anulado. El movimiento quedó conservado en auditoría.", "success")
-    return redirect(url_for("main.expenses"))
+    period = (request.form.get("period") or "month").strip()
+    asset_id = parse_int(request.form.get("asset_id"), None, minimum=1)
+    return redirect(url_for("main.expenses", period=period, asset_id=asset_id))
 
 
 @main_bp.get("/audit")
@@ -3129,14 +3282,14 @@ def export_business_data():
         write_csv(archive, "notas_cobranza.csv", ["id","cliente_id","acuerdo_id","nota","usuario_id","fecha"], (
             (x.id,x.client_id,x.contract_id,x.body,x.created_by_user_id,x.created_at.isoformat() if x.created_at else "") for x in notes_rows
         ))
-        write_csv(archive, "gastos.csv", ["id","fecha","categoria","monto","metodo","referencia","nota","usuario_id"], (
-            (x.id,x.expense_date,x.category,x.amount,x.method,x.reference,x.note,x.created_by_user_id) for x in expenses_rows
+        write_csv(archive, "gastos.csv", ["id","articulo_id","fecha","categoria","monto","metodo","referencia","nota","usuario_id"], (
+            (x.id,x.asset_id,x.expense_date,x.category,x.amount,x.method,x.reference,x.note,x.created_by_user_id) for x in expenses_rows
         ))
         write_csv(archive, "compras.csv", ["id","articulo_id","proveedor_id","fecha","cantidad","costo_unitario","precio_venta","referencia","notas"], (
             (x.id,x.asset_id,x.supplier_id,x.purchase_date,x.quantity,x.unit_cost,x.unit_sale_price,x.reference,x.notes) for x in purchases_rows
         ))
-        write_csv(archive, "inversiones_vehiculos.csv", ["id","articulo_id","fecha","categoria","descripcion","monto","nota","usuario_id","creado"], (
-            (x.id,x.asset_id,x.investment_date,x.category,x.description,x.amount,x.notes,x.created_by_user_id,x.created_at.isoformat() if x.created_at else "") for x in investments_rows
+        write_csv(archive, "inversiones_vehiculos.csv", ["id","articulo_id","gasto_id","fecha","categoria","descripcion","monto","nota","usuario_id","creado"], (
+            (x.id,x.asset_id,x.expense_id,x.investment_date,x.category,x.description,x.amount,x.notes,x.created_by_user_id,x.created_at.isoformat() if x.created_at else "") for x in investments_rows
         ))
         write_csv(archive, "auditoria.csv", ["id","usuario_id","accion","tipo","entidad_id","resumen","detalle","fecha"], (
             (x.id,x.actor_user_id,x.action,x.entity_type,x.entity_id,x.summary,x.detail,x.created_at.isoformat() if x.created_at else "") for x in audit_rows

@@ -656,6 +656,10 @@ def test_vehicle_detail_tracks_dealer_data_and_investments(client, app):
         assert investment.asset_id == asset_id
         assert investment.amount == Decimal('4500.00')
         assert investment.category == 'oil'
+        expense = Expense.query.one()
+        assert expense.asset_id == asset_id
+        assert expense.amount == Decimal('4500.00')
+        assert investment.expense_id == expense.id
 
 
 def test_vehicle_inventory_static_ui_has_dossier_and_migration():
@@ -673,9 +677,16 @@ def test_vehicle_inventory_static_ui_has_dossier_and_migration():
     assert 'name="vehicle_year"' in form
     assert 'name="mileage"' in form
     assert "url_for('main.asset_detail'" in listing
+    expense_template = Path('cuotago/templates/expenses/index.html').read_text(encoding='utf-8')
+    clients_template = Path('cuotago/templates/clients/list.html').read_text(encoding='utf-8')
     assert '2026-10-v118-dealer-inventory' in init
+    assert '2026-10-v119-dealer-expenses' in init
     assert 'CREATE TABLE IF NOT EXISTS asset_investments' in init
-    assert 'v1.18.0 ui-v49' in css
+    assert 'name="asset_id"' in expense_template
+    assert 'Gastos por producto' in expense_template
+    assert 'data-client-url' in clients_template
+    assert 'object-fit:contain' in css
+    assert 'v1.19.0 ui-v50' in css
 
 
 def test_daily_late_interest_is_added_and_paid(client, app):
@@ -1217,6 +1228,40 @@ def test_expense_enters_cash_flow_report(client, app):
         assert TenantAuditLog.query.filter_by(action='expense.created').count() == 1
 
 
+def test_expense_linked_to_asset_creates_vehicle_investment(client, app):
+    register(client)
+    client.post('/assets/new', data={
+        'kind': 'car', 'name': 'Honda Civic Touring', 'vehicle_year': '2021',
+        'estimated_value': '800000', 'sale_price': '970000', 'status': 'available',
+    }, follow_redirects=True)
+    with app.app_context():
+        asset_id = Asset.query.filter_by(name='Honda Civic Touring').one().id
+
+    response = client.post('/expenses', data={
+        'asset_id': str(asset_id),
+        'expense_date': date.today().isoformat(),
+        'category': 'repair',
+        'amount': '12500',
+        'method': 'transfer',
+        'reference': 'TALLER-01',
+        'note': 'Reparación del aire acondicionado',
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert 'Honda Civic Touring'.encode('utf-8') in response.data
+
+    with app.app_context():
+        expense = Expense.query.filter_by(asset_id=asset_id).one()
+        investment = AssetInvestment.query.filter_by(asset_id=asset_id).one()
+        assert expense.amount == Decimal('12500.00')
+        assert investment.amount == Decimal('12500.00')
+        assert investment.expense_id == expense.id
+
+    detail = client.get(f'/assets/{asset_id}')
+    assert detail.status_code == 200
+    assert 'Reparación del aire acondicionado'.encode('utf-8') in detail.data
+    assert b'RD$812,500.00' in detail.data
+
+
 def test_v116_initial_is_a_real_payment_with_receipt(client, app):
     register(client)
     client.post('/assets/new', data={
@@ -1388,7 +1433,7 @@ def test_v1175_cache_updates_without_manual_clear():
     app_js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
     init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
     config = Path('config.py').read_text(encoding='utf-8')
-    assert 'ASSET_VERSION = "1.18.0-ui-v49"' in config
+    assert 'ASSET_VERSION = "1.19.0-ui-v50"' in config
     assert 'cuotago-build-version' in base
     assert 'controllerchange' in base
     assert "updateViaCache: 'none'" in base
@@ -1433,7 +1478,7 @@ def test_v1178_auth_is_minimal_on_mobile_and_split_on_desktop():
     assert '@media(max-width:760px)' in css
     assert '.auth-showcase-v2{display:none}' in css
     assert '.auth-card-modern-v2{padding:18px 2px 6px;border:0' in css
-    assert 'v1.18.0 ui-v49' in css
+    assert 'v1.19.0 ui-v50' in css
 
 
 def test_v1179_desktop_topbar_and_launcher_geometry():

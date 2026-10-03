@@ -249,6 +249,12 @@ class Asset(db.Model):
         cascade="all, delete-orphan",
         order_by="AssetInvestment.investment_date.desc()",
     )
+    expenses = db.relationship(
+        "Expense",
+        back_populates="asset",
+        foreign_keys="Expense.asset_id",
+        order_by="Expense.expense_date.desc()",
+    )
 
     @property
     def expected_profit_per_unit(self):
@@ -286,10 +292,12 @@ class AssetInvestment(db.Model):
     description = db.Column(db.String(180), nullable=False)
     amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     notes = db.Column(db.String(240))
+    expense_id = db.Column(db.Integer, db.ForeignKey("expenses.id", ondelete="SET NULL"), nullable=True, unique=True, index=True)
     created_by_user_id = db.Column(db.Integer, nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
 
     asset = db.relationship("Asset", back_populates="investments")
+    expense = db.relationship("Expense", foreign_keys=[expense_id])
 
 
 class Purchase(db.Model):
@@ -577,6 +585,7 @@ class Expense(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    asset_id = db.Column(db.Integer, db.ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True)
     expense_date = db.Column(db.Date, nullable=False, default=date.today, index=True)
     category = db.Column(db.String(60), nullable=False, default="other", index=True)
     amount = db.Column(db.Numeric(12, 2), nullable=False)
@@ -588,6 +597,8 @@ class Expense(db.Model):
     voided_by_user_id = db.Column(db.Integer, nullable=True, index=True)
     void_reason = db.Column(db.String(240))
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
+
+    asset = db.relationship("Asset", back_populates="expenses", foreign_keys=[asset_id])
 
 
 class TenantAuditLog(db.Model):

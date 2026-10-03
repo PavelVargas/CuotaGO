@@ -2,44 +2,70 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Gastos · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page expenses-page-v15">
-  <div class="page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back',22) }}</a><div><span class="eyebrow">GASTOS</span><h1>Gastos</h1><p>Registra una salida y CuotaGo actualiza el flujo.</p></div></div></div>
+<section class="content-page expenses-page-v15 expenses-page-v19">
+  <div class="page-head">
+    <div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back',22) }}</a><div><span class="eyebrow">GASTOS</span><h1>Gastos</h1><p>Controla gastos generales y lo que inviertes en cada producto o vehículo.</p></div></div>
+  </div>
 
-  <div class="expense-top-grid-v15">
-    {% if can('expenses.manage') %}<section class="surface expense-entry-v15">
-      <div class="section-heading"><div><span class="eyebrow">NUEVO</span><h2>Registrar gasto</h2></div></div>
-      <form method="post" class="expense-form-v15">
+  {% if assets %}
+  <section class="expense-assets-section-v19">
+    <div class="section-heading expense-assets-heading-v19"><div><span class="eyebrow">INVENTARIO</span><h2>Gastos por producto</h2><small>Elige una unidad para filtrar sus gastos o registrar uno nuevo.</small></div>{% if selected_asset %}<a class="text-link" href="{{ url_for('main.asset_detail', asset_id=selected_asset.id) }}">Abrir ficha</a>{% endif %}</div>
+    <div class="expense-asset-strip-v19">
+      <a class="expense-asset-card-v19 expense-all-card-v19 {{ 'active' if not selected_asset_id }}" href="{{ url_for('main.expenses', period=period) }}">
+        <span class="expense-asset-icon-v19">{{ icon('wallet',22) }}</span><span><strong>Todos los gastos</strong><small>Generales + inventario</small></span><b>{{ money(all_expense_total) }}</b>
+      </a>
+      {% for asset in assets %}
+      <a class="expense-asset-card-v19 {{ 'active' if selected_asset_id == asset.id }}" href="{{ url_for('main.expenses', period=period, asset_id=asset.id) }}">
+        <span class="expense-asset-thumb-v19">{% if asset.image_mime %}<img src="{{ url_for('main.asset_image', asset_id=asset.id, thumb=1, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="">{% else %}{{ icon('car' if asset.kind in ['car','motorcycle'] else 'inventory',20) }}{% endif %}</span>
+        <span class="expense-asset-copy-v19"><strong>{{ asset.name }}</strong><small><i class="vehicle-status vehicle-status-{{ asset.status }}">{{ asset_status_label(asset.status) }}</i> {{ [asset.vehicle_year, asset.brand]|select|join(' · ') }}</small></span>
+        <b>{{ money(asset_totals.get(asset.id, 0)) }}</b>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <div class="expense-top-grid-v15 expense-top-grid-v19">
+    {% if can('expenses.manage') %}
+    <section class="surface expense-entry-v15 expense-entry-v19">
+      <div class="section-heading"><div><span class="eyebrow">NUEVO</span><h2>Registrar gasto</h2><small>{% if selected_asset %}Se asociará a {{ selected_asset.name }}.{% else %}Puede ser general o de un producto.{% endif %}</small></div></div>
+      <form method="post" class="expense-form-v15 expense-form-v19">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="field expense-asset-field-v19"><span>Producto / vehículo</span><select name="asset_id"><option value="">Gasto general del negocio</option>{% for asset in assets %}<option value="{{ asset.id }}" {{ 'selected' if selected_asset_id == asset.id }}>{{ asset.name }}{% if asset.vehicle_year %} · {{ asset.vehicle_year }}{% endif %}</option>{% endfor %}</select><small>Si eliges un producto, también aparecerá en su historial de inversiones.</small></label>
         <label class="field"><span>Monto</span><input type="number" name="amount" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
         <label class="field"><span>Fecha</span><input type="date" name="expense_date" value="{{ today_value.isoformat() }}" required></label>
-        <label class="field"><span>Categoría</span><select name="category"><option value="fuel">Combustible</option><option value="rent">Alquiler</option><option value="payroll">Nómina</option><option value="repair">Reparación</option><option value="transport">Transporte</option><option value="services">Servicios</option><option value="supplies">Insumos</option><option value="other" selected>Otro</option></select></label>
+        <label class="field"><span>Categoría</span><select name="category"><optgroup label="Vehículo / producto"><option value="maintenance">Mantenimiento</option><option value="repair">Reparación</option><option value="oil">Aceite / fluidos</option><option value="interior">Interior</option><option value="bodywork">Pintura / carrocería</option><option value="parts">Piezas</option><option value="tires">Gomas</option><option value="documents">Documentos</option></optgroup><optgroup label="Negocio"><option value="fuel">Combustible</option><option value="rent">Alquiler</option><option value="payroll">Nómina</option><option value="transport">Transporte</option><option value="services">Servicios</option><option value="supplies">Insumos</option><option value="other" selected>Otro</option></optgroup></select></label>
         <label class="field"><span>Método</span><select name="method"><option value="cash">Efectivo</option><option value="transfer">Transferencia</option><option value="deposit">Depósito</option><option value="card">Tarjeta</option><option value="other">Otro</option></select></label>
-        <details class="compact-optional-fields-v37">
-          <summary>Agregar referencia o nota</summary>
-          <div class="compact-optional-fields-body-v37">
-            <label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="Opcional"></label>
-            <label class="field expense-note-v15"><span>Concepto</span><input name="note" maxlength="240" placeholder="Ej. gasolina para cobranzas"></label>
-          </div>
-        </details>
-        <button class="btn btn-primary" type="submit">Guardar gasto</button>
+        <label class="field"><span>Concepto</span><input name="note" maxlength="240" placeholder="Ej. Cambio de aceite y filtro"></label>
+        <label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="Factura, transferencia..."></label>
+        <button class="btn btn-primary expense-submit-v19" type="submit">Guardar gasto</button>
       </form>
-    </section>{% endif %}
+    </section>
+    {% endif %}
 
-    <section class="surface expense-summary-v15">
-      <span class="eyebrow">RESUMEN</span><strong>{{ money(total) }}</strong><small>{% if period == 'today' %}gastado hoy{% elif period == '7d' %}últimos 7 días{% elif period == 'all' %}histórico{% else %}gastado este mes{% endif %}</small>
-      <div class="expense-periods-v15"><a class="{{ 'active' if period=='today' }}" href="?period=today">Hoy</a><a class="{{ 'active' if period=='7d' }}" href="?period=7d">7 días</a><a class="{{ 'active' if period=='month' }}" href="?period=month">Mes</a><a class="{{ 'active' if period=='all' }}" href="?period=all">Todo</a></div>
+    <section class="surface expense-summary-v15 expense-summary-v19">
+      <span class="eyebrow">RESUMEN</span>
+      {% if selected_asset %}<small class="expense-summary-context-v19">{{ selected_asset.name }}</small>{% endif %}
+      <strong>{{ money(total) }}</strong>
+      <small>{% if period == 'today' %}gastado hoy{% elif period == '7d' %}últimos 7 días{% elif period == 'all' %}histórico{% else %}gastado este mes{% endif %}</small>
+      <div class="expense-periods-v15"><a class="{{ 'active' if period=='today' }}" href="{{ url_for('main.expenses', period='today', asset_id=selected_asset_id) }}">Hoy</a><a class="{{ 'active' if period=='7d' }}" href="{{ url_for('main.expenses', period='7d', asset_id=selected_asset_id) }}">7 días</a><a class="{{ 'active' if period=='month' }}" href="{{ url_for('main.expenses', period='month', asset_id=selected_asset_id) }}">Mes</a><a class="{{ 'active' if period=='all' }}" href="{{ url_for('main.expenses', period='all', asset_id=selected_asset_id) }}">Todo</a></div>
       <div class="expense-category-list-v15">{% for category, value in top_categories %}<div><span>{{ expense_category_label(category) }}</span><b>{{ money(value) }}</b></div>{% else %}<div class="empty-inline">Sin gastos en este periodo.</div>{% endfor %}</div>
     </section>
   </div>
 
-  <section class="surface expense-list-card-v15">
-    <div class="section-heading"><div><span class="eyebrow">MOVIMIENTOS</span><h2>Gastos registrados</h2></div><span>{{ pagination.total if pagination else expenses|length }}</span></div>
-    <div class="expense-list-v15">{% for expense in expenses %}<div class="expense-row-v15"><span class="expense-symbol-v15">−</span><span><strong>{{ expense_category_label(expense.category) }}</strong><small>{{ expense.expense_date.strftime('%d/%m/%Y') }} · {{ payment_method_label(expense.method) }}{% if expense.note %} · {{ expense.note }}{% endif %}</small></span><b>{{ money(expense.amount) }}</b>{% if can('expenses.manage') %}<form method="post" action="{{ url_for('main.expense_delete', expense_id=expense.id) }}" onsubmit="return confirm('¿Anular este gasto?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="icon-action" type="submit" aria-label="Eliminar">{{ icon('trash',16) }}</button></form>{% endif %}</div>{% else %}<div class="empty-inline">No hay gastos para mostrar.</div>{% endfor %}</div>
-    {% if pagination and pagination.pages > 1 %}<nav class="simple-pagination-v16" aria-label="Páginas de gastos">
-      <a class="btn btn-secondary btn-small {{ 'is-disabled' if not pagination.has_prev }}" href="{{ url_for('main.expenses', period=period, page=pagination.prev_num) if pagination.has_prev else '#' }}">Anterior</a>
-      <span>{{ pagination.page }} / {{ pagination.pages }}</span>
-      <a class="btn btn-secondary btn-small {{ 'is-disabled' if not pagination.has_next }}" href="{{ url_for('main.expenses', period=period, page=pagination.next_num) if pagination.has_next else '#' }}">Siguiente</a>
-    </nav>{% endif %}
+  <section class="surface expense-list-card-v15 expense-list-card-v19">
+    <div class="section-heading"><div><span class="eyebrow">MOVIMIENTOS</span><h2>{{ 'Gastos de ' ~ selected_asset.name if selected_asset else 'Gastos registrados' }}</h2></div><span>{{ pagination.total if pagination else expenses|length }}</span></div>
+    <div class="expense-list-v15">
+      {% for expense in expenses %}
+      <div class="expense-row-v15 expense-row-v19">
+        <span class="expense-symbol-v15">−</span>
+        <span class="expense-row-copy-v19"><strong>{{ expense_category_label(expense.category) }}</strong><small>{{ expense.expense_date.strftime('%d/%m/%Y') }} · {{ payment_method_label(expense.method) }}{% if expense.note %} · {{ expense.note }}{% endif %}</small>{% if expense.asset %}<a href="{{ url_for('main.asset_detail', asset_id=expense.asset.id) }}" class="expense-product-link-v19">{{ icon('inventory',14) }} {{ expense.asset.name }}</a>{% else %}<em>Gasto general</em>{% endif %}</span>
+        <b>{{ money(expense.amount) }}</b>
+        {% if can('expenses.manage') %}<form method="post" action="{{ url_for('main.expense_delete', expense_id=expense.id) }}" onsubmit="return confirm('¿Anular este gasto? Si está ligado a un producto también se retirará de su historial de inversiones.')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="period" value="{{ period }}"><input type="hidden" name="asset_id" value="{{ selected_asset_id or '' }}"><button class="icon-action" type="submit" aria-label="Eliminar">{{ icon('trash',16) }}</button></form>{% endif %}
+      </div>
+      {% else %}<div class="empty-inline">No hay gastos para mostrar.</div>{% endfor %}
+    </div>
+    {% if pagination and pagination.pages > 1 %}<nav class="simple-pagination-v16" aria-label="Páginas de gastos"><a class="btn btn-secondary btn-small {{ 'is-disabled' if not pagination.has_prev }}" href="{{ url_for('main.expenses', period=period, asset_id=selected_asset_id, page=pagination.prev_num) if pagination.has_prev else '#' }}">Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-small {{ 'is-disabled' if not pagination.has_next }}" href="{{ url_for('main.expenses', period=period, asset_id=selected_asset_id, page=pagination.next_num) if pagination.has_next else '#' }}">Siguiente</a></nav>{% endif %}
   </section>
 </section>
 {% endblock %}

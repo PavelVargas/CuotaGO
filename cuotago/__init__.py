@@ -270,6 +270,14 @@ def _ensure_feature_schema(app):
         "CREATE INDEX IF NOT EXISTS ix_asset_investments_created_at ON asset_investments (created_at)",
     ]
 
+    dealer_expense_statements = [
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS asset_id INTEGER REFERENCES assets(id) ON DELETE SET NULL",
+        "CREATE INDEX IF NOT EXISTS ix_expenses_asset_id ON expenses (asset_id)",
+        "CREATE INDEX IF NOT EXISTS ix_expenses_org_asset_date ON expenses (organization_id, asset_id, expense_date DESC)",
+        "ALTER TABLE asset_investments ADD COLUMN IF NOT EXISTS expense_id INTEGER REFERENCES expenses(id) ON DELETE SET NULL",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_asset_investments_expense_id ON asset_investments (expense_id) WHERE expense_id IS NOT NULL",
+    ]
+
     with db.engine.begin() as connection:
         # Use a CuotaGo-owned ledger instead of the generic ``schema_migrations``
         # name. Existing installations may already have a table with that name
@@ -332,6 +340,10 @@ def _ensure_feature_schema(app):
             for statement in dealer_inventory_statements:
                 connection.execute(text(statement))
             connection.execute(text("INSERT INTO cuotago_schema_migrations(version) VALUES ('2026-10-v118-dealer-inventory') ON CONFLICT DO NOTHING"))
+        if "2026-10-v119-dealer-expenses" not in applied:
+            for statement in dealer_expense_statements:
+                connection.execute(text(statement))
+            connection.execute(text("INSERT INTO cuotago_schema_migrations(version) VALUES ('2026-10-v119-dealer-expenses') ON CONFLICT DO NOTHING"))
 
 
 def _ensure_superadmin(app):
