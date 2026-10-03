@@ -4466,3 +4466,531 @@ a.vehicle-activity-row:hover .activity-copy strong{color:var(--primary)}
 @media(min-width:1150px){
   .inventory-page-v19 .inventory-list-v18{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 }
+
+/* --------------------------------------------------------------------------
+   v1.20.0 ui-v51 · desktop workbench
+   Desktop browser and installed PWA intentionally use different layouts.
+   These rules only run in a normal browser at >= 900px. Home and superadmin
+   are excluded so this pass stays focused on business modules and views.
+   -------------------------------------------------------------------------- */
+@media (min-width:900px){
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .content-page:not(.admin-console){
+    width:min(100%,1480px);
+    max-width:1480px;
+    padding:30px 34px 52px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .content-page.narrow-page:not(.admin-console){
+    max-width:1180px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .page-head{
+    min-height:62px;
+    margin-bottom:20px;
+    gap:18px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .page-head-left{gap:12px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .page-head h1{
+    margin:2px 0 3px;
+    font-size:29px;
+    line-height:1.12;
+    letter-spacing:-.04em;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .page-head p{
+    max-width:760px;
+    font-size:13px;
+    line-height:1.5;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .eyebrow{font-size:9.5px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .icon-btn{
+    width:43px;
+    height:43px;
+    flex-basis:43px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .btn{
+    min-height:43px;
+    padding:9px 15px;
+    font-size:12px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .btn-sm,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .btn-small{
+    min-height:35px;
+    padding:7px 11px;
+    font-size:10.5px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .btn-lg{
+    min-height:48px;
+    padding-inline:18px;
+    font-size:13px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .surface{
+    border-radius:18px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .section-heading{margin-bottom:13px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .section-heading h2{font-size:16px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .section-heading>span,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .section-heading>a{font-size:10px}
+
+  /* Desktop controls: denser than mobile but much easier to read. */
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field{gap:7px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field>span{font-size:11.5px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field>small{font-size:10px;line-height:1.45}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field input,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field select,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field textarea,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .filter-row select{
+    min-height:44px;
+    padding:10px 12px;
+    font-size:13px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field textarea{min-height:104px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .form-surface{padding:24px 26px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .form-grid,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .form-stack{gap:14px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .form-actions{margin-top:20px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .toolbar{
+    min-height:48px;
+    margin-bottom:14px;
+    gap:12px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .search-box{
+    min-height:44px;
+    max-width:760px;
+    padding-inline:13px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .search-box input{font-size:13px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .result-count{font-size:10.5px}
+
+  /* Desktop tables are true work tables, not stretched mobile cards. */
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .table-surface{
+    border:1px solid var(--line);
+    border-radius:18px;
+    overflow:hidden;
+    background:var(--surface);
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .data-table{table-layout:auto}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .data-table th{
+    padding:13px 16px;
+    background:color-mix(in srgb,var(--surface-2) 70%,var(--surface));
+    font-size:10.5px;
+    letter-spacing:.025em;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .data-table td{
+    min-height:58px;
+    padding:15px 16px;
+    font-size:12.5px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .data-table tbody tr{
+    transition:background-color .14s ease;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .data-table tbody tr:hover{
+    background:color-mix(in srgb,var(--primary) 3.5%,var(--surface));
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .person-cell strong{font-size:13px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .person-cell small{font-size:10px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .mini-avatar{width:36px;height:36px;font-size:12px}
+
+  /* Inventory: scan products fast on a large screen. */
+  html.is-browser-app .inventory-page-v20{max-width:1480px!important}
+  html.is-browser-app .inventory-page-v20 .inventory-toolbar-v18{
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:16px;
+    background:var(--surface);
+  }
+  html.is-browser-app .inventory-page-v20 .inventory-list-v18{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:14px;
+  }
+  html.is-browser-app .inventory-page-v20 .inventory-product-card-v18{
+    min-height:128px;
+    grid-template-columns:118px minmax(0,1fr) auto 14px;
+    gap:14px;
+    padding:14px;
+    border-radius:19px;
+  }
+  html.is-browser-app .inventory-page-v20 .inventory-row-media-v18{width:118px;height:98px;border-radius:14px}
+  html.is-browser-app .inventory-page-v20 .inventory-card-topline .inventory-product-name{font-size:15px}
+  html.is-browser-app .inventory-page-v20 .inventory-row-main-v18 .inventory-row-subtitle{font-size:11.5px}
+  html.is-browser-app .inventory-page-v20 .inventory-row-meta-v18{font-size:10px;gap:6px 12px}
+  html.is-browser-app .inventory-page-v20 .inventory-row-side-v18{min-width:130px}
+  html.is-browser-app .inventory-page-v20 .inventory-row-side-v18 small{font-size:8.5px}
+  html.is-browser-app .inventory-page-v20 .inventory-row-side-v18>strong{font-size:14px}
+  html.is-browser-app .inventory-page-v20 .inventory-row-side-v18>span{font-size:9px}
+  html.is-browser-app .inventory-page-v20 .vehicle-status{font-size:9.5px}
+
+  /* Vehicle/product editor uses photo + work form side by side on desktop only. */
+  html.is-browser-app .dealer-editor-v20{max-width:1380px!important}
+  html.is-browser-app .dealer-editor-v20 .dealer-entry-card-v19{
+    grid-template-columns:minmax(340px,.78fr) minmax(0,1.65fr);
+    gap:34px;
+    padding:26px 28px 28px;
+  }
+  html.is-browser-app .dealer-editor-v20 .dealer-photo-column-v19{top:90px}
+  html.is-browser-app .dealer-editor-v20 .dealer-form-heading-v19 strong{font-size:15px}
+  html.is-browser-app .dealer-editor-v20 .dealer-form-heading-v19 small{font-size:10.5px}
+  html.is-browser-app .dealer-editor-v20 .dealer-fields-v19{gap:15px 16px}
+
+  /* Vehicle detail: photo and numbers get room without making mobile bigger. */
+  html.is-browser-app .vehicle-detail-v20{max-width:1420px!important}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-hero-v19{
+    display:grid;
+    grid-template-columns:minmax(500px,1.25fr) minmax(370px,.75fr);
+    overflow:hidden;
+  }
+  html.is-browser-app .vehicle-detail-v20 .vehicle-hero-media-v19{
+    height:520px;
+    min-height:520px;
+    border-right:1px solid var(--line);
+  }
+  html.is-browser-app .vehicle-detail-v20 .vehicle-hero-copy-v19{
+    padding:28px 30px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+  html.is-browser-app .vehicle-detail-v20 .vehicle-title-row h2{font-size:30px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-title-row p{font-size:13px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-primary-facts-v19{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:0;
+  }
+  html.is-browser-app .vehicle-detail-v20 .vehicle-primary-facts-v19>div:nth-child(odd){border-left:0;padding-left:0}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-primary-facts-v19>div:nth-child(even){border-left:1px solid var(--line);padding-left:14px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-primary-facts-v19>div:nth-child(n+3){border-top:1px solid var(--line);padding-top:14px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-finance-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
+  html.is-browser-app .vehicle-detail-v20 .finance-cell{min-height:126px;padding:20px}
+  html.is-browser-app .vehicle-detail-v20 .finance-cell>strong{font-size:24px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-info-layout-v19{
+    grid-template-columns:minmax(320px,.7fr) minmax(0,1.65fr);
+    gap:18px;
+  }
+  html.is-browser-app .vehicle-detail-v20 .acquisition-panel,
+  html.is-browser-app .vehicle-detail-v20 .investment-panel{padding:22px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-activity-list{padding:4px 18px}
+
+  /* Clients: list behaves like a CRM table; profile becomes a two-column workspace. */
+  html.is-browser-app .clients-page-v20{max-width:1380px!important}
+  html.is-browser-app .clients-page-v20 .client-open-hint-v19{font-size:10px}
+  html.is-browser-app .client-profile-v20{
+    max-width:1380px!important;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:16px;
+    align-items:start;
+  }
+  html.is-browser-app .client-profile-v20>.page-head,
+  html.is-browser-app .client-profile-v20>.client-risk-card,
+  html.is-browser-app .client-profile-v20>.client-kpi-grid,
+  html.is-browser-app .client-profile-v20>.client-action-strip{grid-column:1/-1}
+  html.is-browser-app .client-profile-v20>.client-section{margin:0;padding:20px;min-height:100%}
+  html.is-browser-app .client-profile-v20>.client-section:nth-of-type(4),
+  html.is-browser-app .client-profile-v20>.client-section:nth-of-type(5){grid-column:1/-1}
+  html.is-browser-app .client-profile-v20 .client-risk-card{padding:18px 20px;margin:0}
+  html.is-browser-app .client-profile-v20 .client-risk-main span{font-size:10px}
+  html.is-browser-app .client-profile-v20 .client-risk-main strong{font-size:16px}
+  html.is-browser-app .client-profile-v20 .client-risk-main small{font-size:10px}
+  html.is-browser-app .client-profile-v20 .client-kpi-grid{gap:12px;margin:0}
+  html.is-browser-app .client-profile-v20 .mini-kpi{padding:16px 17px}
+  html.is-browser-app .client-profile-v20 .mini-kpi span,
+  html.is-browser-app .client-profile-v20 .mini-kpi small{font-size:9.5px}
+  html.is-browser-app .client-profile-v20 .mini-kpi strong{font-size:20px}
+  html.is-browser-app .client-profile-v20 .client-action-strip-v37{
+    display:flex;
+    gap:10px;
+    margin:0;
+  }
+  html.is-browser-app .client-profile-v20 .client-action-strip-v37 .btn{width:auto;min-width:180px}
+  html.is-browser-app .client-profile-v20 .inline-business-form{
+    grid-template-columns:1fr .75fr 1fr 1.5fr auto;
+    gap:10px;
+  }
+  html.is-browser-app .client-profile-v20 .promise-note-field{grid-column:auto}
+  html.is-browser-app .client-profile-v20 .promise-row-v15{padding:13px 2px}
+  html.is-browser-app .client-profile-v20 .promise-row-v15 strong{font-size:12px}
+  html.is-browser-app .client-profile-v20 .promise-row-v15 small{font-size:9.5px}
+  html.is-browser-app .client-profile-v20 .client-contract-list-v15>a,
+  html.is-browser-app .client-profile-v20 .timeline-row-v15{min-height:54px;padding:11px 0}
+  html.is-browser-app .client-form-page-v20{max-width:980px!important}
+  html.is-browser-app .client-form-page-v20 .simple-form-card{padding:26px 28px}
+  html.is-browser-app .client-form-page-v20 .primary-fields{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}
+  html.is-browser-app .client-form-page-v20 .quick-create-actions{position:static;border:0;background:transparent;box-shadow:none;padding:0;margin:20px 0 0;display:flex;justify-content:flex-end}
+  html.is-browser-app .client-form-page-v20 .quick-create-actions .btn{width:auto;min-width:220px}
+
+  /* Agreements: cards become desktop tiles, detail gets a true finance workspace. */
+  html.is-browser-app .contracts-page-v20{max-width:1420px!important}
+  html.is-browser-app .contracts-page-v20 .contract-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:16px;
+  }
+  html.is-browser-app .contracts-page-v20 .contract-card{
+    min-height:214px;
+    padding:18px;
+    border-radius:18px;
+  }
+  html.is-browser-app .contracts-page-v20 .contract-code{font-size:9.5px}
+  html.is-browser-app .contracts-page-v20 .contract-card h3{font-size:15px}
+  html.is-browser-app .contracts-page-v20 .contract-card p{font-size:10.5px}
+  html.is-browser-app .contracts-page-v20 .contract-numbers>div{padding:11px}
+  html.is-browser-app .contracts-page-v20 .contract-numbers small{font-size:9px}
+  html.is-browser-app .contracts-page-v20 .contract-numbers strong{font-size:13px}
+  html.is-browser-app .contract-detail-v20{max-width:1260px!important}
+  html.is-browser-app .contract-detail-v20 .simple-balance-card{padding:22px 24px}
+  html.is-browser-app .contract-detail-v20 .balance-top strong{font-size:30px}
+  html.is-browser-app .contract-detail-v20 .compact-balance-metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  html.is-browser-app .contract-detail-v20 .compact-balance-metrics>div{padding:12px 13px}
+  html.is-browser-app .contract-detail-v20 .compact-balance-metrics small{font-size:9.5px}
+  html.is-browser-app .contract-detail-v20 .compact-balance-metrics strong{font-size:13px}
+  html.is-browser-app .contract-detail-v20 .contract-payment-launch{gap:10px;margin:14px 0}
+  html.is-browser-app .contract-detail-v20 .contract-payment-primary-actions{gap:10px}
+  html.is-browser-app .contract-detail-v20 .simple-schedule-card{padding:20px 22px}
+  html.is-browser-app .contract-detail-v20 .installment-row{min-height:68px;padding:10px 4px}
+  html.is-browser-app .contract-detail-v20 .installment-date strong,
+  html.is-browser-app .contract-detail-v20 .installment-value strong{font-size:12px}
+  html.is-browser-app .contract-detail-v20 .installment-date small,
+  html.is-browser-app .contract-detail-v20 .installment-value small{font-size:9px}
+  html.is-browser-app .contract-detail-v20 .detail-more{padding-inline:18px}
+  html.is-browser-app .agreement-wizard-page-v20{max-width:1040px!important}
+  html.is-browser-app .agreement-wizard-page-v20 .wizard-progress{max-width:900px;margin-inline:auto;margin-bottom:18px}
+  html.is-browser-app .agreement-wizard-page-v20 .agreement-wizard{
+    max-width:900px;
+    padding:24px 28px 26px!important;
+    border:1px solid var(--line);
+    border-radius:20px!important;
+    background:var(--surface);
+  }
+  html.is-browser-app .agreement-wizard-page-v20 .wizard-panel-head h2{font-size:22px}
+  html.is-browser-app .agreement-wizard-page-v20 .wizard-panel-head p{font-size:11px}
+  html.is-browser-app .agreement-wizard-page-v20 .wizard-fields[data-client-fields="new"],
+  html.is-browser-app .agreement-wizard-page-v20 .wizard-fields[data-asset-fields="new"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+  html.is-browser-app .agreement-wizard-page-v20 .choice-buttons>button,
+  html.is-browser-app .agreement-wizard-page-v20 .choice-buttons>label{font-size:11px}
+
+  /* Collections: more room per debtor, less scanning effort. */
+  html.is-browser-app .collections-page-v20{max-width:1380px!important}
+  html.is-browser-app .collections-page-v20 .kpi-grid.three-kpi{gap:14px;margin-bottom:16px}
+  html.is-browser-app .collections-page-v20 .kpi-card{min-height:108px;padding:18px}
+  html.is-browser-app .collections-page-v20 .kpi-card>span{font-size:10px}
+  html.is-browser-app .collections-page-v20 .kpi-card>strong{font-size:23px}
+  html.is-browser-app .collections-page-v20 .kpi-card>small{font-size:9.5px}
+  html.is-browser-app .collections-page-v20 .collection-section{padding:18px 20px;margin-bottom:14px}
+  html.is-browser-app .collections-page-v20 .collection-row{
+    min-height:76px;
+    grid-template-columns:58px minmax(0,1fr) 180px 190px;
+    gap:12px 16px;
+    padding:12px 0;
+  }
+  html.is-browser-app .collections-page-v20 .collection-date{width:50px;height:54px}
+  html.is-browser-app .collections-page-v20 .collection-date strong{font-size:16px}
+  html.is-browser-app .collections-page-v20 .collection-person strong{font-size:12.5px}
+  html.is-browser-app .collections-page-v20 .collection-person small{font-size:9.5px}
+  html.is-browser-app .collections-page-v20 .collection-amount strong{font-size:12.5px}
+  html.is-browser-app .collections-page-v20 .collection-amount small{font-size:9px}
+
+  /* Expenses: asset selector + entry + summary use the horizontal workspace. */
+  html.is-browser-app .expenses-page-v20{max-width:1440px!important}
+  html.is-browser-app .expenses-page-v20 .expense-assets-section-v19{margin-bottom:16px}
+  html.is-browser-app .expenses-page-v20 .expense-asset-strip-v19{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  html.is-browser-app .expenses-page-v20 .expense-asset-card-v19{min-height:68px;padding:11px 12px}
+  html.is-browser-app .expenses-page-v20 .expense-asset-copy-v19 strong{font-size:11.5px}
+  html.is-browser-app .expenses-page-v20 .expense-asset-copy-v19 small{font-size:8.5px}
+  html.is-browser-app .expenses-page-v20 .expense-top-grid-v19{grid-template-columns:minmax(0,1.6fr) minmax(340px,.65fr);gap:16px}
+  html.is-browser-app .expenses-page-v20 .expense-entry-v19,
+  html.is-browser-app .expenses-page-v20 .expense-summary-v19,
+  html.is-browser-app .expenses-page-v20 .expense-list-card-v19{padding:20px}
+  html.is-browser-app .expenses-page-v20 .expense-form-v19{grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+  html.is-browser-app .expenses-page-v20 .expense-form-v19 .expense-asset-field-v19{grid-column:1/-1}
+  html.is-browser-app .expenses-page-v20 .expense-submit-v19{grid-column:3;justify-self:end;min-width:170px}
+  html.is-browser-app .expenses-page-v20 .expense-row-v19{min-height:72px;padding:11px 2px}
+  html.is-browser-app .expenses-page-v20 .expense-row-v19 strong{font-size:12px}
+  html.is-browser-app .expenses-page-v20 .expense-row-v19 small{font-size:9.5px}
+
+  /* Purchases: ordering resembles a desktop purchasing sheet. */
+  html.is-browser-app .purchases-page-v20,
+  html.is-browser-app .purchase-order-page-v20{max-width:1400px!important}
+  html.is-browser-app .purchases-page-v20 .purchase-kpis{gap:12px;margin-bottom:16px}
+  html.is-browser-app .purchases-page-v20 .purchase-kpi{min-height:105px;padding:16px 18px}
+  html.is-browser-app .purchases-page-v20 .purchase-kpi span{font-size:9.5px}
+  html.is-browser-app .purchases-page-v20 .purchase-kpi strong{font-size:22px}
+  html.is-browser-app .purchases-page-v20 .purchase-kpi small{font-size:9px}
+  html.is-browser-app .purchases-page-v20 .purchase-orders-panel{border-radius:18px;overflow:hidden}
+  html.is-browser-app .purchases-page-v20 .purchase-orders-panel-head{padding:18px 20px}
+  html.is-browser-app .purchases-page-v20 .purchase-order-row>summary{min-height:68px;padding:13px 20px}
+  html.is-browser-app .purchases-page-v20 .purchase-order-main strong{font-size:11.5px}
+  html.is-browser-app .purchases-page-v20 .purchase-order-main small{font-size:9px}
+  html.is-browser-app .purchase-order-page-v20 .purchase-order-sheet-head{padding:18px 22px}
+  html.is-browser-app .purchase-order-page-v20 .purchase-order-meta{padding:18px 22px;gap:14px}
+  html.is-browser-app .purchase-order-page-v20 .purchase-lines-head{padding:16px 22px 10px}
+  html.is-browser-app .purchase-order-page-v20 .purchase-table-labels{padding-inline:22px}
+  html.is-browser-app .purchase-order-page-v20 .purchase-order-line{padding:14px 22px}
+  html.is-browser-app .purchase-order-page-v20 .purchase-order-total{padding:18px 22px}
+
+  /* Calendar: large work surface with a wider day panel. */
+  html.is-browser-app .calendar-page-v20{max-width:1380px!important}
+  html.is-browser-app .calendar-page-v20 .calendar-filterbar{padding:13px 15px;margin-bottom:14px}
+  html.is-browser-app .calendar-page-v20 .calendar-search{max-width:680px;height:46px}
+  html.is-browser-app .calendar-page-v20 .calendar-search input{font-size:13px}
+  html.is-browser-app .calendar-page-v20 .calendar-filter-status>span{font-size:11px}
+  html.is-browser-app .calendar-page-v20 .calendar-filter-status small{font-size:9px}
+  html.is-browser-app .calendar-page-v20 .calendar-workspace{
+    grid-template-columns:minmax(0,1.7fr) minmax(360px,.75fr);
+    gap:16px;
+  }
+  html.is-browser-app .calendar-page-v20 .real-calendar{padding:20px 22px 15px}
+  html.is-browser-app .calendar-page-v20 .real-calendar-head h2{font-size:19px}
+  html.is-browser-app .calendar-page-v20 .real-calendar-weekdays span{font-size:9.5px}
+  html.is-browser-app .calendar-page-v20 .real-calendar-day{min-height:72px}
+  html.is-browser-app .calendar-page-v20 .real-calendar-day-number{font-size:12px}
+  html.is-browser-app .calendar-page-v20 .calendar-day-panel{padding:20px;min-height:480px}
+  html.is-browser-app .calendar-page-v20 .calendar-day-panel-head h2{font-size:15px}
+  html.is-browser-app .calendar-page-v20 .calendar-payment-item{min-height:72px;padding:11px 8px}
+  html.is-browser-app .calendar-page-v20 .calendar-payment-copy strong{font-size:11.5px}
+  html.is-browser-app .calendar-page-v20 .calendar-payment-copy span{font-size:9px}
+  html.is-browser-app .calendar-page-v20 .calendar-payment-money strong{font-size:11px}
+
+  /* Reports: keep density, remove micro-typography on desktop. */
+  html.is-browser-app .reports-v20{max-width:1420px!important}
+  html.is-browser-app .reports-v20 .report-filter-disclosure-v37{margin-bottom:16px}
+  html.is-browser-app .reports-v20 .report-filter-disclosure-v37>summary{min-height:50px;padding:10px 14px}
+  html.is-browser-app .reports-v20 .report-filter-disclosure-v37>summary>span{font-size:11.5px}
+  html.is-browser-app .reports-v20 .report-filter-disclosure-v37>summary>small{font-size:10px}
+  html.is-browser-app .reports-v20 .report-filters-v19{gap:12px;padding:14px}
+  html.is-browser-app .reports-v20 .report-filters-v19 label>span{font-size:10px!important}
+  html.is-browser-app .reports-v20 .report-filters-v19 select{min-height:43px;font-size:12px}
+  html.is-browser-app .reports-v20 .report-kpi-grid-v19{gap:12px;margin-bottom:16px}
+  html.is-browser-app .reports-v20 .report-kpi-v19{min-height:112px;padding:17px 18px}
+  html.is-browser-app .reports-v20 .report-kpi-v19>span,
+  html.is-browser-app .reports-v20 .report-kpi-v19>small{font-size:10px!important}
+  html.is-browser-app .reports-v20 .report-kpi-v19 strong{font-size:24px!important}
+  html.is-browser-app .reports-v20 .report-primary-grid-v19{grid-template-columns:minmax(0,1.8fr) minmax(330px,.7fr);gap:14px;margin-bottom:14px}
+  html.is-browser-app .reports-v20 .report-detail-grid-v19{gap:14px;margin-bottom:14px}
+  html.is-browser-app .reports-v20 .report-panel-v19,
+  html.is-browser-app .reports-v20 .report-cashflow-v15{padding:19px!important}
+  html.is-browser-app .reports-v20 .report-section-head-v19 h2{font-size:16px!important}
+  html.is-browser-app .reports-v20 .report-chart-v19{min-height:245px}
+  html.is-browser-app .reports-v20 .report-chart-v19 svg{height:195px}
+  html.is-browser-app .reports-v20 .report-chart-scale-v19,
+  html.is-browser-app .reports-v20 .report-chart-labels-v19{font-size:9px}
+  html.is-browser-app .reports-v20 .report-metric-list-v19>div,
+  html.is-browser-app .reports-v20 .report-money-stack-v19>div{min-height:49px}
+  html.is-browser-app .reports-v20 .report-metric-list-v19 span,
+  html.is-browser-app .reports-v20 .report-money-stack-v19 span,
+  html.is-browser-app .reports-v20 .cashflow-kpis-v15 span,
+  html.is-browser-app .reports-v20 .payment-method-breakdown-v15 span,
+  html.is-browser-app .reports-v20 .report-purchases-summary-v20 span{font-size:10px!important}
+  html.is-browser-app .reports-v20 .report-metric-list-v19 strong,
+  html.is-browser-app .reports-v20 .report-money-stack-v19 strong{font-size:12.5px}
+  html.is-browser-app .reports-v20 .report-activity-row-v19{min-height:64px;grid-template-columns:40px minmax(0,1fr) auto;gap:12px}
+  html.is-browser-app .reports-v20 .report-activity-icon-v19{width:38px;height:38px}
+  html.is-browser-app .reports-v20 .report-activity-copy-v19 strong{font-size:11.5px!important}
+  html.is-browser-app .reports-v20 .report-activity-copy-v19 small{font-size:9.5px!important}
+
+  /* Notifications / reminders: wider reading column on desktop. */
+  html.is-browser-app .notifications-page-v20,
+  html.is-browser-app .reminders-page-v20{max-width:1120px!important}
+  html.is-browser-app .notifications-page-v20 .notification-overview{padding:18px 20px}
+  html.is-browser-app .notifications-page-v20 .notification-overview-copy strong{font-size:13px}
+  html.is-browser-app .notifications-page-v20 .notification-overview-copy p{font-size:10px}
+  html.is-browser-app .notifications-page-v20 .notification-mini-kpis{gap:12px;margin-bottom:14px}
+  html.is-browser-app .notifications-page-v20 .notification-mini-kpis>div{min-height:86px;padding:14px 16px}
+  html.is-browser-app .notifications-page-v20 .notification-mini-kpis span{font-size:10px}
+  html.is-browser-app .notifications-page-v20 .notification-mini-kpis strong{font-size:22px}
+  html.is-browser-app .notifications-page-v20 .notification-group{margin-bottom:14px}
+  html.is-browser-app .notifications-page-v20 .notification-group-head{padding:15px 17px 11px}
+  html.is-browser-app .notifications-page-v20 .payment-notification-row{min-height:82px;padding:12px 14px}
+  html.is-browser-app .notifications-page-v20 .payment-notification-copy b{font-size:12px!important}
+  html.is-browser-app .notifications-page-v20 .payment-notification-copy small,
+  html.is-browser-app .notifications-page-v20 .payment-notification-top time{font-size:9.5px!important}
+  html.is-browser-app .notifications-page-v20 .payment-notification-amount{font-size:12px!important}
+
+  /* Settings / team: two clear desktop columns instead of a phone-width strip. */
+  html.is-browser-app .settings-page-v20{max-width:1240px!important;display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  html.is-browser-app .settings-page-v20>.page-head{grid-column:1/-1;margin-bottom:4px}
+  html.is-browser-app .settings-page-v20>.settings-switch-panel{grid-column:1}
+  html.is-browser-app .settings-page-v20>.settings-business-tools-v16{grid-column:2;margin:0;display:grid;gap:10px}
+  html.is-browser-app .settings-page-v20>.settings-business-tools-v16 .settings-audit-link-v15{margin:0;min-height:78px}
+  html.is-browser-app .settings-page-v20>.settings-account-card{grid-column:1/-1;padding:22px}
+  html.is-browser-app .settings-page-v20>.settings-password-v16{grid-column:1/-1;margin-top:0}
+  html.is-browser-app .settings-page-v20 .settings-switch-panel{padding:0 18px}
+  html.is-browser-app .settings-page-v20 .settings-section-heading{padding-top:17px}
+  html.is-browser-app .settings-page-v20 .settings-switch-row,
+  html.is-browser-app .settings-page-v20 .settings-test-row{min-height:70px}
+  html.is-browser-app .settings-page-v20 .settings-row-copy strong{font-size:12.5px}
+  html.is-browser-app .settings-page-v20 .settings-row-copy small{font-size:10px}
+  html.is-browser-app .settings-page-v20 .settings-account-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  html.is-browser-app .team-page-v20{max-width:1180px!important}
+  html.is-browser-app .team-page-v20 .team-list-v16{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  html.is-browser-app .team-page-v20 .team-user-v16{padding:16px 18px}
+  html.is-browser-app .team-page-v20 .team-user-main-v16 strong{font-size:12px}
+  html.is-browser-app .team-page-v20 .team-user-main-v16 small{font-size:9.5px}
+  html.is-browser-app .team-page-v20 .team-role-help-v16{padding:18px}
+
+  /* Documents: desktop manual gets a fixed index and a comfortable reading column. */
+  html.is-browser-app .documents-page-v20{max-width:1380px!important}
+  html.is-browser-app .documents-page-v20 .docs-document-head{padding:18px 20px}
+  html.is-browser-app .documents-page-v20 .docs-document-title h2{font-size:19px}
+  html.is-browser-app .documents-page-v20 .docs-document-title p{font-size:10px}
+  html.is-browser-app .documents-page-v20 .docs-search-row{padding:13px 20px}
+  html.is-browser-app .documents-page-v20 .docs-search input{font-size:12px}
+  html.is-browser-app .documents-page-v20 .docs-guide-layout{display:grid;grid-template-columns:250px minmax(0,1fr);align-items:start}
+  html.is-browser-app .documents-page-v20 .docs-index{
+    position:sticky;
+    top:82px;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:5px;
+    max-height:calc(100vh - 110px);
+    padding:16px;
+    overflow:auto;
+    border-right:1px solid var(--line);
+    border-bottom:0;
+  }
+  html.is-browser-app .documents-page-v20 .docs-index-title{display:block;margin:0 0 5px;font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  html.is-browser-app .documents-page-v20 .docs-index a{width:100%;min-height:38px;padding:0 10px;font-size:9.5px}
+  html.is-browser-app .documents-page-v20 .docs-manual{padding:0 30px 12px}
+  html.is-browser-app .documents-page-v20 .docs-section{grid-template-columns:50px minmax(0,1fr);gap:18px;padding:30px 0}
+  html.is-browser-app .documents-page-v20 .docs-section-body{max-width:900px}
+  html.is-browser-app .documents-page-v20 .docs-section-body>h2,
+  html.is-browser-app .documents-page-v20 .docs-module-heading h2{font-size:21px}
+  html.is-browser-app .documents-page-v20 .docs-lead{font-size:11px;max-width:820px}
+  html.is-browser-app .documents-page-v20 .docs-flow{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  html.is-browser-app .documents-page-v20 .docs-flow strong{font-size:10px}
+  html.is-browser-app .documents-page-v20 .docs-flow small,
+  html.is-browser-app .documents-page-v20 .docs-tip-list p{font-size:8.5px}
+}
+
+@media (min-width:1200px){
+  html.is-browser-app .inventory-page-v20 .inventory-list-v18{grid-template-columns:repeat(3,minmax(0,1fr))}
+  html.is-browser-app .contracts-page-v20 .contract-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+@media (min-width:900px){
+  html.is-browser-app .reminders-page-v20 .reminder-overview-v20{padding:18px 20px}
+  html.is-browser-app .reminders-page-v20 .reminder-group-v20{margin-top:16px}
+  html.is-browser-app .reminders-page-v20 .reminder-v20-row{min-height:78px;padding:12px 14px}
+  html.is-browser-app .reminders-page-v20 .reminder-v20-name strong{font-size:12px!important}
+  html.is-browser-app .reminders-page-v20 .reminder-v20-main>small,
+  html.is-browser-app .reminders-page-v20 .reminder-v20-side small{font-size:9.5px!important}
+  html.is-browser-app .reminders-page-v20 .reminder-v20-side>strong{font-size:12px!important}
+
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .global-search-page-v16,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .audit-page-v15{max-width:1180px!important}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .global-search-box-v16{padding:11px 13px;margin-bottom:16px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .global-search-box-v16 input{font-size:13px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .search-group-v16{padding:10px 18px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .search-group-v16 h2{font-size:10px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .search-group-v16>a{min-height:60px;padding:12px 0}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .search-group-v16>a strong{font-size:11.5px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .search-group-v16>a small{font-size:9.5px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .audit-list-v15{padding:8px 20px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .audit-row-v15{padding:14px 0;gap:12px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .audit-row-v15 strong{font-size:11px!important}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .audit-row-v15 small,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .audit-row-v15 time{font-size:9px!important}
+
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .statement-page-v15{max-width:1180px!important}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .printable-document-v15{max-width:1040px;padding:34px 38px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .statement-summary-v15{gap:12px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .statement-summary-v15>div{padding:15px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .statement-summary-v15 span{font-size:9.5px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .statement-summary-v15 strong{font-size:15px}
+}

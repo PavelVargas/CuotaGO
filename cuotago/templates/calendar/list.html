@@ -2,7 +2,7 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Calendario · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page calendar-page calendar-native" data-payment-calendar data-today="{{ today_value.isoformat() }}" data-calendar-api="{{ url_for('main.payment_calendar_events_api') }}">
+<section class="content-page calendar-page calendar-native calendar-page-v20" data-payment-calendar data-today="{{ today_value.isoformat() }}" data-calendar-api="{{ url_for('main.payment_calendar_events_api') }}">
   <div class="page-head calendar-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver al inicio">{{ icon('back', 22) }}</a>

@@ -686,7 +686,7 @@ def test_vehicle_inventory_static_ui_has_dossier_and_migration():
     assert 'Gastos por producto' in expense_template
     assert 'data-client-url' in clients_template
     assert 'object-fit:contain' in css
-    assert 'v1.19.0 ui-v50' in css
+    assert 'v1.20.0 ui-v51' in css
 
 
 def test_daily_late_interest_is_added_and_paid(client, app):
@@ -1433,7 +1433,7 @@ def test_v1175_cache_updates_without_manual_clear():
     app_js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
     init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
     config = Path('config.py').read_text(encoding='utf-8')
-    assert 'ASSET_VERSION = "1.19.0-ui-v50"' in config
+    assert 'ASSET_VERSION = "1.20.0-ui-v51"' in config
     assert 'cuotago-build-version' in base
     assert 'controllerchange' in base
     assert "updateViaCache: 'none'" in base
@@ -1478,7 +1478,7 @@ def test_v1178_auth_is_minimal_on_mobile_and_split_on_desktop():
     assert '@media(max-width:760px)' in css
     assert '.auth-showcase-v2{display:none}' in css
     assert '.auth-card-modern-v2{padding:18px 2px 6px;border:0' in css
-    assert 'v1.19.0 ui-v50' in css
+    assert 'v1.20.0 ui-v51' in css
 
 
 def test_v1179_desktop_topbar_and_launcher_geometry():
@@ -1490,3 +1490,34 @@ def test_v1179_desktop_topbar_and_launcher_geometry():
     assert 'top:26.5%!important' in css
     assert 'width:min(850px,calc(100% - 56px))!important' in css
     assert 'grid-template-columns:repeat(5,minmax(0,1fr))!important' in css
+
+
+def test_v120_desktop_workbench_is_browser_only():
+    from pathlib import Path
+    base = Path('cuotago/templates/base.html').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    expected_templates = {
+        'cuotago/templates/assets/list.html': 'inventory-page-v20',
+        'cuotago/templates/assets/detail.html': 'vehicle-detail-v20',
+        'cuotago/templates/clients/list.html': 'clients-page-v20',
+        'cuotago/templates/clients/detail.html': 'client-profile-v20',
+        'cuotago/templates/contracts/list.html': 'contracts-page-v20',
+        'cuotago/templates/contracts/detail.html': 'contract-detail-v20',
+        'cuotago/templates/collections/list.html': 'collections-page-v20',
+        'cuotago/templates/expenses/index.html': 'expenses-page-v20',
+        'cuotago/templates/purchases/list.html': 'purchases-page-v20',
+        'cuotago/templates/calendar/list.html': 'calendar-page-v20',
+        'cuotago/templates/reports/index.html': 'reports-v20',
+        'cuotago/templates/settings/index.html': 'settings-page-v20',
+        'cuotago/templates/documents/index.html': 'documents-page-v20',
+    }
+    assert "root.classList.toggle('is-standalone-app', standalone)" in base
+    assert "root.classList.toggle('is-browser-app', !standalone)" in base
+    assert '@media (min-width:900px)' in css
+    assert 'html.is-browser-app body.app-authenticated:not(.dashboard-home)' in css
+    assert 'desktop workbench' in css
+    assert 'html.is-browser-app .client-profile-v20' in css
+    assert 'html.is-browser-app .calendar-page-v20' in css
+    assert 'html.is-browser-app .reports-v20' in css
+    for filename, marker in expected_templates.items():
+        assert marker in Path(filename).read_text(encoding='utf-8')

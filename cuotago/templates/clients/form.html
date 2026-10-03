@@ -2,7 +2,7 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}{{ 'Editar' if client else 'Nuevo' }} cliente · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page narrow-page simple-form-page">
+<section class="content-page narrow-page simple-form-page client-form-page-v20">
   <div class="page-head simple-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.clients') }}" aria-label="Volver">{{ icon('back', 22) }}</a>

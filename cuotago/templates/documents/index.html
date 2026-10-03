@@ -2,7 +2,7 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Documentos · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page documents-page">
+<section class="content-page documents-page documents-page-v20">
   <div class="page-head documents-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
@@ -20,7 +20,7 @@
       <div class="docs-document-title">
         <span>DOCUMENTO DEL SISTEMA</span>
         <h2>Manual de uso</h2>
-        <p>Versión {{ config.get('APP_VERSION', '1.19.0') }} · {{ module_count }} módulos documentados · actualizado automáticamente</p>
+        <p>Versión {{ config.get('APP_VERSION', '1.20.0') }} · {{ module_count }} módulos documentados · actualizado automáticamente</p>
       </div>
       <span class="docs-live-badge"><i></i> Sincronizado</span>
     </header>

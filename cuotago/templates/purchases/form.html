@@ -4,7 +4,7 @@
 {% block content %}
 {% set has_assets = assets|length > 0 %}
 {% set supplier_value = form.get('supplier_id', '__new__' if suppliers|length == 0 else '') %}
-<section class="content-page purchase-order-page">
+<section class="content-page purchase-order-page purchase-order-page-v20">
   <div class="page-head simple-page-head purchase-order-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.purchases') }}" aria-label="Volver">{{ icon('back', 22) }}</a>

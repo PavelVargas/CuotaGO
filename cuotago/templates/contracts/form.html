@@ -5,7 +5,7 @@
 {% set client_mode = 'existing' if form.get('client_id') else ('new' if form.get('client_name') else ('existing' if clients else 'new')) %}
 {% set allow_new_asset = can('inventory.manage') %}
 {% set asset_mode = 'existing' if not allow_new_asset else ('existing' if form.get('asset_id') else ('new' if form.get('asset_name') else ('existing' if assets else 'new'))) %}
-<section class="content-page narrow-page agreement-wizard-page">
+<section class="content-page narrow-page agreement-wizard-page agreement-wizard-page-v20">
   <div class="page-head simple-page-head wizard-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.contracts') }}" aria-label="Volver">{{ icon('back', 22) }}</a>

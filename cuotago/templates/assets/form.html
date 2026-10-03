@@ -3,7 +3,7 @@
 {% set kind_value = asset.kind if asset else request.form.get('kind','car') %}
 {% block title %}{{ 'Editar' if asset else 'Nuevo' }} inventario · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page simple-form-page inventory-editor-page dealer-editor-v19">
+<section class="content-page simple-form-page inventory-editor-page dealer-editor-v19 dealer-editor-v20">
   <div class="page-head simple-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.asset_detail', asset_id=asset.id) if asset else url_for('main.assets') }}" aria-label="Volver">{{ icon('back', 22) }}</a>

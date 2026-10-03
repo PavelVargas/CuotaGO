@@ -3,7 +3,7 @@
 {% set is_vehicle = asset.kind in ['car', 'motorcycle'] %}
 {% block title %}{{ asset.name }} · Inventario · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page vehicle-detail-page vehicle-detail-v19">
+<section class="content-page vehicle-detail-page vehicle-detail-v19 vehicle-detail-v20">
   <div class="page-head vehicle-detail-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.assets') }}" aria-label="Volver al inventario">{{ icon('back', 22) }}</a>
