@@ -6,6 +6,7 @@
   <div class="page-head simple-page-head client-form-head-v23">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.clients') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <span class="module-context-icon accent-cyan" aria-hidden="true">{{ icon('home-clients', 24) }}</span>
       <div><span class="eyebrow">CLIENTES</span><h1>{{ 'Editar cliente' if client else 'Nuevo cliente' }}</h1><p>Información clara y suficiente para identificar y contactar al cliente.</p></div>
     </div>
   </div>

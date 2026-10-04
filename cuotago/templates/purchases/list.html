@@ -6,6 +6,7 @@
   <div class="page-head purchases-head-v23">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <span class="module-context-icon accent-green" aria-hidden="true">{{ icon('home-purchases', 24) }}</span>
       <div><span class="eyebrow">COMPRAS</span><h1>Compras</h1><p>Órdenes, proveedores y costo real de entrada del inventario.</p></div>
     </div>
     {% if can('purchases.manage') %}<a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">{{ icon('plus',17) }} Nueva orden</a>{% endif %}

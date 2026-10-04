@@ -32,6 +32,9 @@
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --safe-left:env(safe-area-inset-left,0px);
   --topbar-h:62px;
+  --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --pwa-launcher-button-size:72px;
+  --pwa-launcher-glyph-size:50px;
 }
 
 html[data-theme="dark"]{
@@ -64,7 +67,7 @@ html[data-theme="dark"]{
 
 *{box-sizing:border-box}
 html{background:var(--bg);-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth}
-body{margin:0;min-width:280px;min-height:100dvh;background:var(--bg);color:var(--text);font-family:"Sora",sans-serif;line-height:1.45;overflow-x:hidden;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-width:280px;min-height:100dvh;background:var(--bg);color:var(--text);font-family:var(--font-ui);line-height:1.45;overflow-x:hidden;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
 a{color:inherit;text-decoration:none}
 button,input,select,textarea{font:inherit;color:inherit}
 button,a,input,select,textarea{touch-action:manipulation}
@@ -447,7 +450,7 @@ input,select,textarea{font-size:16px!important}
 
 /* v1.8 · MuseoModerno más legible + alertas locales robustas */
 body{font-weight:500;line-height:1.56;letter-spacing:0}
-body,button,input,select,textarea{font-family:"Sora",sans-serif}
+body,button,input,select,textarea{font-family:var(--font-ui)}
 h1,h2,h3,h4,h5,h6,strong,b,.btn,.brand,.module-card strong,.page-head h1,.notification-title-line strong,.payment-notification-copy>b{font-weight:700!important;letter-spacing:-.012em}
 p,small,.field span,.field small,.user-copy small,.module-card small,.payment-notification-copy>small,.notification-overview-copy p{font-weight:500;letter-spacing:0}
 .page-head h1{line-height:1.24;letter-spacing:-.018em}
@@ -1263,11 +1266,11 @@ html[data-auth-screen="1"] .auth-main{color:#253142}
    - PWA: 4 x 2 launcher preserved and tap targets remain comfortable.
    -------------------------------------------------------------------------- */
 body{
-  font-family:"Sora",sans-serif;
+  font-family:var(--font-ui);
   line-height:1.4;
 }
 button,input,select,textarea{font-family:inherit}
-.brand-name,.boot-splash strong{font-family:"Sora",sans-serif}
+.brand-name,.boot-splash strong{font-family:var(--font-ui)}
 
 :root{
   --shadow:0 12px 30px rgba(29,42,58,.08);
@@ -3778,8 +3781,8 @@ body.is-navigating-v17::before{content:"";position:fixed;z-index:10020;left:0;to
   --cg-font-page:21px;
 }
 
-body,button,input,select,textarea{font-family:"Sora",sans-serif}
-.brand-name,.boot-splash strong{font-family:"Sora",sans-serif}
+body,button,input,select,textarea{font-family:var(--font-ui)}
+.brand-name,.boot-splash strong{font-family:var(--font-ui)}
 
 /* Estructura comun */
 .content-page{padding-top:18px;padding-bottom:26px}
@@ -6967,4 +6970,183 @@ html[data-theme="dark"] .report-attention-panel-v23{box-shadow:none}
     grid-template-columns:1fr!important;
   }
   html.is-standalone-app .purchases-page-v23 .purchase-insight-card-v23 span{display:block!important;font-size:7px!important}
+}
+
+
+/* --------------------------------------------------------------------------
+   CuotaGo v1.24.5 ui-v60 · native typography + mobile hierarchy
+   - Uses the platform UI font: SF Pro on iPhone, Roboto on Android, Segoe UI on Windows.
+   - Adds a persistent module identity icon to module views.
+   - Improves PWA field/collection readability without enlarging the layout.
+   - Adds a local launcher-size preference with presets + custom slider.
+   -------------------------------------------------------------------------- */
+body,button,input,select,textarea{font-family:var(--font-ui)!important}
+
+.module-context-icon{
+  width:42px;height:42px;flex:0 0 42px;border-radius:14px;
+  display:grid;place-items:center;
+  color:var(--accent,var(--primary));
+  background:color-mix(in srgb,var(--accent,var(--primary)) 12%,var(--surface));
+  border:1px solid color-mix(in srgb,var(--accent,var(--primary)) 22%,var(--line));
+}
+.module-context-icon .ui-icon{width:27px;height:27px}
+
+.settings-launcher-size-v60{display:none}
+
+@media (max-width:719px){
+  html.is-standalone-app{
+    --pwa-type-main:10.5px;
+    --pwa-type-secondary:8.8px;
+  }
+
+  /* Softer typography: less shouting, better scan rhythm. */
+  html.is-standalone-app body{font-weight:450;letter-spacing:-.006em}
+  html.is-standalone-app .eyebrow{
+    font-size:8.5px!important;font-weight:700!important;letter-spacing:.08em!important;
+  }
+  html.is-standalone-app:not(.dashboard-home) .page-head h1{
+    font-size:18px!important;font-weight:720!important;letter-spacing:-.028em!important;
+  }
+  html.is-standalone-app:not(.dashboard-home) .section-heading h2{
+    font-size:13.5px!important;font-weight:700!important;letter-spacing:-.018em!important;
+  }
+  html.is-standalone-app .module-context-icon{
+    width:36px;height:36px;flex-basis:36px;border-radius:12px;
+    box-shadow:none;
+  }
+  html.is-standalone-app .module-context-icon .ui-icon{width:23px;height:23px}
+  html.is-standalone-app:not(.dashboard-home) .page-head-left{gap:7px!important;align-items:center!important}
+  html.is-standalone-app:not(.dashboard-home) .page-head-left>div{align-self:center!important}
+
+  /* Shared fields: visible labels, calm border, no iOS focus zoom. */
+  html.is-standalone-app:not(.dashboard-home) .field{gap:5px!important}
+  html.is-standalone-app:not(.dashboard-home) .field>span{
+    font-size:9.4px!important;line-height:1.15!important;font-weight:650!important;color:var(--muted)!important;
+    letter-spacing:.005em!important;
+  }
+  html.is-standalone-app:not(.dashboard-home) .field input,
+  html.is-standalone-app:not(.dashboard-home) .field select,
+  html.is-standalone-app:not(.dashboard-home) .field textarea,
+  html.is-standalone-app:not(.dashboard-home) .search-box input{
+    min-height:43px!important;
+    border-radius:13px!important;
+    border-color:var(--line-strong)!important;
+    background:var(--surface)!important;
+    padding:9px 11px!important;
+    font-size:16px!important;
+    font-weight:500!important;
+    letter-spacing:-.01em!important;
+    box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--surface) 70%,transparent)!important;
+  }
+  html.is-standalone-app:not(.dashboard-home) .field input:focus,
+  html.is-standalone-app:not(.dashboard-home) .field select:focus,
+  html.is-standalone-app:not(.dashboard-home) .field textarea:focus,
+  html.is-standalone-app:not(.dashboard-home) .search-box input:focus{
+    border-color:color-mix(in srgb,var(--primary) 52%,var(--line-strong))!important;
+    outline:2px solid color-mix(in srgb,var(--primary) 12%,transparent)!important;
+    outline-offset:0!important;
+  }
+  html.is-standalone-app:not(.dashboard-home) .btn{
+    font-weight:680!important;letter-spacing:-.01em!important;
+  }
+
+  /* Home launcher: default is larger; user setting can scale 58..78 px. */
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon{
+    width:min(var(--pwa-launcher-button-size),calc((100vw - 52px)/4))!important;
+    height:min(var(--pwa-launcher-button-size),calc((100vw - 52px)/4))!important;
+    border-radius:50%!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon svg{
+    width:min(var(--pwa-launcher-glyph-size),calc((100vw - 86px)/4))!important;
+    height:min(var(--pwa-launcher-glyph-size),calc((100vw - 86px)/4))!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card strong{
+    font-size:9.6px!important;font-weight:650!important;letter-spacing:-.015em!important;
+  }
+
+  /* Settings: the launcher control only makes sense inside the installed app. */
+  html.is-standalone-app .settings-launcher-size-v60{
+    display:block;
+    padding:11px 12px 12px;
+    border-bottom:1px solid var(--line);
+  }
+  html.is-standalone-app .settings-launcher-size-head-v60{
+    display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:9px;
+  }
+  html.is-standalone-app .settings-launcher-size-head-v60 .settings-row-icon{width:34px;height:34px;border-radius:11px}
+  html.is-standalone-app .settings-launcher-size-head-v60 output{
+    min-width:48px;padding:5px 7px;border-radius:9px;background:var(--surface-3);
+    color:var(--text-strong);font-size:9px;font-weight:700;text-align:center;
+  }
+  html.is-standalone-app .settings-launcher-presets-v60{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:9px 0 8px 43px;
+  }
+  html.is-standalone-app .settings-launcher-presets-v60 button{
+    min-height:31px;padding:5px 6px;border:1px solid var(--line);border-radius:10px;
+    background:var(--surface-2);color:var(--muted);font-size:9px;font-weight:650;
+  }
+  html.is-standalone-app .settings-launcher-presets-v60 button.is-active{
+    border-color:color-mix(in srgb,var(--primary) 38%,var(--line));
+    background:var(--primary-soft);color:var(--primary-deep);
+  }
+  html.is-standalone-app .settings-launcher-range-v60{
+    display:grid;grid-template-columns:70px minmax(0,1fr);align-items:center;gap:8px;margin-left:43px;
+    color:var(--muted);font-size:8.8px;font-weight:600;
+  }
+  html.is-standalone-app .settings-launcher-range-v60 input{width:100%;accent-color:var(--primary)}
+
+  /* Gastos: inputs get hierarchy; no tiny labels or helper noise. */
+  html.is-standalone-app .expenses-page-v20 .expense-entry-v19{padding:11px!important}
+  html.is-standalone-app .expenses-page-v20 .expense-form-v19{gap:8px!important}
+  html.is-standalone-app .expenses-page-v20 .expense-form-v19 .field>span{font-size:9.5px!important;font-weight:650!important}
+  html.is-standalone-app .expenses-page-v20 .expense-form-v19 input,
+  html.is-standalone-app .expenses-page-v20 .expense-form-v19 select{
+    min-height:43px!important;border-radius:13px!important;font-size:16px!important;font-weight:500!important;
+  }
+  html.is-standalone-app .expenses-page-v20 .expense-asset-card-v19 strong{font-size:10px!important;font-weight:680!important}
+  html.is-standalone-app .expenses-page-v20 .expense-asset-card-v19 small{font-size:8.1px!important;line-height:1.2!important}
+  html.is-standalone-app .expenses-page-v20 .expense-asset-card-v19>b{font-size:9.4px!important;font-weight:700!important}
+  html.is-standalone-app .expenses-page-v20 .expense-summary-v19>small:not(.expense-summary-context-v19){font-size:8.5px!important}
+  html.is-standalone-app .expenses-page-v20 .expense-periods-v15 a{font-size:8.5px!important;font-weight:650!important}
+  html.is-standalone-app .expenses-page-v20 .expense-category-list-v15>div{font-size:9px!important}
+  html.is-standalone-app .expenses-page-v20 .expense-row-copy-v19 strong{font-size:10.5px!important;font-weight:680!important}
+  html.is-standalone-app .expenses-page-v20 .expense-row-copy-v19 small{font-size:8.4px!important;line-height:1.3!important}
+  html.is-standalone-app .expenses-page-v20 .expense-product-link-v19{font-size:8.4px!important}
+  html.is-standalone-app .expenses-page-v20 .expense-row-v19>b{font-size:10.5px!important;font-weight:720!important}
+
+  /* Cobros: no 7px text. Amount and customer are the visual anchors. */
+  html.is-standalone-app .collections-page-v20 .kpi-card>span{font-size:8.8px!important;font-weight:600!important}
+  html.is-standalone-app .collections-page-v20 .kpi-card>strong{font-size:14px!important;font-weight:720!important}
+  html.is-standalone-app .collections-page-v20 .collection-section{padding:10px 11px!important}
+  html.is-standalone-app .collections-page-v20 .collection-row{
+    grid-template-columns:40px minmax(0,1fr) auto!important;gap:7px 9px!important;padding:9px 0!important;
+  }
+  html.is-standalone-app .collections-page-v20 .collection-date{width:38px!important;height:40px!important;border-radius:12px!important}
+  html.is-standalone-app .collections-page-v20 .collection-date strong{font-size:14px!important;font-weight:720!important}
+  html.is-standalone-app .collections-page-v20 .collection-date span{font-size:8px!important;font-weight:650!important}
+  html.is-standalone-app .collections-page-v20 .collection-person strong{
+    font-size:11px!important;line-height:1.18!important;font-weight:700!important;
+  }
+  html.is-standalone-app .collections-page-v20 .collection-person small{
+    margin-top:3px!important;font-size:8.6px!important;line-height:1.24!important;
+  }
+  html.is-standalone-app .collections-page-v20 .collection-amount strong{font-size:11.3px!important;font-weight:740!important}
+  html.is-standalone-app .collections-page-v20 .collection-amount small{font-size:8.2px!important;line-height:1.2!important}
+  html.is-standalone-app .collections-page-v20 .quick-collect-btn{font-size:9.2px!important;font-weight:700!important}
+  html.is-standalone-app .collections-page-v20 .section-heading>span{font-size:9px!important;font-weight:650!important}
+
+  /* Reduce hard-heavy weights in recurring mobile labels/cards. */
+  html.is-standalone-app .status-pill,
+  html.is-standalone-app .vehicle-status,
+  html.is-standalone-app .result-count,
+  html.is-standalone-app .module-badge{font-weight:650!important}
+}
+
+/* Client profile has its own hero grid; keep the module marker out of that grid flow. */
+.client-profile-heading-v60{display:flex;align-items:center;gap:10px;min-width:0}
+.client-profile-heading-v60>span:last-child{min-width:0}
+.client-profile-heading-v60 h1{margin-top:1px!important}
+@media (max-width:719px){
+  html.is-standalone-app .client-profile-heading-v60{gap:8px}
+  html.is-standalone-app .client-profile-heading-v60 .module-context-icon{width:34px;height:34px;flex-basis:34px}
 }

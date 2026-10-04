@@ -6,6 +6,7 @@
   <div class="page-head settings-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <span class="module-context-icon accent-blue" aria-hidden="true">{{ icon('settings', 24) }}</span>
       <div><span class="eyebrow">AJUSTES</span><h1>Ajustes</h1><p>Cuenta, apariencia y accesos.</p></div>
     </div>
   </div>
@@ -14,6 +15,23 @@
     <div class="settings-section-heading">
       <strong>Preferencias</strong>
       <small>Los cambios se aplican en este dispositivo.</small>
+    </div>
+
+    <div class="settings-launcher-size-v60" data-pwa-launcher-settings>
+      <div class="settings-launcher-size-head-v60">
+        <span class="settings-row-icon">{{ icon('sliders', 20) }}</span>
+        <span class="settings-row-copy"><strong>Tamaño de módulos</strong><small>Ajusta los botones redondos del Inicio en esta PWA.</small></span>
+        <output data-launcher-size-output>72 px</output>
+      </div>
+      <div class="settings-launcher-presets-v60" aria-label="Tamaño de botones de módulos">
+        <button type="button" data-launcher-size-preset="60">Pequeño</button>
+        <button type="button" data-launcher-size-preset="68">Mediano</button>
+        <button type="button" data-launcher-size-preset="76">Grande</button>
+      </div>
+      <label class="settings-launcher-range-v60">
+        <span>Personalizado</span>
+        <input type="range" min="58" max="78" step="1" value="72" data-launcher-size-range aria-label="Tamaño personalizado de botones e iconos">
+      </label>
     </div>
 
     <div class="settings-switch-row">

@@ -7,6 +7,7 @@
   <div class="page-head simple-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.asset_detail', asset_id=asset.id) if asset else url_for('main.assets') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <span class="module-context-icon accent-teal" aria-hidden="true">{{ icon('home-inventory', 24) }}</span>
       <div>
         <span class="eyebrow">INVENTARIO</span>
         <h1>{{ 'Editar vehículo / producto' if asset else 'Registrar vehículo / producto' }}</h1>

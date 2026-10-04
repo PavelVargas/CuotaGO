@@ -4,7 +4,8 @@
 {% block content %}
 <section class="content-page statement-page-v15">
   <div class="page-head statement-actions-v15 no-print">
-    <div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.client_detail', client_id=client.id) }}">{{ icon('back',22) }}</a><div><h1>Estado de cuenta</h1><p>{{ client.full_name }}</p></div></div>
+    <div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.client_detail', client_id=client.id) }}">{{ icon('back',22) }}</a>
+      <span class="module-context-icon accent-cyan" aria-hidden="true">{{ icon('home-clients', 24) }}</span><div><h1>Estado de cuenta</h1><p>{{ client.full_name }}</p></div></div>
     <div class="statement-buttons-v15">
       <button class="btn btn-primary" type="button" data-share-pdf data-share-url="{{ url_for('main.client_statement_pdf', client_id=client.id) }}" data-share-name="estado-cuenta-{{ client.id }}.pdf" data-share-title="Estado de cuenta · {{ client.full_name }}">{{ icon('download',18) }} Compartir PDF</button>
       {% if statement_wa_link(client) %}<a class="btn btn-whatsapp" target="_blank" rel="noopener" href="{{ statement_wa_link(client) }}">{{ icon('whatsapp',18) }} WhatsApp</a>{% endif %}

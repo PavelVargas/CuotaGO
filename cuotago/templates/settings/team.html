@@ -3,7 +3,8 @@
 {% block title %}Equipo · {{ app_name }}{% endblock %}
 {% block content %}
 <section class="content-page narrow-page team-page-v16 team-page-v20">
-  <div class="page-head simple-page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.settings') }}" aria-label="Volver">{{ icon('back',22) }}</a><div><span class="eyebrow">EQUIPO</span><h1>Personas y acceso</h1><p>Elige el trabajo de cada persona; CuotaGo oculta lo demás.</p></div></div></div>
+  <div class="page-head simple-page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.settings') }}" aria-label="Volver">{{ icon('back',22) }}</a>
+      <span class="module-context-icon accent-cyan" aria-hidden="true">{{ icon('users', 24) }}</span><div><span class="eyebrow">EQUIPO</span><h1>Personas y acceso</h1><p>Elige el trabajo de cada persona; CuotaGo oculta lo demás.</p></div></div></div>
   <details class="surface team-add-v16">
     <summary><span>{{ icon('plus-doc',18) }}</span><div><strong>Agregar persona</strong><small>Nombre, correo, contraseña temporal y rol.</small></div><b>+</b></summary>
     <form method="post" action="{{ url_for('main.team_add') }}" class="form-stack team-form-v16"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-grid two"><label class="field"><span>Nombre</span><input name="name" required></label><label class="field"><span>Correo</span><input type="email" name="email" required></label><label class="field"><span>Contraseña temporal</span><input type="password" name="password" minlength="8" required></label><label class="field"><span>Rol</span><select name="role">{% for role in assignable_roles %}<option value="{{ role }}">{{ role_label(role) }}</option>{% endfor %}</select></label></div><button class="btn btn-primary" type="submit">Crear acceso</button></form>

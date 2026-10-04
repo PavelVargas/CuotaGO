@@ -1,18 +1,16 @@
-# CuotaGo MOBILE PWA v1.24.4 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.24.5 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
 
-## Cambios v1.24.4 — PWA compacta y orden natural
+## Cambios v1.24.5 — Tipografía nativa y jerarquía móvil
 
-- El Home PWA conserva **4 + 4 + 1 módulos**, pero ahora empieza **desde la izquierda**, como una cuadrícula móvil natural.
-- Los iconos circulares grandes, los KPIs y la Agenda de cobranza se mantienen sin tarjetas blancas alrededor del launcher.
-- **Gastos** reduce ruido visual: selector de producto más corto, formulario móvil en dos columnas, resumen compacto y movimientos más densos.
-- **Acuerdos, Cobros, Clientes, Compras y Reportes** reciben la misma pasada de densidad móvil: menos superficies anidadas, menos texto auxiliar visible y controles más bajos sin quitar funciones.
-- Inputs, botones, encabezados y tarjetas mantienen objetivos táctiles cómodos, pero aprovechan mejor una pantalla de teléfono.
-- Inventario conserva la franja financiera **Venta / Compra / Ganancia** (o **Venta / Costo / Stock**) introducida en la versión anterior.
-- Build de assets: `1.24.4-ui-v59`.
+- Fuente de interfaz nativa del sistema para reducir ruido visual y dependencia de Google Fonts.
+- Encabezados de módulos con icono y color del módulo en todas sus vistas principales.
+- PWA: inputs y tipografía de Gastos/Cobros reajustados para lectura cómoda sin perder densidad.
+- Configuración: tamaño de botones/iconos del Inicio con Pequeño, Mediano, Grande y slider personalizado.
+- Build de assets: `1.24.5-ui-v60`.
 
 
 ## Hotfix v1.24.2 — Home PWA 4 columnas + footer inferior
@@ -52,7 +50,7 @@ Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con 
 
 ## Cambios v1.17.1 — PWA, rendimiento y UX
 
-- **Sora como tipografía global de prueba:** interfaz, formularios, botones, login y splash usan `font-family: "Sora", sans-serif`.
+- **Tipografía histórica:** esta versión introdujo Sora; desde v1.24.5 la interfaz usa la tipografía nativa del sistema para reducir ruido y carga.
 - **Capa visual unificada ui-v37:** mismos tamaños de títulos, controles, radios, superficies y densidad en módulos, Reportes y Superadmin.
 - **Flujos más cortos:** desde la ficha del cliente puedes iniciar un acuerdo con ese cliente preseleccionado; opciones poco usadas permanecen plegadas.
 - **Hotfix PostgreSQL:** CuotaGo usa su propio ledger `cuotago_schema_migrations`, evitando conflictos con bases que ya tengan una tabla `schema_migrations` con otra estructura.

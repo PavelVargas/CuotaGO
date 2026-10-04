@@ -7,8 +7,10 @@
     <a class="icon-btn client-profile-back-v23" href="{{ url_for('main.clients') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
     <span class="client-profile-avatar-v23">{{ client.full_name[:1]|upper }}</span>
     <div class="client-profile-identity-v23">
-      <span class="eyebrow">CLIENTE</span>
-      <h1>{{ client.full_name }}</h1>
+      <div class="client-profile-heading-v60">
+        <span class="module-context-icon accent-cyan" aria-hidden="true">{{ icon('home-clients', 24) }}</span>
+        <span><span class="eyebrow">CLIENTE</span><h1>{{ client.full_name }}</h1></span>
+      </div>
       <div class="client-profile-contact-v23">
         <span>{{ client.phone or 'Sin teléfono' }}</span>
         {% if client.document_id %}<span>{{ client.document_id }}</span>{% endif %}

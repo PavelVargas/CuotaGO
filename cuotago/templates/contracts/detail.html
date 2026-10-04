@@ -6,6 +6,7 @@
   <div class="page-head simple-page-head agreement-detail-head-v23">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.contracts') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <span class="module-context-icon accent-blue" aria-hidden="true">{{ icon('home-agreements', 24) }}</span>
       <div><span class="eyebrow">ACUERDO {{ contract.code }}</span><h1>{{ contract.client.full_name }}</h1><p>{{ contract.asset.name }}{% if contract.quantity > 1 %} · {{ contract.quantity }} unidades{% endif %}</p></div>
     </div>
     <span class="status-pill agreement-status-v23 status-{{ contract.status }}">{{ contract_status_label(contract.status) }}</span>
