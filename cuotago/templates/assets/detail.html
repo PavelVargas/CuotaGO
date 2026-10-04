@@ -3,7 +3,7 @@
 {% set is_vehicle = asset.kind in ['car', 'motorcycle'] %}
 {% block title %}{{ asset.name }} · Inventario · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page vehicle-detail-page vehicle-detail-v19 vehicle-detail-v20">
+<section class="content-page vehicle-detail-page vehicle-detail-v19 vehicle-detail-v20 vehicle-detail-v22">
   <div class="page-head vehicle-detail-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.assets') }}" aria-label="Volver al inventario">{{ icon('back', 22) }}</a>
@@ -29,22 +29,32 @@
         </div>
       </div>
 
-      <div class="vehicle-state-banner-v19 vehicle-state-{{ asset.status }}">
+      <div class="vehicle-state-banner-v19 vehicle-state-{{ asset.status }} vehicle-state-banner-v22">
         <span class="vehicle-state-dot-v19"></span>
         <div class="vehicle-state-copy-v21"><small>Estado actual</small><strong>{{ asset_status_label(asset.status) }}</strong></div>
-        <span class="vehicle-state-help-v19">{% if asset.status == 'available' %}Disponible para vender o financiar{% elif asset.status == 'maintenance' %}En mantenimiento interno{% elif asset.status == 'workshop' %}Unidad enviada al taller{% elif asset.status == 'on_loan' %}Entregado en un acuerdo activo{% elif asset.status == 'sold' %}Venta completada{% endif %}</span>
+        <span class="vehicle-state-help-v19">{% if asset.status == 'available' %}Listo para vender o financiar{% elif asset.status == 'maintenance' %}Mantenimiento interno en proceso{% elif asset.status == 'workshop' %}Unidad actualmente en taller{% elif asset.status == 'on_loan' %}Entregado en un acuerdo activo{% elif asset.status == 'sold' %}Venta completada{% endif %}</span>
+      </div>
+
+      {% if is_vehicle %}
+      <div class="vehicle-status-workflow-v22" aria-label="Estado operativo del vehículo">
+        <div class="vehicle-status-workflow-copy-v22"><span>Estado operativo</span><small>{% if asset.committed_quantity == 0 %}Cámbialo según dónde se encuentre el vehículo.{% else %}Administrado automáticamente por el acuerdo activo.{% endif %}</small></div>
         {% if can('inventory.manage') and asset.committed_quantity == 0 %}
-        <form method="post" action="{{ url_for('main.asset_status_update', asset_id=asset.id) }}" class="vehicle-status-control-v21">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <select name="status" aria-label="Cambiar estado del vehículo">
-            <option value="available" {{ 'selected' if asset.status=='available' }}>Disponible</option>
-            <option value="maintenance" {{ 'selected' if asset.status=='maintenance' }}>Mantenimiento</option>
-            <option value="workshop" {{ 'selected' if asset.status=='workshop' }}>En taller</option>
-          </select>
-          <button type="submit">Cambiar</button>
-        </form>
+        <div class="vehicle-status-actions-v22">
+          {% for value, label in [('available','Disponible'),('maintenance','Mantenimiento'),('workshop','En taller')] %}
+          <form method="post" action="{{ url_for('main.asset_status_update', asset_id=asset.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="{{ value }}">
+            <button class="vehicle-status-choice-v22 is-{{ value }} {{ 'is-active' if asset.status == value }}" type="submit" {% if asset.status == value %}disabled{% endif %}>
+              <i aria-hidden="true"></i><span>{{ label }}</span>{% if asset.status == value %}<b>Actual</b>{% endif %}
+            </button>
+          </form>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="vehicle-status-locked-v22 vehicle-status-{{ asset.status }}">{{ asset_status_label(asset.status) }}</div>
         {% endif %}
       </div>
+      {% endif %}
 
       {% if is_vehicle %}
       <div class="vehicle-primary-facts vehicle-primary-facts-v19">
@@ -64,14 +74,17 @@
     </div>
   </article>
 
-  <section class="vehicle-section finance-section">
-    <div class="vehicle-section-heading"><div><span class="eyebrow">NÚMEROS</span><h2>Resumen financiero</h2></div></div>
-    <div class="surface vehicle-finance-strip">
-      <div class="finance-cell finance-target-cell-v21"><span>Venta objetivo</span><strong>{{ money(asset.sale_price) if asset.sale_price else 'No definida' }}</strong><small>Precio esperado de salida</small></div>
-      <div class="finance-cell"><span>Precio de compra</span><strong>{{ money(purchase_price) }}</strong></div>
-      <div class="finance-cell"><span>Inversión total</span><strong>{{ money(total_investment) }}</strong><small>Compra + trabajos y gastos</small></div>
-      <div class="finance-cell"><span>Gastos totales</span><strong>{{ money(expenses_total) }}</strong></div>
-      <div class="finance-cell finance-result {{ 'is-positive' if profit_loss is not none and profit_loss >= 0 else 'is-negative' if profit_loss is not none else '' }}"><span>Ganancia / pérdida</span><strong>{{ money(profit_loss) if profit_loss is not none else '—' }}</strong><small>{{ revenue_basis }}</small></div>
+  <section class="vehicle-section finance-section finance-section-v22">
+    <div class="vehicle-section-heading"><div><span class="eyebrow">NÚMEROS</span><h2>Resumen financiero</h2></div><small>Vista rápida del dinero colocado en esta unidad.</small></div>
+    <div class="vehicle-finance-grid-v22">
+      <article class="surface finance-kpi-v22 finance-target-v22">
+        <span class="finance-kpi-icon-v22">{{ icon('cash-stack', 19) }}</span>
+        <div><span>Venta objetivo</span><strong>{{ money(asset.sale_price) if asset.sale_price else 'No definida' }}</strong><small>{% if target_profit is not none %}Utilidad objetivo {{ money(target_profit) }} · {{ '%.2f'|format(target_margin_percent) }}% sobre inversión{% else %}Define el precio de venta para medir utilidad{% endif %}</small></div>
+      </article>
+      <article class="surface finance-kpi-v22"><span>Precio de compra</span><strong>{{ money(purchase_price) }}</strong><small>Costo base del vehículo</small></article>
+      <article class="surface finance-kpi-v22"><span>Inversión total</span><strong>{{ money(total_investment) }}</strong><small>Compra + trabajos y gastos</small></article>
+      <article class="surface finance-kpi-v22"><span>Gastos totales</span><strong>{{ money(expenses_total) }}</strong><small>Mejoras, taller y mantenimiento</small></article>
+      <article class="surface finance-kpi-v22 finance-result {{ 'is-positive' if profit_loss is not none and profit_loss >= 0 else 'is-negative' if profit_loss is not none else '' }}"><span>Ganancia / pérdida</span><strong>{{ money(profit_loss) if profit_loss is not none else '—' }}</strong><small>{{ revenue_basis }}</small></article>
     </div>
   </section>
 
@@ -83,7 +96,6 @@
         <div><dt>Origen / vendedor</dt><dd>{{ acquisition_origin or 'No registrado' }}</dd></div>
         <div><dt>Precio de compra</dt><dd>{{ money(purchase_price) }}</dd></div>
         {% if latest_purchase and latest_purchase.reference %}<div><dt>Referencia</dt><dd>{{ latest_purchase.reference }}</dd></div>{% endif %}
-        <div><dt>Precio de venta</dt><dd>{{ money(asset.sale_price) if asset.sale_price else 'No definido' }}</dd></div>
       </dl>
     </article>
 

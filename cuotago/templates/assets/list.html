@@ -2,7 +2,7 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Inventario · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page inventory-page inventory-page-v18 inventory-page-v19 inventory-page-v20">
+<section class="content-page inventory-page inventory-page-v18 inventory-page-v19 inventory-page-v20 inventory-page-v22">
   <div class="page-head inventory-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
@@ -10,6 +10,13 @@
     </div>
     {% if can('inventory.manage') %}<a class="btn btn-primary inventory-new-button" href="{{ url_for('main.asset_new') }}">{{ icon('plus', 17) }} <span>Nuevo</span></a>{% endif %}
   </div>
+
+  <section class="inventory-overview-v22" aria-label="Resumen de inventario">
+    <article class="inventory-overview-card-v22 is-available"><span>Disponibles</span><strong>{{ inventory_summary.available_units }}</strong><small>Unidades listas para negocio</small></article>
+    <article class="inventory-overview-card-v22 is-maintenance"><span>Mantenimiento</span><strong>{{ inventory_summary.maintenance_units }}</strong><small>Unidades en proceso interno</small></article>
+    <article class="inventory-overview-card-v22 is-workshop"><span>En taller</span><strong>{{ inventory_summary.workshop_units }}</strong><small>Unidades fuera del piso</small></article>
+    <article class="inventory-overview-card-v22 is-money"><span>Capital disponible</span><strong>{{ money(inventory_summary.cost_value) }}</strong><small>Ganancia potencial {{ money(inventory_summary.potential_profit) }}</small></article>
+  </section>
 
   <div class="toolbar inventory-toolbar inventory-toolbar-v18">
     <form class="filter-row inventory-filter-row" method="get">
@@ -64,9 +71,12 @@
         </span>
 
         <span class="inventory-row-side inventory-row-side-v18">
-          <small>{{ 'Venta' if asset.sale_price else 'Costo' }}</small>
+          <small>{{ 'Venta objetivo' if asset.sale_price else 'Costo' }}</small>
           <strong>{{ money(asset.sale_price if asset.sale_price else asset.estimated_value) }}</strong>
-          {% if is_vehicle and asset.estimated_value %}<span>Compra {{ money(asset.estimated_value) }}</span>{% endif %}
+          {% if is_vehicle and asset.estimated_value %}
+            <span>Compra {{ money(asset.estimated_value) }}</span>
+            {% if asset.sale_price %}<em>{{ money(asset.expected_profit_per_unit) }} potencial · {{ '%.1f'|format(asset.expected_margin_percent) }}%</em>{% endif %}
+          {% endif %}
         </span>
         <span class="inventory-row-chevron" aria-hidden="true">›</span>
       </a>

@@ -1144,7 +1144,51 @@ def assets():
         changed = changed or before != item.status
     if changed:
         db.session.commit()
-    return render_template("assets/list.html", assets=items, q=q, status=status, pagination=pagination)
+
+    # Dealer dashboard summary is intentionally calculated outside the active
+    # filters so the operator always sees the real inventory position.
+    summary_assets = (
+        Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.investments))
+        .filter_by(organization_id=current_user.organization_id)
+        .all()
+    )
+    summary_changed = False
+    for summary_asset in summary_assets:
+        before = summary_asset.status
+        refresh_asset_status(summary_asset)
+        summary_changed = summary_changed or before != summary_asset.status
+    if summary_changed:
+        db.session.commit()
+
+    available_units = sum((asset.available_quantity for asset in summary_assets if asset.status == "available"), 0)
+    maintenance_units = sum((max(int(asset.quantity_total or 1), 1) for asset in summary_assets if asset.status == "maintenance"), 0)
+    workshop_units = sum((max(int(asset.quantity_total or 1), 1) for asset in summary_assets if asset.status == "workshop"), 0)
+    inventory_cost_value = sum(
+        (
+            (money_decimal(asset.estimated_value) * Decimal(asset.available_quantity))
+            + sum((money_decimal(item.amount) for item in asset.investments), Decimal("0.00"))
+            for asset in summary_assets if asset.status == "available" and asset.available_quantity > 0
+        ),
+        Decimal("0.00"),
+    )
+    inventory_sale_value = sum(
+        (
+            (money_decimal(asset.sale_price) if money_decimal(asset.sale_price) > 0 else money_decimal(asset.estimated_value))
+            * Decimal(asset.available_quantity)
+            for asset in summary_assets if asset.status == "available" and asset.available_quantity > 0
+        ),
+        Decimal("0.00"),
+    )
+    inventory_summary = {
+        "available_units": available_units,
+        "maintenance_units": maintenance_units,
+        "workshop_units": workshop_units,
+        "cost_value": money_decimal(inventory_cost_value),
+        "potential_profit": money_decimal(inventory_sale_value - inventory_cost_value),
+    }
+    return render_template(
+        "assets/list.html", assets=items, q=q, status=status, pagination=pagination, inventory_summary=inventory_summary
+    )
 
 
 @main_bp.get("/assets/<int:asset_id>")
@@ -1178,6 +1222,9 @@ def asset_detail(asset_id):
     contracted_revenue = sum((money_decimal(contract.total_amount) for contract in sale_contracts), Decimal("0.00"))
     target_revenue = contracted_revenue if contracted_revenue > 0 else money_decimal(asset.sale_price)
     profit_loss = (target_revenue - total_investment) if target_revenue > 0 else None
+    target_sale_price = money_decimal(asset.sale_price)
+    target_profit = (target_sale_price - total_investment) if target_sale_price > 0 else None
+    target_margin_percent = (target_profit / total_investment * Decimal("100")) if target_profit is not None and total_investment > 0 else Decimal("0.00")
     revenue_basis = "Acuerdo de venta" if contracted_revenue > 0 else ("Precio de venta" if target_revenue > 0 else "Sin precio definido")
 
     latest_purchase = asset.purchases[0] if asset.purchases else None
@@ -1231,6 +1278,8 @@ def asset_detail(asset_id):
         expenses_total=money_decimal(expenses_total),
         total_investment=money_decimal(total_investment),
         profit_loss=(money_decimal(profit_loss) if profit_loss is not None else None),
+        target_profit=(money_decimal(target_profit) if target_profit is not None else None),
+        target_margin_percent=money_decimal(target_margin_percent),
         revenue_basis=revenue_basis,
         acquisition_origin=acquisition_origin,
         acquisition_date=acquisition_date,
@@ -2991,6 +3040,12 @@ def reports():
     period_payments = [payment for payment in cash_payments_all if date_in_period(payment.paid_at)]
     period_collected = sum((money_decimal(payment.amount) for payment in period_payments), Decimal("0.00"))
     period_payment_count = len(period_payments)
+    average_payment = money_decimal(period_collected / Decimal(period_payment_count)) if period_payment_count else Decimal("0.00")
+    period_contracts = [contract for contract in contracts_scope if date_in_period(contract.created_at)]
+    period_agreement_count = len(period_contracts)
+    period_agreement_total = sum((money_decimal(contract.total_amount) for contract in period_contracts), Decimal("0.00"))
+    average_agreement = money_decimal(period_agreement_total / Decimal(period_agreement_count)) if period_agreement_count else Decimal("0.00")
+    period_new_clients = sum((1 for client in report_clients if date_in_period(client.created_at)), 0)
     payment_method_totals = {key: Decimal("0.00") for key in ("cash", "transfer", "deposit", "card", "other")}
     for payment in period_payments:
         key = payment.method if payment.method in payment_method_totals else "other"
@@ -3008,10 +3063,32 @@ def reports():
     expenses_period_total = money_decimal(
         expense_query.with_entities(func.coalesce(func.sum(Expense.amount), 0)).scalar() or 0
     )
-    period_expenses = expense_query.order_by(Expense.expense_date.desc(), Expense.created_at.desc()).limit(80).all()
+    expense_rows_for_analytics = expense_query.order_by(Expense.expense_date.asc(), Expense.created_at.asc()).all()
+    period_expenses = list(reversed(expense_rows_for_analytics[-80:]))
     cash_flow_net = period_collected - expenses_period_total
+    expense_ratio_percent = (expenses_period_total / period_collected * Decimal("100")) if period_collected > 0 else Decimal("0.00")
+    cash_flow_margin_percent = (cash_flow_net / period_collected * Decimal("100")) if period_collected > 0 else Decimal("0.00")
+
+    expense_category_map = {}
+    for expense in expense_rows_for_analytics:
+        key = expense.category or "other"
+        expense_category_map[key] = expense_category_map.get(key, Decimal("0.00")) + money_decimal(expense.amount)
+    expense_category_totals = []
+    for key, amount in sorted(expense_category_map.items(), key=lambda item: item[1], reverse=True)[:6]:
+        percent = (amount / expenses_period_total * Decimal("100")) if expenses_period_total > 0 else Decimal("0.00")
+        expense_category_totals.append({
+            "key": key,
+            "label": expense_category_label(key),
+            "amount": money_decimal(amount),
+            "percent": money_decimal(percent),
+        })
 
     financed_total = sum((money_decimal(contract.total_amount) for contract in contracts_scope), Decimal("0.00"))
+    principal_collected_scope = sum((money_decimal(contract.principal_paid_total) for contract in contracts_scope), Decimal("0.00"))
+    collection_rate_percent = (principal_collected_scope / financed_total * Decimal("100")) if financed_total > 0 else Decimal("0.00")
+    overdue_ratio_percent = (overdue_total / receivable * Decimal("100")) if receivable > 0 else Decimal("0.00")
+    active_clients_count = len(active_client_ids)
+    portfolio_health_percent = (Decimal(len(current_client_ids)) / Decimal(active_clients_count) * Decimal("100")) if active_clients_count else Decimal("100.00")
     profit_contracts = [
         contract for contract in contracts_scope
         if money_decimal(contract.base_amount) > 0 and money_decimal(contract.total_amount) > 0
@@ -3038,22 +3115,67 @@ def reports():
     late_fee_pending = sum((item.late_fee_remaining for item in all_installments), Decimal("0.00"))
     late_fee_collected = sum((money_decimal(payment.late_fee_amount) for payment in all_payments), Decimal("0.00"))
 
-    assets = Asset.query.filter_by(organization_id=org_id).all()
-    inventory_available_units = sum((asset.available_quantity for asset in assets), 0)
+    assets = (
+        Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.investments))
+        .filter_by(organization_id=org_id)
+        .all()
+    )
+    asset_status_changed = False
+    for asset in assets:
+        before = asset.status
+        refresh_asset_status(asset)
+        asset_status_changed = asset_status_changed or before != asset.status
+    if asset_status_changed:
+        db.session.commit()
+
+    inventory_available_units = sum((asset.available_quantity for asset in assets if asset.status == "available"), 0)
     inventory_committed_units = sum((asset.committed_quantity for asset in assets), 0)
     inventory_available_value = sum(
-        (money_decimal(asset.estimated_value) * Decimal(asset.available_quantity) for asset in assets),
+        (
+            (money_decimal(asset.estimated_value) * Decimal(asset.available_quantity))
+            + sum((money_decimal(item.amount) for item in asset.investments), Decimal("0.00"))
+            for asset in assets if asset.status == "available" and asset.available_quantity > 0
+        ),
         Decimal("0.00"),
     )
     inventory_sale_value = sum(
         (
             (money_decimal(asset.sale_price) if money_decimal(asset.sale_price) > 0 else money_decimal(asset.estimated_value))
             * Decimal(asset.available_quantity)
-            for asset in assets
+            for asset in assets if asset.status == "available" and asset.available_quantity > 0
         ),
         Decimal("0.00"),
     )
     inventory_potential_profit = inventory_sale_value - inventory_available_value
+    inventory_margin_percent = (inventory_potential_profit / inventory_available_value * Decimal("100")) if inventory_available_value > 0 else Decimal("0.00")
+    inventory_status_counts = {key: 0 for key in ("available", "maintenance", "workshop", "on_loan", "sold")}
+    blocked_inventory_value = Decimal("0.00")
+    available_ages = []
+    inventory_opportunities = []
+    for asset in assets:
+        status_key = asset.status if asset.status in inventory_status_counts else "available"
+        inventory_status_counts[status_key] += max(int(asset.quantity_total or 1), 1)
+        if status_key in {"maintenance", "workshop"}:
+            blocked_inventory_value += money_decimal(asset.estimated_value) * Decimal(max(int(asset.quantity_total or 1), 1))
+        if asset.available_quantity > 0 and asset.status == "available":
+            acquired_on = asset.acquisition_date or (asset.created_at.date() if asset.created_at else today_value)
+            age_days = max((today_value - acquired_on).days, 0)
+            available_ages.extend([age_days] * max(asset.available_quantity, 1))
+            sale_price = money_decimal(asset.sale_price)
+            investment_cost = sum((money_decimal(item.amount) for item in asset.investments), Decimal("0.00"))
+            unit_cost = money_decimal(asset.estimated_value) + (investment_cost / Decimal(max(asset.available_quantity, 1)))
+            if sale_price > 0 and asset.status == "available":
+                unit_profit = sale_price - unit_cost
+                inventory_opportunities.append({
+                    "asset": asset,
+                    "units": asset.available_quantity,
+                    "potential_profit": money_decimal(unit_profit * Decimal(asset.available_quantity)),
+                    "margin_percent": money_decimal((unit_profit / unit_cost * Decimal("100")) if unit_cost > 0 else Decimal("0.00")),
+                })
+    average_inventory_days = int(round(sum(available_ages) / len(available_ages))) if available_ages else 0
+    inventory_over_60_units = sum((1 for age in available_ages if age >= 60), 0)
+    inventory_opportunities.sort(key=lambda item: item["potential_profit"], reverse=True)
+    inventory_opportunities = inventory_opportunities[:5]
 
     purchases_scope = Purchase.query.filter_by(organization_id=org_id).all()
     period_purchases = [item for item in purchases_scope if date_in_period(item.purchase_date)]
@@ -3072,20 +3194,34 @@ def reports():
         if payment_day in daily_collected:
             daily_collected[payment_day] += money_decimal(payment.amount)
 
+    daily_expenses = {day: Decimal("0.00") for day in chart_days}
+    for expense in expense_rows_for_analytics:
+        if expense.expense_date in daily_expenses:
+            daily_expenses[expense.expense_date] += money_decimal(expense.amount)
+
     chart_values = [money_decimal(daily_collected[day]) for day in chart_days]
+    chart_expense_values = [money_decimal(daily_expenses[day]) for day in chart_days]
     chart_total = sum(chart_values, Decimal("0.00"))
-    chart_max_value = max(chart_values, default=Decimal("0.00"))
+    chart_expense_total = sum(chart_expense_values, Decimal("0.00"))
+    chart_max_value = max(chart_values + chart_expense_values, default=Decimal("0.00"))
     chart_has_data = chart_max_value > Decimal("0.009")
     chart_ceiling = chart_max_value if chart_has_data else Decimal("1.00")
-    points = []
-    for index, value in enumerate(chart_values):
-        if len(chart_values) == 1:
-            x = Decimal("500")
-        else:
-            x = Decimal("20") + (Decimal(index) * Decimal("960") / Decimal(len(chart_values) - 1))
-        y = Decimal("155") - (value / chart_ceiling * Decimal("118"))
-        points.append((float(x), float(y)))
+
+    def chart_points(values):
+        result = []
+        for index, value in enumerate(values):
+            if len(values) == 1:
+                x = Decimal("500")
+            else:
+                x = Decimal("20") + (Decimal(index) * Decimal("960") / Decimal(len(values) - 1))
+            y = Decimal("155") - (value / chart_ceiling * Decimal("118"))
+            result.append((float(x), float(y)))
+        return result
+
+    points = chart_points(chart_values)
+    expense_points = chart_points(chart_expense_values)
     chart_points_svg = " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
+    chart_expense_points_svg = " ".join(f"{x:.1f},{y:.1f}" for x, y in expense_points)
     if points:
         chart_area_svg = f"20,155 {chart_points_svg} 980,155"
     else:
@@ -3155,11 +3291,22 @@ def reports():
         upcoming_total=upcoming_total,
         period_collected=period_collected,
         period_payment_count=period_payment_count,
+        average_payment=average_payment,
+        period_agreement_count=period_agreement_count,
+        period_agreement_total=period_agreement_total,
+        average_agreement=average_agreement,
+        period_new_clients=period_new_clients,
         payment_method_totals=payment_method_totals,
         down_payment_total=down_payment_total,
         expenses_period_total=expenses_period_total,
         cash_flow_net=cash_flow_net,
+        expense_ratio_percent=money_decimal(expense_ratio_percent),
+        cash_flow_margin_percent=money_decimal(cash_flow_margin_percent),
+        expense_category_totals=expense_category_totals,
         financed_total=financed_total,
+        collection_rate_percent=money_decimal(collection_rate_percent),
+        overdue_ratio_percent=money_decimal(overdue_ratio_percent),
+        portfolio_health_percent=money_decimal(portfolio_health_percent),
         capital_total=capital_total,
         capital_recovered=capital_recovered,
         capital_pending=capital_pending,
@@ -3176,13 +3323,21 @@ def reports():
         inventory_available_value=inventory_available_value,
         inventory_sale_value=inventory_sale_value,
         inventory_potential_profit=inventory_potential_profit,
+        inventory_margin_percent=money_decimal(inventory_margin_percent),
+        inventory_status_counts=inventory_status_counts,
+        blocked_inventory_value=money_decimal(blocked_inventory_value),
+        average_inventory_days=average_inventory_days,
+        inventory_over_60_units=inventory_over_60_units,
+        inventory_opportunities=inventory_opportunities,
         purchases_period_invested=purchases_period_invested,
         purchases_period_expected_profit=purchases_period_expected_profit,
         chart_title=chart_title,
         chart_total=chart_total,
+        chart_expense_total=chart_expense_total,
         chart_max_value=chart_max_value,
         chart_has_data=chart_has_data,
         chart_points_svg=chart_points_svg,
+        chart_expense_points_svg=chart_expense_points_svg,
         chart_area_svg=chart_area_svg,
         chart_first_label=chart_first_label,
         chart_last_label=chart_last_label,

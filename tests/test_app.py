@@ -686,12 +686,13 @@ def test_vehicle_inventory_static_ui_has_dossier_and_migration():
     assert 'Gastos por producto' in expense_template
     assert 'data-client-url' in clients_template
     assert 'object-fit:contain' in css
-    assert 'finance-target-cell-v21' in detail
+    assert 'finance-target-v22' in detail
     assert 'Venta objetivo' in detail
-    assert 'vehicle-status-control-v21' in detail
+    assert 'vehicle-status-workflow-v22' in detail
+    assert 'vehicle-status-choice-v22' in detail
     assert 'value="workshop"' in detail
     assert 'vehicle-state-workshop' in css
-    assert 'v1.21.0 ui-v52' in css
+    assert 'v1.22.0 ui-v53' in css
 
 
 def test_daily_late_interest_is_added_and_paid(client, app):
@@ -1015,14 +1016,20 @@ def test_reports_v19_has_two_column_mobile_kpis_and_core_business_sections():
     css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
     main = Path('cuotago/main.py').read_text(encoding='utf-8')
 
-    assert 'report-kpi-grid-v19' in template
+    assert 'report-executive-grid-v22' in template
     assert 'Margen de ganancia' in template
     assert 'Ganancia esperada' in template
     assert 'Capital recuperado' in template
     assert 'MORA' in template
-    assert 'INVENTARIO' in template
+    assert 'INVENTARIO · DEALER' in template
+    assert 'Cobros vs. gastos' in template
+    assert 'Gasto / ingreso' in template
+    assert 'Días promedio en inventario' in template
     assert 'Actividad reciente' in template
-    assert '.report-kpi-grid-v19{grid-template-columns:repeat(2,minmax(0,1fr))' in css
+    assert 'html.is-browser-app .reports-v22 .report-executive-grid-v22' in css
+    assert 'collection_rate_percent' in main
+    assert 'expense_category_totals' in main
+    assert 'inventory_opportunities' in main
     assert 'profit_realized' in main
     assert 'late_fee_generated' in main
     assert 'inventory_available_value' in main
@@ -1438,7 +1445,7 @@ def test_v1175_cache_updates_without_manual_clear():
     app_js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
     init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
     config = Path('config.py').read_text(encoding='utf-8')
-    assert 'ASSET_VERSION = "1.21.0-ui-v52"' in config
+    assert 'ASSET_VERSION = "1.22.0-ui-v53"' in config
     assert 'cuotago-build-version' in base
     assert 'controllerchange' in base
     assert "updateViaCache: 'none'" in base
@@ -1483,7 +1490,7 @@ def test_v1178_auth_is_minimal_on_mobile_and_split_on_desktop():
     assert '@media(max-width:760px)' in css
     assert '.auth-showcase-v2{display:none}' in css
     assert '.auth-card-modern-v2{padding:18px 2px 6px;border:0' in css
-    assert 'v1.21.0 ui-v52' in css
+    assert 'v1.22.0 ui-v53' in css
 
 
 def test_v1179_desktop_topbar_and_launcher_geometry():

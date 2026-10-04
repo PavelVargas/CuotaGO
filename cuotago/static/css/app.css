@@ -5308,3 +5308,208 @@ html[data-theme="dark"] .finance-target-cell-v21>strong{color:#f5f8ff}
     background:linear-gradient(100deg,color-mix(in srgb,#e8792f 11%,transparent),transparent 38%);
   }
 }
+
+/* --------------------------------------------------------------------------
+   v1.22.0 ui-v53 · dealer dossier + professional inventory + deep analytics
+   -------------------------------------------------------------------------- */
+.vehicle-detail-v22 .vehicle-state-banner-v22{border-radius:16px}
+.vehicle-status-workflow-v22{margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--surface-2) 72%,var(--surface));display:flex;align-items:center;justify-content:space-between;gap:14px}
+.vehicle-status-workflow-copy-v22{display:flex;flex-direction:column;gap:2px;min-width:0}
+.vehicle-status-workflow-copy-v22>span{font-size:8px;font-weight:850;letter-spacing:.075em;text-transform:uppercase;color:var(--text-strong)}
+.vehicle-status-workflow-copy-v22>small{font-size:8px;line-height:1.35;color:var(--muted)}
+.vehicle-status-actions-v22{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.vehicle-status-actions-v22 form{margin:0}
+.vehicle-status-choice-v22{min-height:34px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:8.5px;font-weight:800;cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease,color .16s ease}
+.vehicle-status-choice-v22:hover:not(:disabled){transform:translateY(-1px);border-color:color-mix(in srgb,currentColor 40%,var(--line))}
+.vehicle-status-choice-v22>i{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 12%,transparent)}
+.vehicle-status-choice-v22>b{padding-left:2px;font-size:7px;text-transform:uppercase;letter-spacing:.05em}
+.vehicle-status-choice-v22.is-available{color:var(--success)}
+.vehicle-status-choice-v22.is-maintenance{color:var(--warning)}
+.vehicle-status-choice-v22.is-workshop{color:#dd6b20}
+.vehicle-status-choice-v22.is-active.is-available{background:var(--success-soft);border-color:color-mix(in srgb,var(--success) 32%,var(--line))}
+.vehicle-status-choice-v22.is-active.is-maintenance{background:var(--warning-soft);border-color:color-mix(in srgb,var(--warning) 35%,var(--line))}
+.vehicle-status-choice-v22.is-active.is-workshop{background:color-mix(in srgb,#e8792f 13%,var(--surface));border-color:color-mix(in srgb,#e8792f 35%,var(--line))}
+.vehicle-status-choice-v22:disabled{cursor:default;opacity:1}
+.vehicle-status-locked-v22{padding:7px 11px;border-radius:999px;font-size:8.5px;font-weight:850}
+
+.vehicle-finance-grid-v22{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.finance-kpi-v22{min-width:0;min-height:88px;padding:13px 14px;border-radius:17px;display:flex;flex-direction:column;justify-content:center;gap:3px;border:1px solid var(--line);box-shadow:none}
+.finance-kpi-v22>span,.finance-kpi-v22>div>span{font-size:7.5px;font-weight:850;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.finance-kpi-v22>strong,.finance-kpi-v22>div>strong{display:block;margin-top:2px;font-size:17px;line-height:1.12;letter-spacing:-.025em;color:var(--text-strong)}
+.finance-kpi-v22>small,.finance-kpi-v22>div>small{display:block;margin-top:3px;font-size:7.5px;line-height:1.35;color:var(--muted)}
+.finance-target-v22{grid-column:1/-1;min-height:98px;display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;gap:10px;background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 16%,var(--surface)),color-mix(in srgb,var(--primary) 4%,var(--surface)));border-color:color-mix(in srgb,var(--primary) 25%,var(--line))}
+.finance-target-v22 .finance-kpi-icon-v22{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;background:var(--primary);color:#fff}
+.finance-target-v22>div>span{color:var(--primary-deep)}
+.finance-target-v22>div>strong{font-size:21px}
+.finance-kpi-v22.finance-result.is-positive>strong{color:var(--success)}
+.finance-kpi-v22.finance-result.is-negative>strong{color:var(--danger)}
+
+.inventory-overview-v22{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 10px}
+.inventory-overview-card-v22{position:relative;overflow:hidden;min-height:76px;padding:11px 12px;border:1px solid var(--line);border-radius:17px;background:var(--surface);display:flex;flex-direction:column;justify-content:center;gap:2px}
+.inventory-overview-card-v22::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 4px 4px 0;background:var(--muted-2)}
+.inventory-overview-card-v22>span{font-size:7.5px;font-weight:850;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.inventory-overview-card-v22>strong{font-size:18px;line-height:1.1;color:var(--text-strong)}
+.inventory-overview-card-v22>small{font-size:7.5px;color:var(--muted)}
+.inventory-overview-card-v22.is-available::before{background:var(--success)}
+.inventory-overview-card-v22.is-maintenance::before{background:var(--warning)}
+.inventory-overview-card-v22.is-workshop::before{background:#e8792f}
+.inventory-overview-card-v22.is-money::before{background:var(--primary)}
+.inventory-row-side-v18>em{display:block;margin-top:2px;font-size:7.5px;font-style:normal;font-weight:750;color:var(--success);white-space:nowrap}
+
+/* Reports v22 */
+.reports-v22{--report-radius:18px}
+.report-page-head-v22 .report-period-chip-v22{display:inline-flex;align-items:center;min-height:32px;padding:6px 11px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:8.5px;font-weight:800;color:var(--text)}
+.report-executive-grid-v22{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:9px}
+.report-executive-card-v22{position:relative;overflow:hidden;min-height:92px;padding:13px 14px;border:1px solid var(--line);border-radius:var(--report-radius);background:var(--surface);display:flex;flex-direction:column;justify-content:center;gap:3px}
+.report-executive-card-v22::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 4px 4px 0;background:var(--muted-2)}
+.report-executive-card-v22>span{font-size:7.5px;font-weight:850;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.report-executive-card-v22>strong{font-size:19px;line-height:1.1;letter-spacing:-.025em;color:var(--text-strong)}
+.report-executive-card-v22>small{font-size:7.5px;line-height:1.35;color:var(--muted)}
+.report-executive-card-v22.is-danger::before{background:var(--danger)}.report-executive-card-v22.is-danger>strong{color:var(--danger)}
+.report-executive-card-v22.is-success::before{background:var(--success)}.report-executive-card-v22.is-success>strong{color:var(--success)}
+.report-executive-card-v22.is-primary::before{background:var(--primary)}.report-executive-card-v22.is-primary>strong{color:var(--primary)}
+.report-executive-card-v22.is-profit::before{background:var(--purple)}.report-executive-card-v22.is-profit>strong{color:var(--purple)}
+
+.report-health-grid-v22{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:9px}
+.report-health-card-v22{padding:11px 12px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.report-health-card-v22>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.report-health-card-v22 span{font-size:8.5px;font-weight:750;color:var(--text)}
+.report-health-card-v22 strong{font-size:12px;color:var(--text-strong)}
+.report-health-card-v22>small{display:block;margin-top:5px;font-size:7.5px;color:var(--muted)}
+.report-progress-v22{height:6px;margin-top:7px;border-radius:999px;background:var(--surface-3);overflow:hidden}
+.report-progress-v22>i{display:block;height:100%;max-width:100%;border-radius:inherit;background:var(--primary)}
+.report-health-card-v22.is-success .report-progress-v22>i{background:var(--success)}
+.report-health-card-v22.is-danger .report-progress-v22>i{background:var(--danger)}
+.report-health-card-v22.is-danger strong{color:var(--danger)}
+
+.report-main-grid-v22,.report-analytics-grid-v22,.report-breakdown-grid-v22{display:grid;grid-template-columns:1fr;gap:9px;margin-bottom:9px}
+.report-chart-panel-v22,.report-period-panel-v22,.report-inventory-analytics-v22,.report-expense-mix-v22,.report-purchases-v22{border-radius:var(--report-radius)!important}
+.report-section-head-v22 p{margin:3px 0 0;font-size:7.5px;color:var(--muted)}
+.report-chart-total-v22{display:flex;flex-direction:column;align-items:flex-end;gap:1px}.report-chart-total-v22>span{font-size:7px;color:var(--muted)}.report-chart-total-v22>strong{font-size:15px;color:var(--text-strong)}.report-chart-total-v22>small{font-size:7px;color:var(--danger)}
+.report-chart-legend-v22{display:flex;justify-content:flex-end;gap:12px;margin:-1px 0 4px;font-size:7.5px;color:var(--muted)}
+.report-chart-legend-v22 span{display:inline-flex;align-items:center;gap:5px}.report-chart-legend-v22 i{width:12px;height:3px;border-radius:999px;background:var(--primary)}.report-chart-legend-v22 i.is-expense{background:var(--danger)}
+.report-chart-v22{color:var(--primary)}.report-income-line-v22{stroke:var(--primary)!important}.report-expense-line-v22{fill:none;stroke:var(--danger);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.report-period-metrics-v22{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.report-period-metrics-v22>div{min-height:68px;padding:9px 10px;border-radius:14px;background:var(--surface-2);display:flex;flex-direction:column;justify-content:center;gap:2px}.report-period-metrics-v22 span{font-size:7.5px;color:var(--muted)}.report-period-metrics-v22 strong{font-size:13px;color:var(--text-strong)}.report-period-metrics-v22 small{font-size:7px;color:var(--muted)}
+.report-cashflow-v22{border-radius:var(--report-radius)!important;margin-bottom:9px}
+.cashflow-kpis-v22>div,.payment-method-breakdown-v22>div{border-radius:13px}
+
+.report-inventory-status-v22{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin:10px 0}
+.report-inventory-status-v22>div{min-height:58px;padding:8px 9px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);display:flex;flex-direction:column;justify-content:center;gap:2px}.report-inventory-status-v22 span{font-size:7px;color:var(--muted)}.report-inventory-status-v22 strong{font-size:15px;color:var(--text-strong)}
+.report-inventory-status-v22 .is-available strong{color:var(--success)}.report-inventory-status-v22 .is-maintenance strong{color:var(--warning)}.report-inventory-status-v22 .is-workshop strong{color:#e8792f}.report-inventory-status-v22 .is-onloan strong{color:var(--primary)}.report-inventory-status-v22 .is-sold strong{color:var(--purple)}
+.report-inventory-body-v22{display:grid;grid-template-columns:1fr;gap:8px}.report-inventory-numbers-v22{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.report-inventory-numbers-v22>div{min-height:70px;padding:9px 10px;border-radius:14px;background:var(--surface-2);display:flex;flex-direction:column;justify-content:center;gap:2px}.report-inventory-numbers-v22 span{font-size:7px;color:var(--muted)}.report-inventory-numbers-v22 strong{font-size:13px;color:var(--text-strong)}.report-inventory-numbers-v22 small{font-size:7px;color:var(--muted)}.report-inventory-numbers-v22 .success strong{color:var(--success)}.report-inventory-numbers-v22 .warning strong{color:var(--warning)}
+.report-inventory-opportunities-v22{padding:10px 12px;border-radius:14px;background:var(--surface-2)}.report-mini-head-v22{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px}.report-mini-head-v22>span{font-size:8px;font-weight:850;color:var(--text-strong)}.report-mini-head-v22>small{font-size:7px;color:var(--muted)}.report-inventory-opportunities-v22>a{min-height:44px;padding:7px 0;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}.report-inventory-opportunities-v22>a>span{display:flex;flex-direction:column;gap:1px}.report-inventory-opportunities-v22>a strong{font-size:8.5px;color:var(--text-strong)}.report-inventory-opportunities-v22>a small{font-size:7px;color:var(--muted)}.report-inventory-opportunities-v22>a>b{font-size:9px;color:var(--success);white-space:nowrap}
+
+.report-expense-bars-v22{display:flex;flex-direction:column;gap:9px}.report-expense-bar-v22>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:10px}.report-expense-bar-v22 span{font-size:8px;color:var(--text)}.report-expense-bar-v22 strong{font-size:9px;color:var(--text-strong)}.report-expense-bar-v22 small{display:block;margin-top:3px;font-size:7px;color:var(--muted)}.report-expense-bar-v22 .report-progress-v22{height:5px;margin-top:5px}.report-expense-bar-v22 .report-progress-v22>i{background:var(--danger)}
+.report-purchases-summary-v22{grid-template-columns:repeat(2,minmax(0,1fr))!important}.report-purchase-insight-v22{margin-top:8px;padding:10px;border-radius:14px;background:var(--surface-2);display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}.report-purchase-insight-v22>span{font-size:8px;color:var(--text)}.report-purchase-insight-v22>strong{font-size:12px;color:var(--text-strong)}.report-purchase-insight-v22>small{grid-column:1/-1;font-size:7px;color:var(--muted)}
+
+html[data-theme="dark"] .finance-target-v22{background:linear-gradient(135deg,rgba(58,132,246,.22),rgba(58,132,246,.07));border-color:rgba(100,165,255,.24)}
+html[data-theme="dark"] .finance-target-v22>div>span{color:#9ec4ff}
+html[data-theme="dark"] .vehicle-status-workflow-v22,
+html[data-theme="dark"] .report-health-card-v22,
+html[data-theme="dark"] .report-executive-card-v22,
+html[data-theme="dark"] .inventory-overview-card-v22{background:#111820;border-color:#25303b}
+html[data-theme="dark"] .report-period-metrics-v22>div,
+html[data-theme="dark"] .report-inventory-status-v22>div,
+html[data-theme="dark"] .report-inventory-numbers-v22>div,
+html[data-theme="dark"] .report-inventory-opportunities-v22,
+html[data-theme="dark"] .report-purchase-insight-v22{background:#0d141b}
+
+@media(max-width:719px){
+  .vehicle-status-workflow-v22{align-items:flex-start;flex-direction:column}
+  .vehicle-status-actions-v22{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .vehicle-status-actions-v22 form{min-width:0}.vehicle-status-choice-v22{width:100%;justify-content:center;padding-inline:6px}.vehicle-status-choice-v22>b{display:none}
+  .report-inventory-status-v22{grid-template-columns:repeat(3,minmax(0,1fr))}.report-inventory-status-v22>div:nth-child(n+4){grid-column:span 1}
+}
+
+@media(min-width:900px){
+  /* Professional dealer inventory: compact two-column workspace. */
+  html.is-browser-app .inventory-page-v22{max-width:1500px!important}
+  html.is-browser-app .inventory-page-v22 .inventory-overview-v22{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:10px}
+  html.is-browser-app .inventory-page-v22 .inventory-overview-card-v22{min-height:70px;padding:10px 14px;border-radius:18px}
+  html.is-browser-app .inventory-page-v22 .inventory-overview-card-v22>span{font-size:9px}.inventory-page-v22 .inventory-overview-card-v22>strong{font-size:19px}.inventory-page-v22 .inventory-overview-card-v22>small{font-size:9px}
+  html.is-browser-app .inventory-page-v22 .inventory-toolbar-v18{margin-bottom:10px;padding:7px 9px;border-radius:17px}
+  html.is-browser-app .inventory-page-v22 .inventory-list-v18{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  html.is-browser-app .inventory-page-v22 .inventory-product-card-v18{min-height:128px;grid-template-columns:154px minmax(0,1fr) 150px 10px;gap:13px;padding:10px;border-radius:22px;box-shadow:0 10px 28px rgba(20,35,55,.045);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+  html.is-browser-app .inventory-page-v22 .inventory-product-card-v18:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(20,35,55,.08);border-color:color-mix(in srgb,var(--primary) 25%,var(--line))}
+  html.is-browser-app .inventory-page-v22 .inventory-row-media-v18{width:154px;height:106px;border-radius:17px;overflow:hidden;background:var(--surface-2)}
+  html.is-browser-app .inventory-page-v22 .inventory-row-media-v18>img{object-fit:cover}
+  html.is-browser-app .inventory-page-v22 .inventory-card-topline{align-items:flex-start;justify-content:space-between}
+  html.is-browser-app .inventory-page-v22 .inventory-card-topline .inventory-product-name{font-size:14px;line-height:1.15}
+  html.is-browser-app .inventory-page-v22 .inventory-row-main-v18 .inventory-row-subtitle{font-size:10.5px;margin-top:2px}
+  html.is-browser-app .inventory-page-v22 .inventory-row-meta-v18{font-size:9.5px;margin-top:6px}
+  html.is-browser-app .inventory-page-v22 .inventory-row-side-v18{align-self:center;min-width:140px;padding-left:12px;border-left:1px solid var(--line)}
+  html.is-browser-app .inventory-page-v22 .inventory-row-side-v18 small{font-size:8.5px}
+  html.is-browser-app .inventory-page-v22 .inventory-row-side-v18>strong{font-size:15px;letter-spacing:-.015em}
+  html.is-browser-app .inventory-page-v22 .inventory-row-side-v18>span{font-size:9px}
+  html.is-browser-app .inventory-page-v22 .inventory-row-side-v18>em{font-size:9px}
+  html.is-browser-app .inventory-page-v22 .vehicle-status{min-height:24px;padding:4px 8px;font-size:9px}
+
+  /* Vehicle dossier: larger full photo, clearer operational state, card-based money. */
+  html.is-browser-app .vehicle-detail-v22{max-width:1500px!important}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-hero-v19{grid-template-columns:minmax(520px,.9fr) minmax(600px,1.1fr);align-items:stretch;border-radius:26px;overflow:hidden;box-shadow:0 14px 38px rgba(20,35,55,.06)}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-hero-media-v19{width:100%;height:auto;min-height:0;aspect-ratio:3/2;border-right:1px solid var(--line);background:#e8edf3}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-hero-media-v19>img{width:100%;height:100%;object-fit:contain;background:#e8edf3}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-hero-copy-v19{padding:22px 24px;justify-content:center}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-title-row h2{font-size:26px}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-title-row p{font-size:11.5px}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-state-banner-v22{margin-top:11px;padding:9px 11px;border-radius:15px}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-state-help-v19{font-size:9.5px;margin-left:auto}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-status-workflow-v22{padding:8px 10px;border-radius:15px}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-status-workflow-copy-v22>span{font-size:9px}.vehicle-detail-v22 .vehicle-status-workflow-copy-v22>small{font-size:9px}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-status-choice-v22{min-height:31px;padding:5px 9px;font-size:9px}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-primary-facts-v19{grid-template-columns:repeat(5,minmax(0,1fr));margin-top:10px}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-primary-facts-v19>div{padding:9px 10px 0!important;border-left:1px solid var(--line)!important;border-top:0!important}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-primary-facts-v19>div:first-child{padding-left:0!important;border-left:0!important}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-primary-facts span{font-size:9px}.vehicle-detail-v22 .vehicle-primary-facts strong{font-size:11px}
+  html.is-browser-app .vehicle-detail-v22 .finance-section-v22{margin-top:12px}
+  html.is-browser-app .vehicle-detail-v22 .finance-section-v22 .vehicle-section-heading{margin-bottom:7px}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-finance-grid-v22{grid-template-columns:1.35fr repeat(4,minmax(0,1fr));gap:8px}
+  html.is-browser-app .vehicle-detail-v22 .finance-kpi-v22{min-height:92px;padding:12px 14px;border-radius:19px}
+  html.is-browser-app .vehicle-detail-v22 .finance-target-v22{grid-column:auto;display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px}
+  html.is-browser-app .vehicle-detail-v22 .finance-kpi-v22>span,
+  html.is-browser-app .vehicle-detail-v22 .finance-kpi-v22>div>span{font-size:9px}
+  html.is-browser-app .vehicle-detail-v22 .finance-kpi-v22>strong,
+  html.is-browser-app .vehicle-detail-v22 .finance-kpi-v22>div>strong{font-size:18px}
+  html.is-browser-app .vehicle-detail-v22 .finance-target-v22>div>strong{font-size:20px}
+  html.is-browser-app .vehicle-detail-v22 .finance-kpi-v22>small,
+  html.is-browser-app .vehicle-detail-v22 .finance-kpi-v22>div>small{font-size:8.5px}
+  html.is-browser-app .vehicle-detail-v22 .vehicle-info-layout-v19{grid-template-columns:minmax(330px,.7fr) minmax(0,1.7fr);gap:10px;margin-top:10px}
+  html.is-browser-app .vehicle-detail-v22 .acquisition-panel,
+  html.is-browser-app .vehicle-detail-v22 .investment-panel{border-radius:22px}
+
+  /* Deep reports: high information density without tiny text. */
+  html.is-browser-app .reports-v22{max-width:1540px!important}
+  html.is-browser-app .reports-v22 .report-filter-disclosure-v22{border-radius:18px}
+  html.is-browser-app .reports-v22 .report-executive-grid-v22{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+  html.is-browser-app .reports-v22 .report-executive-card-v22{min-height:88px;padding:12px 13px;border-radius:19px}
+  html.is-browser-app .reports-v22 .report-executive-card-v22>span{font-size:9px}.reports-v22 .report-executive-card-v22>strong{font-size:18px}.reports-v22 .report-executive-card-v22>small{font-size:8.5px}
+  html.is-browser-app .reports-v22 .report-health-grid-v22{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  html.is-browser-app .reports-v22 .report-health-card-v22{padding:10px 12px;border-radius:17px}.reports-v22 .report-health-card-v22 span{font-size:9px}.reports-v22 .report-health-card-v22 strong{font-size:12px}.reports-v22 .report-health-card-v22>small{font-size:8.5px}
+  html.is-browser-app .reports-v22 .report-main-grid-v22{grid-template-columns:minmax(0,1.75fr) minmax(300px,.65fr);gap:9px}
+  html.is-browser-app .reports-v22 .report-chart-panel-v22,
+  html.is-browser-app .reports-v22 .report-period-panel-v22{padding:13px 15px!important}
+  html.is-browser-app .reports-v22 .report-chart-v22{min-height:205px}.reports-v22 .report-chart-v22 svg{height:160px}
+  html.is-browser-app .reports-v22 .report-period-metrics-v22{grid-template-columns:1fr}.reports-v22 .report-period-metrics-v22>div{min-height:54px;padding:7px 9px}.reports-v22 .report-period-metrics-v22 span{font-size:9px}.reports-v22 .report-period-metrics-v22 strong{font-size:13px}.reports-v22 .report-period-metrics-v22 small{font-size:8px}
+  html.is-browser-app .reports-v22 .report-cashflow-v22{padding:13px 15px!important}
+  html.is-browser-app .reports-v22 .report-analytics-grid-v22{grid-template-columns:1.2fr .9fr .72fr;gap:9px}
+  html.is-browser-app .reports-v22 .report-analytics-grid-v22>.report-panel-v19{padding:13px 15px!important}
+  html.is-browser-app .reports-v22 .report-money-stack-v22>div,
+  html.is-browser-app .reports-v22 .report-metric-list-v22>div{min-height:36px}
+  html.is-browser-app .reports-v22 .report-inventory-analytics-v22{padding:14px 16px!important}
+  html.is-browser-app .reports-v22 .report-inventory-status-v22{grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+  html.is-browser-app .reports-v22 .report-inventory-body-v22{grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr);gap:9px}
+  html.is-browser-app .reports-v22 .report-inventory-numbers-v22{grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+  html.is-browser-app .reports-v22 .report-inventory-numbers-v22>div{min-height:72px}.reports-v22 .report-inventory-numbers-v22 span{font-size:8.5px}.reports-v22 .report-inventory-numbers-v22 strong{font-size:13px}.reports-v22 .report-inventory-numbers-v22 small{font-size:8px}
+  html.is-browser-app .reports-v22 .report-breakdown-grid-v22{grid-template-columns:minmax(0,1.45fr) minmax(320px,.55fr);gap:9px}
+  html.is-browser-app .reports-v22 .report-expense-mix-v22,
+  html.is-browser-app .reports-v22 .report-purchases-v22{padding:13px 15px!important}
+  html.is-browser-app .reports-v22 .report-activity-v22{padding:13px 15px!important}
+}
+
+@media(min-width:1280px){
+  html.is-browser-app .vehicle-detail-v22 .vehicle-hero-v19{grid-template-columns:minmax(560px,.92fr) minmax(680px,1.08fr)}
+}
+
+html[data-theme="dark"] .vehicle-detail-v22 .vehicle-hero-media-v19,
+html[data-theme="dark"] .vehicle-detail-v22 .vehicle-hero-media-v19>img{background:#0b1118}
