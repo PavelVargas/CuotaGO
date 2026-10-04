@@ -117,7 +117,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.24.3-ui-v58';
+  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.24.4-ui-v59';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {

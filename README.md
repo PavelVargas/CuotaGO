@@ -1,18 +1,18 @@
-# CuotaGo MOBILE PWA v1.24.3 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.24.4 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
 
-## Hotfix v1.24.3 — Launcher circular + Inventario móvil
+## Cambios v1.24.4 — PWA compacta y orden natural
 
-- El Home PWA mantiene **4 + 4 + 1 módulos de derecha a izquierda**, pero elimina por completo las tarjetas blancas detrás de cada módulo.
-- El objetivo táctil principal ahora es un **botón circular grande** con borde y color por módulo; el nombre queda debajo.
-- Los KPIs y la Agenda de cobranza continúan fijados al pie del Home.
-- Inventario móvil reorganiza cada unidad en dos zonas: identidad/foto arriba y una franja financiera clara abajo.
-- Para vehículos la franja muestra **Venta / Compra / Ganancia**; para otros artículos, **Venta / Costo / Stock**.
-- Búsqueda, filtro y resumen de inventario se compactan para teléfono sin afectar la vista de escritorio.
-- Build de assets: `1.24.3-ui-v58`.
+- El Home PWA conserva **4 + 4 + 1 módulos**, pero ahora empieza **desde la izquierda**, como una cuadrícula móvil natural.
+- Los iconos circulares grandes, los KPIs y la Agenda de cobranza se mantienen sin tarjetas blancas alrededor del launcher.
+- **Gastos** reduce ruido visual: selector de producto más corto, formulario móvil en dos columnas, resumen compacto y movimientos más densos.
+- **Acuerdos, Cobros, Clientes, Compras y Reportes** reciben la misma pasada de densidad móvil: menos superficies anidadas, menos texto auxiliar visible y controles más bajos sin quitar funciones.
+- Inputs, botones, encabezados y tarjetas mantienen objetivos táctiles cómodos, pero aprovechan mejor una pantalla de teléfono.
+- Inventario conserva la franja financiera **Venta / Compra / Ganancia** (o **Venta / Costo / Stock**) introducida en la versión anterior.
+- Build de assets: `1.24.4-ui-v59`.
 
 
 ## Hotfix v1.24.2 — Home PWA 4 columnas + footer inferior

@@ -1451,15 +1451,18 @@ def test_v1175_cache_updates_without_manual_clear():
     init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
     config = Path('config.py').read_text(encoding='utf-8')
     css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
-    assert 'ASSET_VERSION = "1.24.3-ui-v58"' in config
-    assert 'CuotaGo v1.24.3 ui-v58 · PWA launcher circles + inventory finance hierarchy' in css
+    assert 'ASSET_VERSION = "1.24.4-ui-v59"' in config
+    assert 'CuotaGo v1.24.4 ui-v59 · PWA mobile-density pass' in css
     assert 'grid-template-columns:repeat(4,minmax(0,1fr))!important' in css
-    assert 'direction:rtl!important' in css
+    assert 'direction:ltr!important' in css
     assert 'margin:auto auto 0!important' in css
     assert 'border:1px solid color-mix(in srgb,var(--line) 92%,#cbd5e1)!important' in css
     assert 'background:transparent!important;' in css
     assert 'border-radius:50%!important;' in css
     assert 'inventory-mobile-finance-v58' in css
+    assert 'expenses-page-v20 .expense-form-v19' in css
+    assert 'purchases-page-v23 .purchase-dashboard-v23' in css
+    assert 'reports-v23 .report-executive-grid-v22' in css
     inventory = Path('cuotago/templates/assets/list.html').read_text(encoding='utf-8')
     assert 'inventory-mobile-finance-v58' in inventory
     assert '>Venta<' in inventory and '>Compra<' in inventory and '>Ganancia<' in inventory
