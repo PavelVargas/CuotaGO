@@ -1,8 +1,16 @@
-# CuotaGo MOBILE PWA v1.24.0 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.24.1 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
+
+## Hotfix v1.24.1 — Home PWA compacto
+
+- Corrige el hueco vertical excesivo del Home instalado: KPIs y agenda dejan de estar anclados al fondo.
+- El flujo visual queda módulos → KPIs → agenda, manteniendo el Home sin scroll.
+- Ajusta iconos, gaps y tamaños para pantallas móviles bajas sin sacrificar legibilidad.
+- Sube el asset build a `1.24.1-ui-v56` para forzar la actualización de CSS en la PWA.
+
 
 ## Cambios v1.24.0 — PWA móvil más nativa y rápida
 
