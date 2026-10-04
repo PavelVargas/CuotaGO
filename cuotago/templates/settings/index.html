@@ -11,6 +11,14 @@
     </div>
   </div>
 
+  <section class="settings-identity-v61" aria-label="Cuenta actual">
+    <div class="settings-brand-v61">
+      <img class="brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.24.6-ui-v61') }}" alt="{{ app_name }}">
+      <img class="brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.24.6-ui-v61') }}" alt="{{ app_name }}">
+    </div>
+    <div class="settings-user-v61"><span class="avatar avatar-large">{{ current_user.name[:1]|upper }}</span><div><strong>{{ current_user.name }}</strong><small>{{ role_label(current_user.role) }} · {{ current_user.organization.name }} · {{ current_user.email }}</small></div></div>
+  </section>
+
   <section class="surface settings-switch-panel" aria-label="Preferencias">
     <div class="settings-section-heading">
       <strong>Preferencias</strong>
@@ -41,12 +49,6 @@
     </div>
 
     {% if can('collections.view') %}
-    <label class="settings-switch-row">
-      <span class="settings-row-icon">{{ icon('bell', 20) }}</span>
-      <span class="settings-row-copy"><strong>Alertas dentro de CuotaGo</strong><small data-local-alert-status>Activadas</small></span>
-      <span class="ios-switch"><input type="checkbox" data-local-alert-switch aria-label="Alertas dentro de CuotaGo"><i></i></span>
-    </label>
-
     <label class="settings-switch-row" data-push-controls>
       <span class="settings-row-icon">{{ icon('phone', 20) }}</span>
       <span class="settings-row-copy">
@@ -95,5 +97,10 @@
     <summary><span class="settings-row-icon">{{ icon('shield',20) }}</span><span><strong>Contraseña</strong><small>Cámbiala sin salir de tu cuenta.</small></span><b>›</b></summary>
     <form method="post" action="{{ url_for('main.settings_password') }}" class="form-stack settings-password-form-v16"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="field"><span>Contraseña actual</span><input type="password" name="current_password" required autocomplete="current-password"></label><label class="field"><span>Nueva contraseña</span><input type="password" name="new_password" minlength="8" required autocomplete="new-password"></label><label class="field"><span>Repetir nueva contraseña</span><input type="password" name="confirm_password" minlength="8" required autocomplete="new-password"></label><button class="btn btn-primary" type="submit">Actualizar contraseña</button></form>
   </details>
+
+  <form method="post" action="{{ url_for('auth.logout') }}" class="settings-logout-v61">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit">{{ icon('logout', 19) }}<span><strong>Cerrar sesión</strong><small>Salir de esta cuenta en este dispositivo.</small></span></button>
+  </form>
 </section>
 {% endblock %}

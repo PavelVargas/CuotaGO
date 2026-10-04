@@ -40,16 +40,16 @@
       </div>
 
       <div class="wizard-fields" data-client-fields="existing">
-        <label class="field smart-select-field-v17">
+        <div class="field smart-select-field-v17">
           <span>Selecciona el cliente *</span>
-          <input class="smart-select-search-v17" type="search" autocomplete="off" enterkeyhint="search" placeholder="Escribe nombre, teléfono o documento" data-remote-select="{{ url_for('main.client_lookup_api') }}" data-remote-target="clientSelect">
-          <select name="client_id" id="clientSelect">
+          <input class="smart-select-search-v17" type="search" autocomplete="off" enterkeyhint="search" placeholder="Escribe nombre, teléfono o documento" aria-label="Buscar cliente" data-remote-select="{{ url_for('main.client_lookup_api') }}" data-remote-target="clientSelect">
+          <select name="client_id" id="clientSelect" aria-label="Cliente seleccionado">
             <option value="">Seleccionar...</option>
             {% for client in clients %}
             <option value="{{ client.id }}" {{ 'selected' if form.get('client_id')|string == client.id|string }}>{{ client.full_name }}{% if client.phone %} &middot; {{ client.phone }}{% endif %}</option>
             {% endfor %}
           </select>
-        </label>
+        </div>
       </div>
 
       <div class="wizard-fields" data-client-fields="new">
@@ -74,10 +74,10 @@
       {% if not assets and not allow_new_asset %}<p class="wizard-inline-note-v16">No hay artículos disponibles. Pide a un supervisor que registre inventario.</p>{% endif %}
 
       <div class="wizard-fields" data-asset-fields="existing">
-        <label class="field smart-select-field-v17">
+        <div class="field smart-select-field-v17">
           <span>Artículo *</span>
-          <input class="smart-select-search-v17" type="search" autocomplete="off" enterkeyhint="search" placeholder="Escribe artículo, IMEI, placa o serial" data-remote-select="{{ url_for('main.asset_lookup_api') }}" data-remote-target="assetSelect" data-remote-kind="asset">
-          <select name="asset_id" id="assetSelect">
+          <input class="smart-select-search-v17" type="search" autocomplete="off" enterkeyhint="search" placeholder="Escribe artículo, IMEI, placa o serial" aria-label="Buscar artículo del inventario" data-remote-select="{{ url_for('main.asset_lookup_api') }}" data-remote-target="assetSelect" data-remote-kind="asset">
+          <select name="asset_id" id="assetSelect" aria-label="Artículo seleccionado">
             <option value="">Seleccionar...</option>
             {% for asset in assets %}
             <option value="{{ asset.id }}"
@@ -88,7 +88,7 @@
                     {{ 'selected' if form.get('asset_id')|string == asset.id|string }}>{{ asset.name }} &middot; {{ asset.available_quantity }} disp.{% if asset.identifier %} &middot; {{ asset.identifier }}{% endif %}</option>
             {% endfor %}
           </select>
-        </label>
+        </div>
       </div>
 
       <div class="wizard-fields" data-asset-fields="new">

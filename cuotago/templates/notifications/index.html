@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% block title %}Notificaciones · {{ app_name }}{% endblock %}
+{% block body_class %}notifications-center-body{% endblock %}
+
+{% macro notification_rows(rows, state, label) %}
+  {% for item in rows %}
+  <a class="notification-center-row-v61 is-{{ state }}" href="{{ item.url }}">
+    <span class="notification-center-dot-v61" aria-hidden="true"></span>
+    <span class="notification-center-main-v61">
+      <span class="notification-center-title-v61"><strong>{{ item.client }}</strong><b>{{ label }}</b></span>
+      <small>{% if item.contractCode %}{{ item.contractCode }} · {% endif %}{{ item.asset }}</small>
+    </span>
+    <span class="notification-center-side-v61"><strong>{{ item.amount }}</strong><small>{{ item.detail }}</small></span>
+    <span class="notification-center-arrow-v61" aria-hidden="true">›</span>
+  </a>
+  {% endfor %}
+{% endmacro %}
+
+{% block content %}
+<section class="content-page notifications-center-v61">
+  <div class="page-head simple-page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <span class="module-context-icon accent-coral" aria-hidden="true">{{ icon('bell', 24) }}</span>
+      <div><span class="eyebrow">NOTIFICACIONES</span><h1>Notificaciones</h1><p>Todo lo que necesita tu atención, sin interrumpirte mientras trabajas.</p></div>
+    </div>
+  </div>
+
+  <section class="notification-summary-v61{% if not notification_count %} is-clear{% endif %}">
+    <span class="notification-summary-icon-v61">{{ icon('bell', 22) }}</span>
+    <div><span class="eyebrow">CENTRO DE AVISOS</span><strong>{{ notification_count }} pendiente{{ '' if notification_count == 1 else 's' }}</strong><small>Vencimientos, cobros de hoy, próximos pagos y promesas.</small></div>
+    <div class="notification-summary-counts-v61">
+      <span class="is-overdue"><b>{{ overdue|length }}</b> vencidos</span>
+      <span class="is-today"><b>{{ due_today|length }}</b> hoy</span>
+      <span class="is-upcoming"><b>{{ upcoming|length }}</b> próximos</span>
+    </div>
+  </section>
+
+  {% if overdue %}<section class="notification-center-group-v61"><div class="section-heading"><div><span class="eyebrow danger-text">VENCIDOS</span><h2>Necesitan atención</h2></div><span>{{ overdue|length }}</span></div><div class="notification-center-list-v61">{{ notification_rows(overdue, 'overdue', 'Vencido') }}</div></section>{% endif %}
+  {% if due_today %}<section class="notification-center-group-v61"><div class="section-heading"><div><span class="eyebrow warning-text">HOY</span><h2>Cobros del día</h2></div><span>{{ due_today|length }}</span></div><div class="notification-center-list-v61">{{ notification_rows(due_today, 'today', 'Hoy') }}</div></section>{% endif %}
+  {% if upcoming %}<section class="notification-center-group-v61"><div class="section-heading"><div><span class="eyebrow">PRÓXIMOS 7 DÍAS</span><h2>Lo que viene</h2></div><span>{{ upcoming|length }}</span></div><div class="notification-center-list-v61">{{ notification_rows(upcoming, 'upcoming', 'Próximo') }}</div></section>{% endif %}
+
+  {% if broken_promises or today_promises or upcoming_promises %}
+  <section class="notification-center-group-v61">
+    <div class="section-heading"><div><span class="eyebrow">PROMESAS</span><h2>Compromisos del cliente</h2></div><span>{{ (broken_promises|length) + (today_promises|length) + (upcoming_promises|length) }}</span></div>
+    <div class="notification-center-list-v61">
+      {% for promise in broken_promises + today_promises + upcoming_promises %}
+      <a class="notification-center-row-v61 is-promise" href="{{ url_for('main.client_detail', client_id=promise.client_id, _anchor='promises') }}">
+        <span class="notification-center-dot-v61" aria-hidden="true"></span>
+        <span class="notification-center-main-v61"><span class="notification-center-title-v61"><strong>{{ promise.client.full_name }}</strong><b>Promesa</b></span><small>{% if promise.status == 'broken' %}Incumplida{% elif promise.promised_date == today %}Prometió pagar hoy{% else %}{{ promise.promised_date.strftime('%d/%m/%Y') }}{% endif %}{% if promise.note %} · {{ promise.note }}{% endif %}</small></span>
+        <span class="notification-center-side-v61"><strong>{{ money(promise.amount) }}</strong><small>Seguimiento</small></span><span class="notification-center-arrow-v61">›</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if not notification_count %}<section class="notifications-empty-v61"><span>✓</span><strong>Todo al día</strong><p>Cuando haya algo que atender aparecerá aquí, sin popups molestos.</p></section>{% endif %}
+</section>
+{% endblock %}

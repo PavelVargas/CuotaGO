@@ -251,8 +251,9 @@ def test_payment_notification_center_works_without_web_push(client, app):
     assert response.status_code == 200
 
     center = client.get("/notifications", follow_redirects=False)
-    assert center.status_code in (301, 302, 303, 307, 308)
-    assert center.headers["Location"].endswith("/collections")
+    assert center.status_code == 200
+    assert b"Notificaciones" in center.data
+    assert b"Cliente Atrasado" in center.data
 
     api = client.get("/api/notifications")
     payload = api.get_json()
@@ -261,10 +262,10 @@ def test_payment_notification_center_works_without_web_push(client, app):
     assert payload["items"][0]["url"].endswith("#pay")
 
 
-def test_mobile_bottom_bar_removed_and_museomoderno_loaded(client):
+def test_mobile_bottom_bar_removed_and_native_ui_loaded(client):
     response = register(client)
     assert b"mobile-tabbar" not in response.data
-    assert b"Sora" in response.data
+    assert b"fonts.googleapis.com" not in response.data
 
 
 def test_auth_pages_force_light_theme(client):
@@ -1624,6 +1625,25 @@ def test_v124_pwa_native_performance_and_spacing():
     assert 'backdrop-filter:none!important' in css
     assert 'IS_STANDALONE' in js
     assert 'requestIdleCallback' in js
-    assert 'IS_STANDALONE ? 60000 : 30000' in js
+    assert 'IS_STANDALONE ? 90000 : 60000' in js
     assert "if (cached) return cached" in worker
     assert "payload.url || '/collections'" in worker
+
+
+def test_v1246_pwa_notifications_collections_and_inventory_lookup():
+    from pathlib import Path
+    base = Path('cuotago/templates/base.html').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
+    contract_form = Path('cuotago/templates/contracts/form.html').read_text(encoding='utf-8')
+    notifications = Path('cuotago/templates/notifications/index.html').read_text(encoding='utf-8')
+    settings = Path('cuotago/templates/settings/index.html').read_text(encoding='utf-8')
+    assert 'topbar-notification-v61' in base
+    assert 'pwa-utility-dock-v61' in base
+    assert 'profile-trigger{display:none!important}' in css
+    assert 'grid-template-areas:"date person" "date amount" "actions actions"' in css
+    assert 'setupRemoteSelects' in js
+    assert 'data-remote-kind="asset"' in contract_form
+    assert 'notification-center-v61' in notifications
+    assert 'settings-identity-v61' in settings
+    assert 'pollPaymentAlerts({ showToast: shouldToast() })' not in js

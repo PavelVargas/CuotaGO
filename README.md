@@ -1,8 +1,18 @@
-# CuotaGo MOBILE PWA v1.24.5 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.24.6 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
+
+## Cambios v1.24.6 — Cobros, notificaciones y navegación PWA
+
+- Cobros móvil reorganizado para evitar texto superpuesto: información y acciones ya no compiten en cuatro columnas.
+- Centro de Notificaciones accesible desde una campana con contador; los avisos ya no reaparecen como popup al cambiar de módulo.
+- En PWA el menú superior de usuario se oculta y Buscar + Configuración pasan a un dock inferior izquierdo; Configuración muestra logo, usuario y negocio.
+- El selector de artículos al crear acuerdos ahora consulta el inventario disponible y permite elegir resultados desde el buscador.
+- Modo oscuro refinado con una paleta grafito/neutra y mejor contraste.
+- Build de assets: `1.24.6-ui-v61`.
+
 
 ## Cambios v1.24.5 — Tipografía nativa y jerarquía móvil
 

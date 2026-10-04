@@ -87,7 +87,7 @@
     root.dataset.themeChoice = safeChoice;
     root.dataset.theme = resolved;
     const booting = root.classList.contains('show-boot');
-    document.getElementById('themeColorMeta')?.setAttribute('content', resolved === 'dark' ? '#090d12' : '#f6f8fc');
+    document.getElementById('themeColorMeta')?.setAttribute('content', resolved === 'dark' ? '#0b1016' : '#f6f8fc');
     document.getElementById('appleStatusMeta')?.setAttribute('content', resolved === 'dark' ? 'black-translucent' : 'default');
     syncThemeControls(safeChoice);
     if (persist) {
@@ -152,7 +152,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.24.5-ui-v60';
+  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.24.6-ui-v61';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -528,19 +528,21 @@
   let lastPaymentAlertPollAt = 0;
   const startPaymentAlertWatcher = () => {
     if (!document.body.classList.contains('app-authenticated') || document.body.dataset.canCollect !== '1') return;
-    const shouldToast = () => !document.querySelector('[data-notifications-page]');
-    const runPoll = () => {
+    // v1.24.6: navigation stays quiet. We refresh only the bell/app badge;
+    // payment alerts live in the notification center instead of reopening a toast
+    // every time the user changes modules.
+    const runPoll = async () => {
       lastPaymentAlertPollAt = Date.now();
-      pollPaymentAlerts({ showToast: shouldToast() });
+      try { await fetchPaymentNotifications(); } catch (_) {}
     };
     const warmup = () => runPoll();
     if ('requestIdleCallback' in window) requestIdleCallback(warmup, { timeout: 1800 });
-    else window.setTimeout(warmup, IS_STANDALONE ? 900 : 350);
+    else window.setTimeout(warmup, IS_STANDALONE ? 700 : 300);
     if (paymentAlertInterval) window.clearInterval(paymentAlertInterval);
-    paymentAlertInterval = window.setInterval(runPoll, IS_STANDALONE ? 60000 : 30000);
+    paymentAlertInterval = window.setInterval(runPoll, IS_STANDALONE ? 90000 : 60000);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible') return;
-      if ((Date.now() - lastPaymentAlertPollAt) > 30000) runPoll();
+      if ((Date.now() - lastPaymentAlertPollAt) > 60000) runPoll();
     });
   };
 
@@ -1349,6 +1351,95 @@
 
 
 
+  const setupRemoteSelects = () => {
+    document.querySelectorAll('[data-remote-select]').forEach((input) => {
+      const targetId = input.dataset.remoteTarget;
+      const select = targetId ? document.getElementById(targetId) : null;
+      const endpoint = input.dataset.remoteSelect;
+      if (!select || !endpoint) return;
+
+      const host = input.closest('.smart-select-field-v17') || input.parentElement;
+      const results = document.createElement('div');
+      results.className = 'smart-select-results-v61';
+      results.hidden = true;
+      input.insertAdjacentElement('afterend', results);
+      let timer = 0;
+      let controller = null;
+
+      const ensureOption = (item) => {
+        let option = Array.from(select.options).find((row) => String(row.value) === String(item.id));
+        if (!option) {
+          option = document.createElement('option');
+          option.value = item.id;
+          select.appendChild(option);
+        }
+        option.textContent = item.detail ? `${item.label} · ${item.detail}` : item.label;
+        if (input.dataset.remoteKind === 'asset') {
+          option.dataset.available = item.available ?? 0;
+          option.dataset.price = item.price ?? 0;
+          option.dataset.salePrice = item.sale_price ?? 0;
+          option.dataset.name = item.name || item.label || '';
+        }
+        return option;
+      };
+
+      const close = () => { results.hidden = true; results.replaceChildren(); };
+      const choose = (item) => {
+        const option = ensureOption(item);
+        select.value = String(option.value);
+        input.value = item.label || option.textContent || '';
+        close();
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const render = (items) => {
+        results.replaceChildren();
+        if (!items.length) {
+          const empty = document.createElement('span');
+          empty.className = 'smart-select-empty-v61';
+          empty.textContent = input.dataset.remoteKind === 'asset' ? 'No hay artículos disponibles con esa búsqueda.' : 'No encontré coincidencias.';
+          results.append(empty);
+          results.hidden = false;
+          return;
+        }
+        items.slice(0, 20).forEach((item) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'smart-select-option-v61';
+          const strong = document.createElement('strong'); strong.textContent = item.label || '';
+          const small = document.createElement('small'); small.textContent = item.detail || '';
+          button.append(strong, small);
+          button.addEventListener('click', () => choose(item));
+          results.append(button);
+        });
+        results.hidden = false;
+      };
+      const load = async () => {
+        controller?.abort();
+        controller = new AbortController();
+        try {
+          const url = new URL(endpoint, location.origin);
+          const q = input.value.trim();
+          if (q) url.searchParams.set('q', q);
+          const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', signal: controller.signal, headers: { Accept: 'application/json' } });
+          if (!response.ok) throw new Error('lookup');
+          const data = await response.json();
+          render(Array.isArray(data.items) ? data.items : []);
+        } catch (error) {
+          if (error?.name !== 'AbortError') render([]);
+        }
+      };
+
+      input.addEventListener('focus', () => { if (results.hidden) load(); });
+      input.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(load, 140); });
+      input.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
+      select.addEventListener('change', () => {
+        const option = select.selectedOptions?.[0];
+        if (option?.value && !input.matches(':focus')) input.value = option.dataset.name || option.textContent?.split(' · ')[0] || '';
+      });
+      document.addEventListener('pointerdown', (event) => { if (host && !host.contains(event.target)) close(); }, { passive: true });
+    });
+  };
+
   const setupGlobalQuickSearch = () => {
     const dialog = document.getElementById('globalSearchDialog');
     const input = document.getElementById('globalSearchInput');
@@ -1483,6 +1574,7 @@
     setupPaymentCalendar();
     setupSuperadminControlCenter();
     setupPdfSharing();
+    setupRemoteSelects();
     setupGlobalQuickSearch();
     setupCalmFormGuard();
     setupNativeNavigationMemory();

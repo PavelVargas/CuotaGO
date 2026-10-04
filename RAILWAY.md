@@ -141,3 +141,7 @@ Esta actualización es **hacia adelante y no borra datos existentes**. `db.creat
 - El Service Worker usa caché `1.17.5-ui-v44`.
 
 La actualización es hacia adelante: usa `CREATE TABLE IF NOT EXISTS` y `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`; no borra acuerdos ni pagos existentes.
+
+
+## Build 1.24.6-ui-v61
+Incluye centro de notificaciones silencioso, corrección móvil de Cobros, selector remoto de inventario para Acuerdos, navegación PWA con dock Buscar/Configuración y refinamiento del modo oscuro. No requiere migración de base de datos.

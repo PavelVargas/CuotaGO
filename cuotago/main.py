@@ -766,9 +766,31 @@ def reminders():
 @login_required
 @permission_required("collections.view")
 def notifications():
-    # The dedicated Notifications module was retired in v1.23. Keep the route
-    # as a compatibility redirect for old bookmarks and previously delivered push links.
-    return redirect(url_for("main.collections"))
+    """Quiet notification center for payment alerts.
+
+    Notifications are intentionally kept out of the Home launcher. The bell in
+    the app chrome opens this center so overdue/upcoming items do not interrupt
+    navigation with repeated in-app popups.
+    """
+    sync_payment_promises(commit=True)
+    items = payment_notification_items(limit=500)
+    overdue = [item for item in items if item["type"] == "overdue"]
+    due_today = [item for item in items if item["type"] == "today"]
+    upcoming = [item for item in items if item["type"] == "upcoming"]
+    today_value = local_today()
+    promises = PaymentPromise.query.filter_by(organization_id=current_user.organization_id).filter(
+        PaymentPromise.status.in_(["pending", "broken"]),
+        PaymentPromise.promised_date <= today_value + timedelta(days=7),
+    ).order_by(PaymentPromise.promised_date.asc()).all()
+    broken_promises = [p for p in promises if p.status == "broken"]
+    today_promises = [p for p in promises if p.status == "pending" and p.promised_date == today_value]
+    upcoming_promises = [p for p in promises if p.status == "pending" and p.promised_date > today_value]
+    return render_template(
+        "notifications/index.html",
+        items=items, overdue=overdue, due_today=due_today, upcoming=upcoming,
+        broken_promises=broken_promises, today_promises=today_promises, upcoming_promises=upcoming_promises,
+        notification_count=len(items) + len(promises), today=today_value,
+    )
 
 
 @main_bp.get("/api/notifications")
