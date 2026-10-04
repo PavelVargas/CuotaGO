@@ -259,6 +259,8 @@ def test_payment_notification_center_works_without_web_push(client, app):
     payload = api.get_json()
     assert api.status_code == 200
     assert payload["urgentCount"] >= 1
+    assert payload["badgeCount"] == payload["count"] + payload["promiseCount"]
+    assert payload["badgeCount"] >= payload["urgentCount"]
     assert payload["items"][0]["url"].endswith("#pay")
 
 
@@ -1647,3 +1649,6 @@ def test_v1246_pwa_notifications_collections_and_inventory_lookup():
     assert 'notification-center-v61' in notifications
     assert 'settings-identity-v61' in settings
     assert 'pollPaymentAlerts({ showToast: shouldToast() })' not in js
+    assert 'settlePwaUtilityRail' in js
+    assert 'data.badgeCount ?? data.count' in js
+    assert 'top:-8px!important' in css

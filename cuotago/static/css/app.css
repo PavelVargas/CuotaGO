@@ -7452,3 +7452,39 @@ html[data-theme="dark"].is-standalone-app .pwa-utility-btn-v61{
   color:#f3f6fa!important;
   box-shadow:0 8px 20px rgba(0,0,0,.26)!important;
 }
+
+
+/* --------------------------------------------------------------------------
+   CuotaGo v1.24.8 ui-v63 · stable PWA utility rail + external notification badge
+   - Safe fallback prevents first-paint overlap with Home KPIs.
+   - Runtime rail settling follows late iOS layout movement automatically.
+   - Notification count sits clearly outside the bell circle.
+   -------------------------------------------------------------------------- */
+@media (max-width:719px){
+  html.is-standalone-app body.dashboard-home .pwa-utility-dock-v61,
+  html.is-standalone-app body.dashboard-home .pwa-utility-rail-v62{
+    bottom:var(--pwa-home-footer-offset,152px)!important;
+    overflow:visible!important;
+  }
+  html.is-standalone-app .pwa-utility-btn-v61{
+    overflow:visible!important;
+  }
+  html.is-standalone-app .pwa-utility-notification-v62 .notification-badge-v61{
+    top:-8px!important;
+    right:-8px!important;
+    z-index:3!important;
+    min-width:21px!important;
+    height:21px!important;
+    padding:0 5px!important;
+    border:3px solid var(--bg)!important;
+    border-radius:999px!important;
+    box-shadow:0 3px 8px rgba(180,35,45,.22)!important;
+    font-size:8px!important;
+    font-weight:850!important;
+    line-height:1!important;
+  }
+}
+html[data-theme="dark"].is-standalone-app .pwa-utility-notification-v62 .notification-badge-v61{
+  border-color:#0d131a!important;
+  box-shadow:0 4px 10px rgba(0,0,0,.35)!important;
+}

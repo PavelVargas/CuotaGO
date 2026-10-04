@@ -137,23 +137,59 @@
     window.setTimeout(finishSplash, 1500);
   }
 
+  let pwaRailFrame = 0;
+  let pwaRailTimers = [];
   const syncPwaUtilityRailOffset = () => {
-    if (!IS_STANDALONE || !document.body?.classList.contains('dashboard-home')) return;
+    if (!IS_STANDALONE || !document.body?.classList.contains('dashboard-home')) return false;
     const status = document.querySelector('.dashboard-launcher-v3 .home-status');
-    if (!status) return;
+    if (!status) return false;
     const rect = status.getBoundingClientRect();
     const viewportHeight = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight;
-    // Distance from the physical viewport bottom to the footer top + breathing room.
-    // This guarantees the three round utilities finish above KPIs/Agenda instead of
-    // guessing their height and accidentally overlapping them.
-    const offset = Math.ceil(Math.max(112, viewportHeight - rect.top + 12));
+    if (!Number.isFinite(rect.top) || !Number.isFinite(viewportHeight) || viewportHeight <= 0) return false;
+    // Anchor the rail to the *current* footer position. On iOS the launcher can
+    // finish laying out after DOM ready (fonts, safe-area and restored viewport).
+    // Measuring only once caused the rail to overlap KPIs until a manual refresh.
+    const offset = Math.ceil(Math.max(120, viewportHeight - rect.top + 12));
     root.style.setProperty('--pwa-home-footer-offset', `${offset}px`);
+    return true;
   };
-  syncPwaUtilityRailOffset();
-  window.addEventListener('resize', syncPwaUtilityRailOffset, { passive: true });
+
+  const queuePwaUtilityRailMeasure = () => {
+    if (pwaRailFrame) cancelAnimationFrame(pwaRailFrame);
+    pwaRailFrame = requestAnimationFrame(() => {
+      pwaRailFrame = 0;
+      syncPwaUtilityRailOffset();
+    });
+  };
+
+  const settlePwaUtilityRail = (delays = [0, 60, 180, 420, 900, 1600]) => {
+    if (!IS_STANDALONE || !document.body?.classList.contains('dashboard-home')) return;
+    pwaRailTimers.forEach((timer) => window.clearTimeout(timer));
+    pwaRailTimers = [];
+    queuePwaUtilityRailMeasure();
+    delays.filter((delay) => delay > 0).forEach((delay) => {
+      pwaRailTimers.push(window.setTimeout(queuePwaUtilityRailMeasure, delay));
+    });
+  };
+
+  // Re-check a few times after cold launch/restoration. This catches the late
+  // iOS safe-area/layout shift without running a continuous animation loop.
+  settlePwaUtilityRail();
+  window.addEventListener('load', () => settlePwaUtilityRail([0, 80, 240, 600, 1100]), { once: true });
+  window.addEventListener('pageshow', () => settlePwaUtilityRail([0, 80, 260, 700]));
+  window.addEventListener('resize', () => settlePwaUtilityRail([0, 90, 300]), { passive: true });
+  window.addEventListener('orientationchange', () => settlePwaUtilityRail([0, 100, 320, 800]), { passive: true });
+  window.visualViewport?.addEventListener('resize', () => settlePwaUtilityRail([0, 90, 300]), { passive: true });
+  if (document.fonts?.ready) document.fonts.ready.then(() => settlePwaUtilityRail([0, 100, 350, 800])).catch(() => {});
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') settlePwaUtilityRail([0, 90, 300, 700]);
+  });
   if ('ResizeObserver' in window) {
-    const homeStatus = document.querySelector('.dashboard-launcher-v3 .home-status');
-    if (homeStatus) new ResizeObserver(syncPwaUtilityRailOffset).observe(homeStatus);
+    const observer = new ResizeObserver(() => settlePwaUtilityRail([0, 80, 240, 520]));
+    ['.dashboard-launcher-v3', '.dashboard-launcher-v3 .module-grid', '.dashboard-launcher-v3 .home-status']
+      .map((selector) => document.querySelector(selector))
+      .filter(Boolean)
+      .forEach((element) => observer.observe(element));
   }
 
   const networkBanner = document.getElementById('networkBanner');
@@ -185,7 +221,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.24.6-ui-v61';
+  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.24.8-ui-v63';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -539,7 +575,7 @@
 
   const fetchPaymentNotifications = async () => {
     const data = await apiJson('/api/notifications');
-    updateNotificationBadge(data.urgentCount || 0);
+    updateNotificationBadge(data.badgeCount ?? data.count ?? data.urgentCount ?? 0);
     return data;
   };
 

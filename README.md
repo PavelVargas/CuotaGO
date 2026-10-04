@@ -1,9 +1,17 @@
-# CuotaGo MOBILE PWA v1.24.7 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.24.8 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
 
+
+## Cambios v1.24.8 — Rail PWA estable + contador externo de notificaciones
+
+- El rail de Notificaciones / Buscar / Configuración se recalcula durante el arranque, `pageshow`, cambios de viewport, orientación y retorno desde segundo plano; ya no depende de una sola medición temprana del footer.
+- Se observa también el launcher y el grid de módulos para capturar movimientos tardíos de layout en iPhone.
+- El rail tiene una separación inicial segura mientras termina el primer render, evitando que Configuración choque con los KPIs.
+- El contador de la campana queda fuera del círculo y refleja pagos + promesas que aparecen en el centro de notificaciones.
+- Build de assets: `1.24.8-ui-v63`.
 
 ## Cambios v1.24.7 — PWA sin header + rail de utilidades + arranque continuo
 

@@ -797,11 +797,21 @@ def notifications():
 @login_required
 @permission_required("collections.view")
 def notifications_api():
-    items = payment_notification_items(limit=30)
+    # Keep the bell count aligned with the notification center: payment alerts
+    # plus pending/broken promises that need attention in the next 7 days.
+    items = payment_notification_items(limit=500)
     urgent_count = sum(1 for item in items if item["urgent"])
+    today_value = local_today()
+    promise_count = PaymentPromise.query.filter_by(organization_id=current_user.organization_id).filter(
+        PaymentPromise.status.in_(["pending", "broken"]),
+        PaymentPromise.promised_date <= today_value + timedelta(days=7),
+    ).count()
+    badge_count = len(items) + promise_count
     return jsonify({
         "ok": True,
         "count": len(items),
+        "promiseCount": promise_count,
+        "badgeCount": badge_count,
         "urgentCount": urgent_count,
         "items": items,
     })
