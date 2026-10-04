@@ -99,28 +99,61 @@
     if (readTheme() === 'system') applyTheme('system', false);
   });
 
-  /* Splash HTML only once per installed-PWA session. Internal navigation never replays it. */
+  /*
+   * PWA cold-start bridge.
+   * Keep the HTML splash above the app until the first real frame has painted.
+   * This prevents the native splash -> white frame -> CuotaGo flash seen on iOS.
+   * Same-origin module navigation never adds `show-boot`, so this is not replayed.
+   */
   const splash = document.getElementById('bootSplash');
+  const markAppReady = () => document.body?.classList.add('app-ready-v62');
   if (!root.classList.contains('show-boot')) {
     splash?.remove();
+    requestAnimationFrame(markAppReady);
   } else {
     const splashStartedAt = performance.now();
     let splashFinished = false;
-    const hideSplash = () => {
+    const finishSplash = () => {
       if (splashFinished || !splash) return;
       splashFinished = true;
-      const remaining = Math.max(0, 180 - (performance.now() - splashStartedAt));
-      window.setTimeout(() => {
-        splash.classList.add('is-hidden');
+      const paintReady = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+        markAppReady();
+        const remaining = Math.max(0, 220 - (performance.now() - splashStartedAt));
         window.setTimeout(() => {
-          splash.remove();
-          root.classList.remove('show-boot');
-          applyTheme(readTheme(), false);
-        }, 110);
-      }, remaining);
+          splash.classList.add('is-hidden');
+          window.setTimeout(() => {
+            splash.remove();
+            root.classList.remove('show-boot');
+            applyTheme(readTheme(), false);
+          }, 120);
+        }, remaining);
+      }));
+      if (document.fonts?.ready) document.fonts.ready.then(paintReady).catch(paintReady);
+      else paintReady();
     };
-    document.addEventListener('DOMContentLoaded', hideSplash, { once: true });
-    window.setTimeout(hideSplash, 800);
+    if (document.readyState === 'complete') finishSplash();
+    else window.addEventListener('load', finishSplash, { once: true });
+    // A broken/slow image must never trap the user behind the splash.
+    window.setTimeout(finishSplash, 1500);
+  }
+
+  const syncPwaUtilityRailOffset = () => {
+    if (!IS_STANDALONE || !document.body?.classList.contains('dashboard-home')) return;
+    const status = document.querySelector('.dashboard-launcher-v3 .home-status');
+    if (!status) return;
+    const rect = status.getBoundingClientRect();
+    const viewportHeight = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight;
+    // Distance from the physical viewport bottom to the footer top + breathing room.
+    // This guarantees the three round utilities finish above KPIs/Agenda instead of
+    // guessing their height and accidentally overlapping them.
+    const offset = Math.ceil(Math.max(112, viewportHeight - rect.top + 12));
+    root.style.setProperty('--pwa-home-footer-offset', `${offset}px`);
+  };
+  syncPwaUtilityRailOffset();
+  window.addEventListener('resize', syncPwaUtilityRailOffset, { passive: true });
+  if ('ResizeObserver' in window) {
+    const homeStatus = document.querySelector('.dashboard-launcher-v3 .home-status');
+    if (homeStatus) new ResizeObserver(syncPwaUtilityRailOffset).observe(homeStatus);
   }
 
   const networkBanner = document.getElementById('networkBanner');
