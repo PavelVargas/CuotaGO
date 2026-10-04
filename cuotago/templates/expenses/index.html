@@ -16,7 +16,7 @@
       </a>
       {% for asset in assets %}
       <a class="expense-asset-card-v19 {{ 'active' if selected_asset_id == asset.id }}" href="{{ url_for('main.expenses', period=period, asset_id=asset.id) }}">
-        <span class="expense-asset-thumb-v19">{% if asset.image_mime %}<img src="{{ url_for('main.asset_image', asset_id=asset.id, thumb=1, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="">{% else %}{{ icon('car' if asset.kind in ['car','motorcycle'] else 'inventory',20) }}{% endif %}</span>
+        <span class="expense-asset-thumb-v19">{% if asset.image_mime %}<img src="{{ url_for('main.asset_image', asset_id=asset.id, thumb=1, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="" loading="lazy" decoding="async">{% else %}{{ icon('car' if asset.kind in ['car','motorcycle'] else 'inventory',20) }}{% endif %}</span>
         <span class="expense-asset-copy-v19"><strong>{{ asset.name }}</strong><small><i class="vehicle-status vehicle-status-{{ asset.status }}">{{ asset_status_label(asset.status) }}</i> {{ [asset.vehicle_year, asset.brand]|select|join(' · ') }}</small></span>
         <b>{{ money(asset_totals.get(asset.id, 0)) }}</b>
       </a>

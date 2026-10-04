@@ -5664,3 +5664,335 @@ html[data-theme="dark"] .report-attention-panel-v23{box-shadow:none}
 @media (min-width:900px){
   html.is-browser-app .dealer-editor-v20 .dealer-photo-picker-v19{aspect-ratio:1169/780}
 }
+
+/* --------------------------------------------------------------------------
+   CuotaGo 1.24 · PWA native pass
+   Installed phone app only: faster paint, safer gutters, denser mobile layouts.
+   Desktop/browser workspace remains untouched.
+   -------------------------------------------------------------------------- */
+@media (max-width:719px){
+  html.is-standalone-app{
+    --topbar-h:56px;
+    --pwa-pad:14px;
+    --pwa-card-radius:20px;
+    scroll-behavior:auto;
+  }
+  html.is-standalone-app body{
+    line-height:1.38;
+    overscroll-behavior-y:contain;
+  }
+
+  /* Expensive desktop-like compositing is deliberately removed on phone. */
+  html.is-standalone-app .topbar{
+    background:var(--bg)!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    border-bottom-color:var(--line)!important;
+  }
+  html.is-standalone-app .topbar-inner{
+    height:56px!important;
+    padding-left:max(var(--pwa-pad),var(--safe-left))!important;
+    padding-right:max(var(--pwa-pad),var(--safe-right))!important;
+    gap:8px!important;
+  }
+  html.is-standalone-app .profile-dialog::backdrop{
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    background:rgba(8,12,18,.42)!important;
+  }
+  html.is-standalone-app .profile-sheet{
+    left:max(12px,var(--safe-left));
+    right:max(12px,var(--safe-right));
+    bottom:max(10px,var(--safe-bottom));
+    border-radius:24px;
+    padding:6px 8px 9px;
+    box-shadow:0 18px 42px rgba(16,24,40,.20);
+    animation-duration:.12s!important;
+  }
+  html.is-standalone-app body.app-authenticated .page-shell>*{animation:none!important}
+  html.is-standalone-app body.is-navigating-v17::before{display:none!important}
+  html.is-standalone-app .real-calendar-grid{will-change:auto!important}
+  html.is-standalone-app .dashboard-launcher-v3 .module-icon .ui-icon{filter:none!important}
+  html.is-standalone-app .footer{display:none!important}
+
+  /* One predictable gutter for every module/view. */
+  html.is-standalone-app .page-shell{
+    padding-bottom:calc(var(--safe-bottom) + 10px)!important;
+  }
+  html.is-standalone-app .content-page,
+  html.is-standalone-app .clients-page-v23,
+  html.is-standalone-app .client-profile-v23,
+  html.is-standalone-app .client-form-page-v23,
+  html.is-standalone-app .agreements-page-v23,
+  html.is-standalone-app .purchases-page-v23,
+  html.is-standalone-app .reports-v23{
+    width:100%!important;
+    padding-top:12px!important;
+    padding-left:max(var(--pwa-pad),var(--safe-left))!important;
+    padding-right:max(var(--pwa-pad),var(--safe-right))!important;
+    padding-bottom:calc(18px + var(--safe-bottom))!important;
+  }
+  html.is-standalone-app .page-head{
+    min-height:42px;
+    margin-bottom:11px!important;
+    gap:8px!important;
+    align-items:center!important;
+  }
+  html.is-standalone-app .page-head-left{gap:9px!important;align-items:center!important}
+  html.is-standalone-app .page-head h1{
+    margin:1px 0 2px!important;
+    font-size:18px!important;
+    line-height:1.12!important;
+    letter-spacing:-.035em!important;
+  }
+  html.is-standalone-app .page-head p{
+    max-width:100%!important;
+    font-size:9.5px!important;
+    line-height:1.32!important;
+  }
+  html.is-standalone-app .eyebrow{font-size:8px!important;letter-spacing:.10em!important}
+  html.is-standalone-app .icon-btn{
+    width:40px!important;height:40px!important;flex-basis:40px!important;
+    border-radius:13px!important;box-shadow:none!important;
+  }
+  html.is-standalone-app .surface{
+    border-radius:var(--pwa-card-radius)!important;
+    box-shadow:none!important;
+  }
+
+  /* Controls stay finger-friendly without looking oversized. */
+  html.is-standalone-app .btn{
+    min-height:41px!important;
+    border-radius:13px!important;
+    padding-top:8px!important;
+    padding-bottom:8px!important;
+    font-size:11px!important;
+    line-height:1.15!important;
+  }
+  html.is-standalone-app .btn-sm,
+  html.is-standalone-app .btn-small{min-height:36px!important;border-radius:12px!important;font-size:9px!important}
+  html.is-standalone-app .field{gap:4px!important}
+  html.is-standalone-app .field>span{font-size:8.5px!important;line-height:1.2!important}
+  html.is-standalone-app .field input,
+  html.is-standalone-app .field select,
+  html.is-standalone-app .field textarea,
+  html.is-standalone-app .search-box input{
+    min-height:42px!important;
+    border-radius:13px!important;
+    padding:9px 11px!important;
+    font-size:16px!important;
+  }
+  html.is-standalone-app .field textarea{min-height:84px!important}
+  html.is-standalone-app .form-grid.two,
+  html.is-standalone-app .compact-grid{gap:8px!important}
+
+  /* Home: filled symbols + three columns = larger targets and readable labels. */
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3{
+    padding:12px max(12px,var(--safe-right)) max(8px,var(--safe-bottom)) max(12px,var(--safe-left))!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    max-width:340px!important;
+    gap:13px 10px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card{gap:5px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon{
+    width:58px!important;height:58px!important;aspect-ratio:auto!important;
+    border-radius:50%!important;
+    border:0!important;
+    background:color-mix(in srgb,var(--accent,var(--primary)) 14%,var(--surface))!important;
+    color:var(--accent,var(--primary))!important;
+    box-shadow:0 4px 12px color-mix(in srgb,var(--accent,var(--primary)) 10%,transparent)!important;
+    transition:transform .07s ease!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon svg{
+    width:42px!important;height:42px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card strong{
+    font-size:10.5px!important;line-height:1.12!important;font-weight:720!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card:active .module-icon{
+    transform:scale(.965)!important;box-shadow:none!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .home-status{
+    max-width:360px!important;padding-top:10px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .status-kpis{gap:6px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .status-kpis>div{
+    min-height:48px!important;padding:7px 8px!important;border-radius:14px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .status-kpis span{font-size:7.5px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .status-kpis strong{font-size:10.8px!important}
+  html.is-standalone-app body.dashboard-home .home-reminder-button{
+    min-height:50px!important;margin-top:6px!important;border-radius:15px!important;
+  }
+
+  /* Inventory: clear 2x2 summary and compact photo rows. */
+  html.is-standalone-app .inventory-overview-v22{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;margin-bottom:8px!important}
+  html.is-standalone-app .inventory-overview-card-v22{min-height:68px!important;padding:9px 10px!important;border-radius:17px!important}
+  html.is-standalone-app .inventory-overview-card-v22 span{font-size:7.5px!important}
+  html.is-standalone-app .inventory-overview-card-v22 strong{font-size:14px!important}
+  html.is-standalone-app .inventory-overview-card-v22 small{font-size:7px!important;line-height:1.2!important}
+  html.is-standalone-app .inventory-toolbar{gap:6px!important;margin-bottom:8px!important}
+  html.is-standalone-app .inventory-list{gap:7px!important}
+  html.is-standalone-app .inventory-product-card{
+    min-height:72px!important;padding:7px 8px!important;border-radius:18px!important;gap:8px!important;
+  }
+  html.is-standalone-app .inventory-row-media-v18{width:48px!important;height:48px!important;border-radius:14px!important;overflow:hidden!important}
+  html.is-standalone-app .inventory-row-media-v18 img{width:100%!important;height:100%!important;object-fit:cover!important}
+  html.is-standalone-app .inventory-product-name{font-size:10.8px!important}
+  html.is-standalone-app .inventory-row-subtitle{font-size:8px!important}
+  html.is-standalone-app .inventory-row-meta{font-size:7.3px!important}
+  html.is-standalone-app .inventory-row-side strong{font-size:10px!important}
+
+  /* Vehicle detail/edit: preserve a safe edge around every card. */
+  html.is-standalone-app .vehicle-detail-v22 .vehicle-hero-v19{
+    border-radius:22px!important;overflow:hidden!important;margin-inline:0!important;
+  }
+  html.is-standalone-app .vehicle-detail-v22 .vehicle-hero-media-v19{
+    min-height:0!important;aspect-ratio:1169/780!important;background:var(--surface-2)!important;
+  }
+  html.is-standalone-app .vehicle-detail-v22 .vehicle-hero-media-v19 img{
+    width:100%!important;height:100%!important;object-fit:contain!important;
+  }
+  html.is-standalone-app .vehicle-detail-v22 .vehicle-hero-copy-v19{padding:12px!important}
+  html.is-standalone-app .vehicle-detail-v22 .vehicle-finance-grid-v19{gap:7px!important}
+  html.is-standalone-app .vehicle-detail-v22 .finance-kpi-v19{min-height:74px!important;padding:9px 10px!important;border-radius:17px!important}
+  html.is-standalone-app .vehicle-detail-v22 .finance-target-v22{min-height:82px!important}
+  html.is-standalone-app .dealer-entry-card-v19{border-radius:22px!important;overflow:hidden!important}
+
+  /* Clients: CRM cards that fit a phone without hugging the glass. */
+  html.is-standalone-app .clients-toolbar-v23{padding:8px!important;gap:7px!important;border-radius:18px!important;margin-bottom:8px!important}
+  html.is-standalone-app .clients-search-v23{min-height:41px!important;border-radius:14px!important;padding-inline:10px!important}
+  html.is-standalone-app .clients-toolbar-count-v23{padding:6px 8px!important;border-radius:13px!important}
+  html.is-standalone-app .client-directory-grid-v23{gap:8px!important}
+  html.is-standalone-app .client-directory-card-v23{padding:12px!important;border-radius:20px!important;transition:none!important}
+  html.is-standalone-app .client-directory-top-v23{grid-template-columns:42px minmax(0,1fr) auto!important;gap:9px!important}
+  html.is-standalone-app .client-directory-avatar-v23{width:42px!important;height:42px!important;border-radius:15px!important;box-shadow:none!important;font-size:16px!important}
+  html.is-standalone-app .client-directory-name-v23 strong{font-size:11.5px!important}
+  html.is-standalone-app .client-directory-name-v23 small{font-size:8.5px!important}
+  html.is-standalone-app .client-directory-contact-v23{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;margin:9px 0 8px!important;padding:8px!important;border-radius:14px!important}
+  html.is-standalone-app .client-directory-footer-v23{gap:8px!important;padding-top:8px!important}
+  html.is-standalone-app .client-profile-hero-v23{padding:12px!important;border-radius:22px!important;gap:10px!important}
+  html.is-standalone-app .client-profile-avatar-v23{width:52px!important;height:52px!important;border-radius:18px!important;font-size:19px!important;box-shadow:none!important}
+  html.is-standalone-app .client-profile-identity-v23 h1{font-size:18px!important}
+  html.is-standalone-app .client-profile-actions-v23{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+  html.is-standalone-app .client-profile-actions-v23 .btn{min-width:0!important;width:100%!important}
+  html.is-standalone-app .client-kpi-grid-v23{gap:7px!important;margin:8px 0!important}
+  html.is-standalone-app .client-kpi-grid-v23>article{min-height:72px!important;padding:10px 11px!important;border-radius:17px!important}
+  html.is-standalone-app .client-kpi-grid-v23 strong{font-size:15px!important}
+  html.is-standalone-app .client-panel-v23{padding:11px!important;border-radius:19px!important}
+
+  /* Agreements: less vertical chrome, same financial information. */
+  html.is-standalone-app .agreements-overview-v23{gap:7px!important;margin-bottom:8px!important}
+  html.is-standalone-app .agreements-overview-v23>article{min-height:66px!important;padding:9px 10px!important;border-radius:17px!important}
+  html.is-standalone-app .agreements-overview-v23 strong{font-size:14.5px!important}
+  html.is-standalone-app .agreements-toolbar-v23{padding:8px!important;gap:7px!important;border-radius:18px!important;margin-bottom:8px!important}
+  html.is-standalone-app .agreement-status-tabs-v23{gap:5px!important;scrollbar-width:none!important}
+  html.is-standalone-app .agreement-status-tabs-v23::-webkit-scrollbar{display:none!important}
+  html.is-standalone-app .agreement-status-tabs-v23 a{min-height:32px!important;padding:7px 10px!important;border-radius:999px!important;font-size:8.5px!important}
+  html.is-standalone-app .agreement-grid-v23{gap:8px!important}
+  html.is-standalone-app .agreement-card-v23{padding:11px 12px!important;border-radius:20px!important;transition:none!important}
+  html.is-standalone-app .agreement-money-v23{gap:5px!important}
+  html.is-standalone-app .agreement-money-v23>div{padding:7px 8px!important;border-radius:12px!important}
+  html.is-standalone-app .agreement-detail-v23{padding-inline:max(var(--pwa-pad),var(--safe-left))!important}
+  html.is-standalone-app .agreement-balance-v23{padding:12px!important;border-radius:22px!important}
+  html.is-standalone-app .agreement-balance-v23 .balance-top strong{font-size:23px!important}
+  html.is-standalone-app .agreement-balance-v23 .compact-balance-metrics>div{padding:8px 9px!important;border-radius:13px!important}
+  html.is-standalone-app .agreement-schedule-v23{padding:11px 12px!important;border-radius:22px!important}
+  html.is-standalone-app .agreement-schedule-v23 .installment-row{min-height:50px!important}
+  html.is-standalone-app .agreement-wizard-page-v23 .agreement-wizard{padding:12px!important;border-radius:22px!important}
+  html.is-standalone-app .wizard-progress{margin-bottom:8px!important;overflow-x:auto!important;scrollbar-width:none!important}
+  html.is-standalone-app .wizard-progress::-webkit-scrollbar{display:none!important}
+  html.is-standalone-app .wizard-panel-head{margin-bottom:10px!important}
+  html.is-standalone-app .wizard-fields{gap:8px!important}
+
+  /* Collections + Expenses: rows over cards, less vertical padding. */
+  html.is-standalone-app .three-kpi{gap:7px!important}
+  html.is-standalone-app .kpi-card{min-height:70px!important;padding:9px 10px!important;border-radius:17px!important}
+  html.is-standalone-app .collection-section,
+  html.is-standalone-app .expense-entry-v19,
+  html.is-standalone-app .expense-summary-v19,
+  html.is-standalone-app .expense-list-card-v19{padding:11px!important;border-radius:20px!important}
+  html.is-standalone-app .collection-row{min-height:54px!important;padding-block:7px!important}
+  html.is-standalone-app .expense-asset-strip-v19{gap:7px!important;scrollbar-width:none!important}
+  html.is-standalone-app .expense-asset-strip-v19::-webkit-scrollbar{display:none!important}
+  html.is-standalone-app .expense-asset-card-v19{border-radius:16px!important}
+  html.is-standalone-app .expense-row-v19{min-height:52px!important;padding-block:7px!important}
+
+  /* Purchases: dashboard remains 2x2; orders become concise touch rows. */
+  html.is-standalone-app .purchase-dashboard-v23{gap:7px!important;margin-bottom:7px!important}
+  html.is-standalone-app .purchase-dashboard-v23>article{min-height:68px!important;padding:9px 10px!important;border-radius:17px!important}
+  html.is-standalone-app .purchase-dashboard-v23 strong{font-size:14.5px!important}
+  html.is-standalone-app .purchase-insights-v23{gap:7px!important}
+  html.is-standalone-app .purchase-insight-card-v23{padding:10px!important;border-radius:18px!important}
+  html.is-standalone-app .purchase-history-v23{border-radius:20px!important;overflow:hidden!important}
+  html.is-standalone-app .purchase-order-card-v23>summary{grid-template-columns:58px minmax(0,1fr) auto 12px!important;min-height:54px!important;padding:7px 10px!important;gap:7px!important}
+  html.is-standalone-app .purchase-order-badge-v23{padding:5px 6px!important;border-radius:9px!important}
+  html.is-standalone-app .purchase-order-lines-v23{-webkit-overflow-scrolling:touch!important}
+
+  /* Reports: compact analytics without micro-text. */
+  html.is-standalone-app .report-executive-grid-v22{gap:7px!important;margin-bottom:8px!important}
+  html.is-standalone-app .report-executive-card-v22{min-height:76px!important;padding:9px 10px!important;border-radius:17px!important}
+  html.is-standalone-app .reports-v23 .report-executive-card-v22>strong{font-size:16px!important}
+  html.is-standalone-app .report-health-grid-v22{gap:7px!important;margin-bottom:8px!important}
+  html.is-standalone-app .report-health-card-v22{padding:9px!important;border-radius:17px!important}
+  html.is-standalone-app .report-risk-grid-v23{gap:8px!important;margin-bottom:8px!important}
+  html.is-standalone-app .report-aging-panel-v23,
+  html.is-standalone-app .report-attention-panel-v23,
+  html.is-standalone-app .report-panel-v19,
+  html.is-standalone-app .report-cashflow-v22{padding:10px!important;border-radius:19px!important}
+  html.is-standalone-app .report-aging-grid-v23{gap:6px!important}
+  html.is-standalone-app .report-aging-card-v23{padding:8px!important;border-radius:14px!important}
+  html.is-standalone-app .report-chart-v19{min-height:164px!important}
+  html.is-standalone-app .report-chart-v19 svg{height:132px!important}
+  html.is-standalone-app .report-filter-disclosure-v37{border-radius:18px!important}
+
+  /* Calendar + settings + docs stay comfortably inset. */
+  html.is-standalone-app .calendar-filterbar{margin-bottom:7px!important}
+  html.is-standalone-app .calendar-native .real-calendar{padding:10px!important;border-radius:20px!important}
+  html.is-standalone-app .calendar-native .real-calendar-day{min-height:48px!important}
+  html.is-standalone-app .calendar-native .calendar-day-panel{border-radius:19px!important}
+  html.is-standalone-app .settings-switch-panel,
+  html.is-standalone-app .settings-account-card,
+  html.is-standalone-app .docs-document-shell{border-radius:20px!important}
+
+  /* Fast touch feedback: no long transitions on phone. */
+  html.is-standalone-app .btn,
+  html.is-standalone-app .icon-btn,
+  html.is-standalone-app .profile-trigger,
+  html.is-standalone-app .module-card,
+  html.is-standalone-app .inventory-row,
+  html.is-standalone-app .agreement-card-v23,
+  html.is-standalone-app .client-directory-card-v23,
+  html.is-standalone-app .purchase-order-card-v23,
+  html.is-standalone-app .collection-row,
+  html.is-standalone-app .expense-row-v19{
+    transition-duration:.07s!important;
+    transition-property:transform,background-color,border-color!important;
+  }
+
+  /* Progressive rendering on long operational lists. */
+  @supports(content-visibility:auto){
+    html.is-standalone-app .inventory-product-card,
+    html.is-standalone-app .client-directory-card-v23,
+    html.is-standalone-app .agreement-card-v23,
+    html.is-standalone-app .purchase-order-card-v23,
+    html.is-standalone-app .collection-row,
+    html.is-standalone-app .expense-row-v19,
+    html.is-standalone-app .installment-row{
+      content-visibility:auto;
+      contain-intrinsic-size:auto 72px;
+    }
+  }
+}
+
+@media (max-width:359px){
+  html.is-standalone-app{--pwa-pad:12px}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-grid{gap:11px 6px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon{width:54px!important;height:54px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon svg{width:39px!important;height:39px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card strong{font-size:9.7px!important}
+  html.is-standalone-app .client-directory-contact-v23{grid-template-columns:1fr!important}
+}
+/* v1.24.0 ui-v55 · installed-PWA native performance + mobile spacing pass */

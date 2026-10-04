@@ -39,7 +39,7 @@
       <a href="{{ url_for('main.asset_detail', asset_id=asset.id) }}" class="inventory-row inventory-product-card inventory-product-card-v18 inventory-state-{{ asset.status }}">
         <span class="inventory-row-media inventory-row-media-v18">
           {% if asset.image_mime %}
-            <img src="{{ url_for('main.asset_image', asset_id=asset.id, thumb=1, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}" loading="lazy">
+            <img src="{{ url_for('main.asset_image', asset_id=asset.id, thumb=1, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}" loading="lazy" decoding="async">
           {% else %}
             <span class="inventory-row-icon {{ 'accent-blue' if is_vehicle else 'accent-purple' if asset.kind=='phone' else 'accent-teal' }}">
               {{ icon('car' if is_vehicle else 'phone' if asset.kind=='phone' else 'inventory', 27) }}

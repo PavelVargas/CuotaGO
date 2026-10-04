@@ -3,24 +3,21 @@
   const root = document.documentElement;
   const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  const IS_STANDALONE = root.classList.contains('is-standalone-app') || window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (IS_STANDALONE) {
+    const pwaMotionStyle = document.createElement('style');
+    pwaMotionStyle.textContent = '@view-transition{navigation:none}';
+    document.head.appendChild(pwaMotionStyle);
+  }
 
-  /* Native-feeling PWA: explicitly disable pinch, gesture and double-tap zoom.
-     Inputs are also 16px+ in CSS so iOS never zooms on focus. */
-  const stopGesture = (event) => event.preventDefault();
-  document.addEventListener('gesturestart', stopGesture, { passive: false });
-  document.addEventListener('gesturechange', stopGesture, { passive: false });
-  document.addEventListener('gestureend', stopGesture, { passive: false });
-  document.addEventListener('touchmove', (event) => {
-    if (event.touches && event.touches.length > 1) event.preventDefault();
-  }, { passive: false });
-  let lastTouchEnd = 0;
-  let lastTouchTarget = null;
-  document.addEventListener('touchend', (event) => {
-    const now = Date.now();
-    if (now - lastTouchEnd <= 320 && event.target === lastTouchTarget) event.preventDefault();
-    lastTouchEnd = now;
-    lastTouchTarget = event.target;
-  }, { passive: false });
+  /* The viewport already disables pinch zoom. Keep only Safari's native gesture guard in
+     standalone mode; avoid document-wide touchmove/touchend blockers that slow scrolling. */
+  if (IS_STANDALONE) {
+    const stopGesture = (event) => event.preventDefault();
+    document.addEventListener('gesturestart', stopGesture, { passive: false });
+    document.addEventListener('gesturechange', stopGesture, { passive: false });
+    document.addEventListener('gestureend', stopGesture, { passive: false });
+  }
 
   const readTheme = () => {
     try {
@@ -77,18 +74,18 @@
     const hideSplash = () => {
       if (splashFinished || !splash) return;
       splashFinished = true;
-      const remaining = Math.max(0, 460 - (performance.now() - splashStartedAt));
+      const remaining = Math.max(0, 180 - (performance.now() - splashStartedAt));
       window.setTimeout(() => {
         splash.classList.add('is-hidden');
         window.setTimeout(() => {
           splash.remove();
           root.classList.remove('show-boot');
           applyTheme(readTheme(), false);
-        }, 210);
+        }, 110);
       }, remaining);
     };
     document.addEventListener('DOMContentLoaded', hideSplash, { once: true });
-    window.setTimeout(hideSplash, 1400);
+    window.setTimeout(hideSplash, 800);
   }
 
   const networkBanner = document.getElementById('networkBanner');
@@ -120,7 +117,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.22.0-ui-v53';
+  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.24.0-ui-v55';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -493,14 +490,22 @@
   };
 
   let paymentAlertInterval = null;
+  let lastPaymentAlertPollAt = 0;
   const startPaymentAlertWatcher = () => {
     if (!document.body.classList.contains('app-authenticated') || document.body.dataset.canCollect !== '1') return;
     const shouldToast = () => !document.querySelector('[data-notifications-page]');
-    pollPaymentAlerts({ showToast: shouldToast() });
+    const runPoll = () => {
+      lastPaymentAlertPollAt = Date.now();
+      pollPaymentAlerts({ showToast: shouldToast() });
+    };
+    const warmup = () => runPoll();
+    if ('requestIdleCallback' in window) requestIdleCallback(warmup, { timeout: 1800 });
+    else window.setTimeout(warmup, IS_STANDALONE ? 900 : 350);
     if (paymentAlertInterval) window.clearInterval(paymentAlertInterval);
-    paymentAlertInterval = window.setInterval(() => pollPaymentAlerts({ showToast: shouldToast() }), 20000);
+    paymentAlertInterval = window.setInterval(runPoll, IS_STANDALONE ? 60000 : 30000);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') pollPaymentAlerts({ showToast: shouldToast() });
+      if (document.visibilityState !== 'visible') return;
+      if ((Date.now() - lastPaymentAlertPollAt) > 30000) runPoll();
     });
   };
 
@@ -885,48 +890,62 @@
   const setupPullToRefresh = () => {
     const indicator = document.getElementById('pullRefreshIndicator');
     if (!indicator || !document.body.classList.contains('app-authenticated')) return;
+    if (!IS_STANDALONE || !window.matchMedia('(pointer: coarse)').matches) {
+      indicator.remove();
+      return;
+    }
+    const host = document.querySelector('.page-shell') || document;
+    const label = indicator.querySelector('span');
     let startY = null;
     let distance = 0;
     let active = false;
-    const threshold = 72;
+    let frame = 0;
+    const threshold = 68;
+    const paint = () => {
+      frame = 0;
+      indicator.classList.add('is-pulling');
+      indicator.style.setProperty('--pull', `${distance}px`);
+      const ready = distance >= threshold;
+      indicator.classList.toggle('is-ready', ready);
+      if (label) label.textContent = ready ? 'Suelta para actualizar' : 'Desliza para actualizar';
+    };
     const reset = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
       startY = null;
       distance = 0;
       active = false;
       indicator.classList.remove('is-ready', 'is-pulling');
       indicator.style.setProperty('--pull', '0px');
-      indicator.querySelector('span').textContent = 'Desliza para actualizar';
+      if (label) label.textContent = 'Desliza para actualizar';
     };
-    document.addEventListener('touchstart', (event) => {
+    host.addEventListener('touchstart', (event) => {
       if (event.touches?.length !== 1 || window.scrollY > 0) return;
       if (event.target.closest('input,textarea,select,[contenteditable="true"],.profile-trigger,.profile-dialog')) return;
       startY = event.touches[0].clientY;
       distance = 0;
     }, { passive: true });
-    document.addEventListener('touchmove', (event) => {
+    host.addEventListener('touchmove', (event) => {
       if (startY === null || event.touches?.length !== 1 || window.scrollY > 0) return;
       const delta = event.touches[0].clientY - startY;
-      if (delta <= 8) return;
+      if (delta <= 10) return;
       active = true;
       event.preventDefault();
-      distance = Math.min(110, (delta - 8) * 0.58);
-      indicator.classList.add('is-pulling');
-      indicator.style.setProperty('--pull', `${distance}px`);
-      const ready = distance >= threshold;
-      indicator.classList.toggle('is-ready', ready);
-      indicator.querySelector('span').textContent = ready ? 'Suelta para actualizar' : 'Desliza para actualizar';
+      distance = Math.min(102, (delta - 10) * 0.54);
+      if (!frame) frame = requestAnimationFrame(paint);
     }, { passive: false });
-    document.addEventListener('touchend', () => {
+    host.addEventListener('touchend', () => {
       if (!active) return reset();
+      if (frame) { cancelAnimationFrame(frame); frame = 0; paint(); }
       if (distance >= threshold) {
         indicator.classList.add('is-refreshing');
-        indicator.querySelector('span').textContent = 'Actualizando…';
-        window.setTimeout(() => window.location.reload(), 120);
+        if (label) label.textContent = 'Actualizando…';
+        window.setTimeout(() => window.location.reload(), 60);
         return;
       }
       reset();
     }, { passive: true });
-    document.addEventListener('touchcancel', reset, { passive: true });
+    host.addEventListener('touchcancel', reset, { passive: true });
   };
 
   const setupAssetPhotoPreview = () => {

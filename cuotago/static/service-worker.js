@@ -1,4 +1,4 @@
-const VERSION = new URL(self.location.href).searchParams.get('v') || '1.23.0-ui-v54';
+const VERSION = new URL(self.location.href).searchParams.get('v') || '1.24.0-ui-v55';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const CORE_ASSETS = [
   '/static/css/app.css',
@@ -56,7 +56,7 @@ self.addEventListener('push', (event) => {
     tag: payload.tag || `cuotago-${Date.now()}`,
     silent: false,
     data: {
-      url: payload.url || '/notifications',
+      url: payload.url || '/collections',
       type: payload.type || 'general',
       contractId: payload.contractId || null,
       installmentId: payload.installmentId || null,
@@ -85,7 +85,7 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = event.notification.data?.url || '/notifications';
+  const target = event.notification.data?.url || '/collections';
   event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
     for (const client of clientList) {
       if ('focus' in client) {
@@ -124,15 +124,17 @@ self.addEventListener('fetch', (event) => {
     const isVersioned = url.searchParams.has('v');
     if (isVersioned) {
       event.respondWith((async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
         try {
-          const response = await fetch(request, { cache: 'reload' });
+          const response = await fetch(request, { cache: 'default' });
           if (response && response.ok && response.type === 'basic') {
             const cache = await caches.open(STATIC_CACHE);
             await cache.put(request, response.clone());
           }
           return response;
         } catch (_) {
-          return (await caches.match(request)) || (await caches.match(url.pathname)) || Response.error();
+          return (await caches.match(url.pathname)) || Response.error();
         }
       })());
       return;

@@ -15,7 +15,7 @@
   <article class="surface vehicle-hero-card vehicle-hero-v19">
     <div class="vehicle-hero-media vehicle-hero-media-v19">
       {% if asset.image_mime %}
-      <img src="{{ url_for('main.asset_image', asset_id=asset.id, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}">
+      <img src="{{ url_for('main.asset_image', asset_id=asset.id, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}" decoding="async" fetchpriority="high">
       {% else %}
       <div class="vehicle-hero-placeholder">{{ icon('car' if is_vehicle else 'inventory', 54) }}<span>Agrega una foto desde Editar</span></div>
       {% endif %}

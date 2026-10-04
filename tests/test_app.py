@@ -697,7 +697,7 @@ def test_vehicle_inventory_static_ui_has_dossier_and_migration():
     assert 'vehicle-status-choice-v22' in detail
     assert 'value="workshop"' in detail
     assert 'vehicle-state-workshop' in css
-    assert 'v1.23.0 ui-v54' in css
+    assert 'v1.24.0 ui-v55' in css
 
 
 def test_daily_late_interest_is_added_and_paid(client, app):
@@ -1450,13 +1450,13 @@ def test_v1175_cache_updates_without_manual_clear():
     app_js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
     init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
     config = Path('config.py').read_text(encoding='utf-8')
-    assert 'ASSET_VERSION = "1.23.0-ui-v54"' in config
+    assert 'ASSET_VERSION = "1.24.0-ui-v55"' in config
     assert 'cuotago-build-version' in base
     assert 'controllerchange' in base
     assert "updateViaCache: 'none'" in base
     assert "searchParams.get('v')" in worker
     assert "ignoreSearch: true" not in worker
-    assert "cache: 'reload'" in worker
+    assert "if (cached) return cached" in worker
     assert 'cuotago-build-version' in app_js
     assert 'no-store, max-age=0, must-revalidate' in init
     assert 'public, max-age=31536000, immutable' in init
@@ -1496,7 +1496,7 @@ def test_v1178_auth_is_minimal_on_mobile_and_split_on_desktop():
     assert '@media(max-width:760px)' in css
     assert '.auth-showcase-v2{display:none}' in css
     assert '.auth-card-modern-v2{padding:18px 2px 6px;border:0' in css
-    assert 'v1.23.0 ui-v54' in css
+    assert 'v1.24.0 ui-v55' in css
 
 
 def test_v1179_desktop_topbar_and_launcher_geometry():
@@ -1592,3 +1592,23 @@ def test_v120_desktop_workbench_is_browser_only():
     assert 'html.is-browser-app .reports-v20' in css
     for filename, marker in expected_templates.items():
         assert marker in Path(filename).read_text(encoding='utf-8')
+
+
+def test_v124_pwa_native_performance_and_spacing():
+    from pathlib import Path
+    base = Path('cuotago/templates/base.html').read_text(encoding='utf-8')
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
+    worker = Path('cuotago/static/service-worker.js').read_text(encoding='utf-8')
+    assert 'is-pwa-mobile' in base
+    assert 'cuotago-sw-check:' in base
+    assert '21600000' in base
+    assert 'v1.24.0 ui-v55' in css
+    assert 'grid-template-columns:repeat(3,minmax(0,1fr))!important' in css
+    assert 'html.is-standalone-app .topbar' in css
+    assert 'backdrop-filter:none!important' in css
+    assert 'IS_STANDALONE' in js
+    assert 'requestIdleCallback' in js
+    assert 'IS_STANDALONE ? 60000 : 30000' in js
+    assert "if (cached) return cached" in worker
+    assert "payload.url || '/collections'" in worker
