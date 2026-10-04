@@ -1450,9 +1450,13 @@ def test_v1175_cache_updates_without_manual_clear():
     app_js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
     init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
     config = Path('config.py').read_text(encoding='utf-8')
-    assert 'ASSET_VERSION = "1.24.1-ui-v56"' in config
-    assert 'CuotaGo v1.24.1 ui-v56 · PWA home hotfix' in css
-    assert 'position:static!important' in css
+    css = Path('cuotago/static/css/app.css').read_text(encoding='utf-8')
+    assert 'ASSET_VERSION = "1.24.2-ui-v57"' in config
+    assert 'CuotaGo v1.24.2 ui-v57 · PWA home final 4-column launcher + bottom footer' in css
+    assert 'grid-template-columns:repeat(4,minmax(0,1fr))!important' in css
+    assert 'direction:rtl!important' in css
+    assert 'margin:auto auto 0!important' in css
+    assert 'border:1px solid color-mix(in srgb,var(--line) 92%,#cbd5e1)!important' in css
     assert 'cuotago-build-version' in base
     assert 'controllerchange' in base
     assert "updateViaCache: 'none'" in base

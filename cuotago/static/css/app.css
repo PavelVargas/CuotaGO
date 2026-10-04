@@ -6124,3 +6124,183 @@ html[data-theme="dark"] .report-attention-panel-v23{box-shadow:none}
     margin-top:6px!important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   CuotaGo v1.24.2 ui-v57 · PWA home final 4-column launcher + bottom footer
+   - Four module buttons per row, ordered right-to-left.
+   - Bordered rounded module surfaces, visually faithful to desktop.
+   - KPIs + collection agenda stay anchored to the bottom of the phone.
+   -------------------------------------------------------------------------- */
+@media (max-width:719px){
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3{
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:flex-start!important;
+    height:100%!important;
+    min-height:0!important;
+    padding:12px max(12px,var(--safe-right)) max(10px,var(--safe-bottom)) max(12px,var(--safe-left))!important;
+    overflow:hidden!important;
+  }
+
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-grid{
+    position:static!important;
+    flex:0 0 auto!important;
+    width:100%!important;
+    max-width:390px!important;
+    margin:0 auto!important;
+    transform:none!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    column-gap:7px!important;
+    row-gap:8px!important;
+    direction:rtl!important;
+  }
+
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card,
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card:nth-last-child(2),
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card:last-child{
+    direction:ltr!important;
+    min-width:0!important;
+    min-height:86px!important;
+    padding:7px 4px 6px!important;
+    gap:4px!important;
+    justify-content:flex-start!important;
+    background:var(--surface)!important;
+    border:1px solid color-mix(in srgb,var(--line) 92%,#cbd5e1)!important;
+    border-radius:18px!important;
+    box-shadow:0 3px 10px rgba(31,45,61,.035)!important;
+    overflow:visible!important;
+  }
+
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon{
+    width:48px!important;
+    height:48px!important;
+    aspect-ratio:1!important;
+    border-radius:15px!important;
+    border:1px solid color-mix(in srgb,var(--accent,var(--primary)) 24%,var(--line))!important;
+    background:color-mix(in srgb,var(--accent,var(--primary)) 13%,var(--surface))!important;
+    box-shadow:none!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon svg{
+    width:35px!important;
+    height:35px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card strong{
+    width:100%!important;
+    min-height:11px!important;
+    font-size:8.9px!important;
+    line-height:1.08!important;
+    font-weight:760!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    text-align:center!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-badge{
+    max-width:66px!important;
+    margin-top:0!important;
+    padding:2px 5px!important;
+    font-size:6.3px!important;
+    line-height:1.05!important;
+    white-space:nowrap!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card:active{
+    transform:scale(.975)!important;
+    background:var(--surface-2)!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card:active .module-icon{
+    transform:none!important;
+  }
+
+  /* Footer: KPIs and agenda belong at the physical bottom of the home screen. */
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .home-status{
+    position:static!important;
+    flex:0 0 auto!important;
+    width:100%!important;
+    max-width:390px!important;
+    margin:auto auto 0!important;
+    padding:0!important;
+    transform:none!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .status-kpis{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .status-kpis>div{
+    min-width:0!important;
+    min-height:50px!important;
+    padding:7px 8px!important;
+    border:1px solid color-mix(in srgb,var(--line) 92%,#cbd5e1)!important;
+    border-radius:15px!important;
+    background:var(--surface)!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .status-kpis span{
+    font-size:7.5px!important;
+    line-height:1!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .status-kpis strong{
+    display:block!important;
+    width:100%!important;
+    max-width:none!important;
+    margin-top:3px!important;
+    font-size:10.1px!important;
+    line-height:1.05!important;
+    letter-spacing:-.035em!important;
+    white-space:nowrap!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    font-variant-numeric:tabular-nums!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-reminder-button{
+    min-height:50px!important;
+    margin-top:6px!important;
+    padding:7px 9px!important;
+    border:1px solid color-mix(in srgb,var(--line) 92%,#cbd5e1)!important;
+    border-radius:16px!important;
+    background:var(--surface)!important;
+    box-shadow:none!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-reminder-check{
+    width:30px!important;
+    height:30px!important;
+    border-radius:10px!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-reminder-copy strong{font-size:9.8px!important}
+  html.is-standalone-app body.dashboard-home .home-reminder-copy small{font-size:7.3px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  html.is-standalone-app body.dashboard-home .home-reminder-pill{font-size:7px!important;padding:4px 6px!important}
+}
+
+@media (max-width:360px){
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3{
+    padding-inline:max(9px,var(--safe-left)) max(9px,var(--safe-right))!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-grid{
+    column-gap:5px!important;
+    row-gap:7px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card{
+    min-height:82px!important;
+    padding-inline:3px!important;
+    border-radius:16px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon{
+    width:45px!important;
+    height:45px!important;
+    border-radius:14px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon svg{
+    width:32px!important;
+    height:32px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card strong{font-size:8.2px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .status-kpis strong{font-size:9.5px!important}
+}
+
+@media (max-width:719px) and (max-height:690px){
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3{padding-top:8px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-grid{row-gap:5px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card{min-height:76px!important;padding-block:5px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon{width:42px!important;height:42px!important;border-radius:13px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon svg{width:30px!important;height:30px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .status-kpis>div{min-height:45px!important;padding-block:6px!important}
+  html.is-standalone-app body.dashboard-home .home-reminder-button{min-height:46px!important;margin-top:5px!important}
+}
