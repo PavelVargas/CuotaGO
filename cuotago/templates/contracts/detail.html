@@ -2,17 +2,17 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}{{ contract.client.full_name }} · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page narrow-page contract-simple-detail contract-detail-v20">
-  <div class="page-head simple-page-head">
+<section class="content-page narrow-page contract-simple-detail contract-detail-v20 agreement-detail-v23">
+  <div class="page-head simple-page-head agreement-detail-head-v23">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.contracts') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><h1>{{ contract.client.full_name }}</h1><p>{{ contract.asset.name }}{% if contract.quantity > 1 %} · {{ contract.quantity }} unidades{% endif %} · {{ contract.code }}</p></div>
+      <div><span class="eyebrow">ACUERDO {{ contract.code }}</span><h1>{{ contract.client.full_name }}</h1><p>{{ contract.asset.name }}{% if contract.quantity > 1 %} · {{ contract.quantity }} unidades{% endif %}</p></div>
     </div>
-    <span class="status-pill status-{{ contract.status }}">{{ contract_status_label(contract.status) }}</span>
+    <span class="status-pill agreement-status-v23 status-{{ contract.status }}">{{ contract_status_label(contract.status) }}</span>
   </div>
 
   {% set suggested_payment = contract.next_installment.remaining if contract.next_installment else contract.balance %}
-  <section class="surface balance-card simple-balance-card">
+  <section class="surface balance-card simple-balance-card agreement-balance-v23">
     <div class="balance-top"><div><span>{{ 'Saldo registrado' if contract.status == 'cancelled' else 'Saldo pendiente' }}</span><strong>{{ money(contract.balance) }}</strong></div><div class="progress-number">{{ '%.0f'|format(contract.progress_percent) }}%</div></div>
     <div class="progress-track big"><span style="width: {{ contract.progress_percent }}%"></span></div>
     <div class="balance-metrics compact-balance-metrics">
@@ -24,7 +24,7 @@
   </section>
 
   {% if contract.status == 'active' and can('payments.record') %}
-  <div class="contract-payment-launch" id="pay">
+  <div class="contract-payment-launch agreement-actions-v23" id="pay">
     <div class="contract-payment-primary-actions">
       <button class="btn btn-primary contract-payment-button" type="button" data-open-payment data-payment-kind="payment" data-payment-amount="{{ suggested_payment }}">
         {{ icon('wallet', 18) }}<span>Registrar pago</span>
@@ -88,7 +88,7 @@
   </section>
   {% endif %}
 
-  <section class="surface schedule-card simple-schedule-card">
+  <section class="surface schedule-card simple-schedule-card agreement-schedule-v23">
     <div class="section-heading"><div><span class="eyebrow">CUOTAS</span><h2>Calendario</h2></div><span>{{ frequency_label(contract.frequency) }}</span></div>
     <div class="installment-list">
       {% for installment in contract.installments %}
@@ -104,7 +104,7 @@
     </div>
   </section>
 
-  <details class="surface advanced-options detail-more">
+  <details class="surface advanced-options detail-more agreement-more-v23">
     <summary>Detalles del acuerdo</summary>
     <div class="advanced-options-body">
       <dl class="detail-dl">
@@ -128,21 +128,21 @@
   </details>
 
   {% if contract.payments %}
-  <details class="surface advanced-options detail-more">
+  <details class="surface advanced-options detail-more agreement-more-v23">
     <summary>Historial de pagos ({{ contract.payments|length }})</summary>
     <div class="advanced-options-body payment-history">{% for payment in contract.payments[:12] %}<div><span><strong>{{ money(payment.amount) }}</strong><small>{{ payment_method_label(payment.method) }}{% if payment.reference %} · Ref. {{ payment.reference }}{% endif %}{% if payment.note %} · {{ payment.note }}{% endif %}{% if payment.late_fee_amount > 0 %} · {{ money(payment.late_fee_amount) }} interés{% endif %}</small></span><span class="payment-history-actions-v15"><a class="text-link" href="{{ url_for('main.payment_receipt', payment_id=payment.id) }}">Recibo</a><time>{{ payment.paid_at.strftime('%d/%m/%Y') }}</time></span></div>{% endfor %}</div>
   </details>
   {% endif %}
 
   {% if contract.schedule_changes %}
-  <details class="surface advanced-options detail-more">
+  <details class="surface advanced-options detail-more agreement-more-v23">
     <summary>Reprogramaciones ({{ contract.schedule_changes|length }})</summary>
     <div class="advanced-options-body schedule-change-list-v15">{% for change in contract.schedule_changes[:8] %}<div><span><strong>{{ change.new_open_count }} cuota{{ 's' if change.new_open_count != 1 }}</strong><small>{{ frequency_label(change.new_frequency) }} · desde {{ change.new_next_due_date.strftime('%d/%m/%Y') }}{% if change.reason %} · {{ change.reason }}{% endif %}</small></span><time>{{ change.created_at.strftime('%d/%m/%Y') }}</time></div>{% endfor %}</div>
   </details>
   {% endif %}
 
   {% if can('contracts.modify') or can('contracts.cancel') %}
-  <details class="surface advanced-options detail-more agreement-management">
+  <details class="surface advanced-options detail-more agreement-more-v23 agreement-management">
     <summary>Administrar acuerdo</summary>
     <div class="advanced-options-body agreement-management-body">
       <div class="agreement-management-row">

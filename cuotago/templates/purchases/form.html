@@ -4,7 +4,7 @@
 {% block content %}
 {% set has_assets = assets|length > 0 %}
 {% set supplier_value = form.get('supplier_id', '__new__' if suppliers|length == 0 else '') %}
-<section class="content-page purchase-order-page purchase-order-page-v20">
+<section class="content-page purchase-order-page purchase-order-page-v20 purchase-order-page-v23">
   <div class="page-head simple-page-head purchase-order-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.purchases') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
@@ -12,7 +12,7 @@
     </div>
   </div>
 
-  <form method="post" class="purchase-order-form" id="purchaseForm">
+  <form method="post" class="purchase-order-form purchase-order-form-v23" id="purchaseForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <section class="surface purchase-order-sheet">

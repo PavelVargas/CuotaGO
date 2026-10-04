@@ -34,7 +34,7 @@
         <input id="assetPhotoInput" class="asset-photo-input" type="file" name="image" accept="image/jpeg,image/png,image/webp" data-asset-photo-input>
         <div class="asset-photo-copy">
           <strong>{{ 'Cambiar foto' if asset and asset.image_mime else 'Agregar foto' }}</strong>
-          <span data-asset-photo-name>JPG, PNG o WebP · máximo 12 MB</span>
+          <span data-asset-photo-name>JPG, PNG o WebP · se ajusta automáticamente a 1169 × 780 · máximo 12 MB</span>
           {% if asset and asset.image_mime %}<label class="asset-photo-remove"><input type="checkbox" name="remove_image" value="1"> Quitar foto actual</label>{% endif %}
         </div>
       </div>

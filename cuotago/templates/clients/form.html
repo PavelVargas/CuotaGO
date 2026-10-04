@@ -2,35 +2,45 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}{{ 'Editar' if client else 'Nuevo' }} cliente · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page narrow-page simple-form-page client-form-page-v20">
-  <div class="page-head simple-page-head">
+<section class="content-page client-form-page-v23">
+  <div class="page-head simple-page-head client-form-head-v23">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.clients') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><h1>{{ 'Editar cliente' if client else 'Nuevo cliente' }}</h1><p>Nombre y teléfono. Lo demás es opcional.</p></div>
+      <div><span class="eyebrow">CLIENTES</span><h1>{{ 'Editar cliente' if client else 'Nuevo cliente' }}</h1><p>Información clara y suficiente para identificar y contactar al cliente.</p></div>
     </div>
   </div>
 
-  <form method="post" class="surface form-surface simple-form-card">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="form-stack primary-fields">
-      <label class="field"><span>Nombre completo *</span><input name="full_name" value="{{ client.full_name if client else request.form.get('full_name','') }}" required autofocus autocomplete="name" placeholder="Ej. Juan Pérez"></label>
-      <label class="field"><span>Teléfono</span><input name="phone" value="{{ client.phone if client else request.form.get('phone','') }}" inputmode="tel" autocomplete="tel" placeholder="809-000-0000"></label>
-    </div>
+  <div class="client-editor-layout-v23">
+    <aside class="surface client-editor-preview-v23">
+      <span class="client-editor-avatar-v23">{{ client.full_name[:1]|upper if client else '+' }}</span>
+      <span class="eyebrow">PERFIL</span>
+      <h2>{{ client.full_name if client else 'Nuevo cliente' }}</h2>
+      <p>{{ client.phone if client and client.phone else 'Agrega teléfono, documento y dirección para tener un expediente útil.' }}</p>
+      <div class="client-editor-tip-v23">{{ icon('person-card',20) }}<span><strong>Un solo registro</strong><small>Los acuerdos, pagos, promesas y notas quedarán ligados a esta ficha.</small></span></div>
+    </aside>
 
-    {% set has_more = client and (client.document_id or client.email or client.address or client.notes) %}
-    <details class="advanced-options" {% if has_more %}open{% endif %}>
-      <summary>Más datos</summary>
-      <div class="advanced-options-body">
-        <div class="form-grid two compact-grid">
+    <form method="post" class="surface client-editor-form-v23">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="client-form-section-v23">
+        <div><span class="client-form-step-v23">01</span><span><strong>Identificación</strong><small>Lo que necesitas para encontrarlo rápido.</small></span></div>
+        <div class="form-grid two client-form-grid-v23">
+          <label class="field field-span-2"><span>Nombre completo *</span><input name="full_name" value="{{ client.full_name if client else request.form.get('full_name','') }}" required autofocus autocomplete="name" placeholder="Ej. Juan Pérez"></label>
+          <label class="field"><span>Teléfono</span><input name="phone" value="{{ client.phone if client else request.form.get('phone','') }}" inputmode="tel" autocomplete="tel" placeholder="809-000-0000"></label>
           <label class="field"><span>Cédula / documento</span><input name="document_id" value="{{ client.document_id if client else request.form.get('document_id','') }}" placeholder="Opcional"></label>
-          <label class="field"><span>Correo</span><input type="email" name="email" value="{{ client.email if client else request.form.get('email','') }}" autocomplete="email" placeholder="Opcional"></label>
-          <label class="field field-span-2"><span>Dirección</span><input name="address" value="{{ client.address if client else request.form.get('address','') }}" placeholder="Opcional"></label>
-          <label class="field field-span-2"><span>Notas</span><textarea name="notes" rows="2" placeholder="Referencia o detalle útil">{{ client.notes if client else request.form.get('notes','') }}</textarea></label>
         </div>
       </div>
-    </details>
 
-    <div class="quick-create-actions inside-card"><button class="btn btn-primary btn-lg btn-block" type="submit">Guardar cliente</button></div>
-  </form>
+      <div class="client-form-section-v23">
+        <div><span class="client-form-step-v23">02</span><span><strong>Contacto y referencia</strong><small>Datos secundarios, sin pantallas extra.</small></span></div>
+        <div class="form-grid two client-form-grid-v23">
+          <label class="field"><span>Correo</span><input type="email" name="email" value="{{ client.email if client else request.form.get('email','') }}" autocomplete="email" placeholder="correo@ejemplo.com"></label>
+          <label class="field"><span>Dirección</span><input name="address" value="{{ client.address if client else request.form.get('address','') }}" placeholder="Sector, calle o referencia"></label>
+          <label class="field field-span-2"><span>Notas</span><textarea name="notes" rows="3" placeholder="Referencia, trabajo, horario o detalle útil">{{ client.notes if client else request.form.get('notes','') }}</textarea></label>
+        </div>
+      </div>
+
+      <div class="client-editor-actions-v23"><a class="btn btn-secondary" href="{{ url_for('main.clients') }}">Cancelar</a><button class="btn btn-primary" type="submit">{{ 'Guardar cambios' if client else 'Crear cliente' }}</button></div>
+    </form>
+  </div>
 </section>
 {% endblock %}

@@ -2,39 +2,54 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Compras · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page purchases-page purchases-page-v22 purchases-page-v20">
-  <div class="page-head purchases-page-head">
+<section class="content-page purchases-page-v23">
+  <div class="page-head purchases-head-v23">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><span class="eyebrow">COMPRAS</span><h1>Compras</h1><p>Proveedores, cantidades y costo de entrada.</p></div>
+      <div><span class="eyebrow">COMPRAS</span><h1>Compras</h1><p>Órdenes, proveedores y costo real de entrada del inventario.</p></div>
     </div>
-    {% if can('purchases.manage') %}<a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">+ Nueva orden</a>{% endif %}
+    {% if can('purchases.manage') %}<a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">{{ icon('plus',17) }} Nueva orden</a>{% endif %}
   </div>
 
-  <div class="purchase-kpis purchase-kpis-v22">
-    <article class="purchase-kpi"><span>Invertido</span><strong>{{ money(invested) }}</strong><small>Costo acumulado</small></article>
-    <article class="purchase-kpi"><span>Órdenes</span><strong>{{ order_count }}</strong><small>Compras registradas</small></article>
-    <article class="purchase-kpi"><span>Unidades</span><strong>{{ units }}</strong><small>Artículos adquiridos</small></article>
-    <article class="purchase-kpi"><span>Proveedores</span><strong>{{ supplier_count }}</strong><small>Con compras registradas</small></article>
+  <div class="purchase-dashboard-v23">
+    <article class="surface is-primary"><span>Invertido histórico</span><strong>{{ money(invested) }}</strong><small>{{ order_count }} orden{{ 'es' if order_count != 1 }}</small></article>
+    <article class="surface"><span>Este mes</span><strong>{{ money(month_invested) }}</strong><small>{{ month_order_count }} orden{{ 'es' if month_order_count != 1 }}</small></article>
+    <article class="surface"><span>Compra promedio</span><strong>{{ money(average_order) }}</strong><small>Por orden registrada</small></article>
+    <article class="surface"><span>Costo por unidad</span><strong>{{ money(average_unit_cost) }}</strong><small>{{ units }} unidad{{ 'es' if units != 1 }}</small></article>
   </div>
 
-  <section class="surface purchase-orders-panel">
-    <div class="purchase-orders-panel-head"><div><span class="eyebrow">HISTORIAL</span><h2>Órdenes recientes</h2></div><span>Abre una orden para ver sus artículos</span></div>
+  <div class="purchase-insights-v23">
+    <section class="surface purchase-insight-card-v23">
+      <span class="purchase-insight-icon-v23">{{ icon('home-purchases',22) }}</span>
+      <div><small>Proveedor principal</small><strong>{{ top_supplier_name or 'Sin datos' }}</strong><span>{% if top_supplier_name %}{{ money(top_supplier_total) }} acumulados{% else %}Registra compras para medirlo{% endif %}</span></div>
+    </section>
+    <section class="surface purchase-insight-card-v23">
+      <span class="purchase-insight-icon-v23">{{ icon('history',22) }}</span>
+      <div><small>Última compra</small><strong>{{ latest_order.code if latest_order else 'Sin órdenes' }}</strong><span>{% if latest_order %}{{ latest_order.supplier }} · {{ latest_order.purchase_date.strftime('%d/%m/%Y') }}{% else %}Aún no hay actividad{% endif %}</span></div>
+    </section>
+    <section class="surface purchase-insight-card-v23">
+      <span class="purchase-insight-icon-v23">{{ icon('users',22) }}</span>
+      <div><small>Proveedores</small><strong>{{ supplier_count }}</strong><span>Con historial de compra</span></div>
+    </section>
+  </div>
+
+  <section class="surface purchase-history-v23">
+    <div class="purchase-history-head-v23"><div><span class="eyebrow">HISTORIAL</span><h2>Órdenes de compra</h2><p>Abre una orden para revisar sus artículos y costos.</p></div><span>{{ order_count }} total</span></div>
     {% if orders %}
-    <div class="purchase-orders-list">
+    <div class="purchase-order-list-v23">
       {% for order in orders %}
-      <details class="purchase-order-row">
+      <details class="purchase-order-card-v23">
         <summary>
-          <span class="purchase-order-code">{{ order.code }}</span>
-          <span class="purchase-order-main"><strong>{{ order.supplier }}</strong><small>{{ order.purchase_date.strftime('%d/%m/%Y') }}{% if order.reference %} · Ref. {{ order.reference }}{% endif %}</small></span>
-          <span class="purchase-order-count">{{ order.lines|length }} línea{% if order.lines|length != 1 %}s{% endif %} · {{ order.units }} ud.</span>
-          <span class="purchase-order-amount"><small>Total</small><strong>{{ money(order.total) }}</strong></span>
-          <span class="purchase-order-chevron" aria-hidden="true">⌄</span>
+          <span class="purchase-order-badge-v23">{{ order.code }}</span>
+          <span class="purchase-order-main-v23"><strong>{{ order.supplier }}</strong><small>{{ order.purchase_date.strftime('%d/%m/%Y') }}{% if order.reference %} · Ref. {{ order.reference }}{% endif %}</small></span>
+          <span class="purchase-order-units-v23"><small>Artículos</small><strong>{{ order.lines|length }} · {{ order.units }} ud.</strong></span>
+          <span class="purchase-order-total-v23"><small>Total</small><strong>{{ money(order.total) }}</strong></span>
+          <b class="purchase-order-open-v23">⌄</b>
         </summary>
-        <div class="purchase-order-detail">
-          <div class="purchase-order-detail-head"><span>Artículo</span><span>Cant.</span><span>Costo c/u</span><span>Subtotal</span></div>
+        <div class="purchase-order-lines-v23">
+          <div class="purchase-order-labels-v23"><span>Artículo</span><span>Cantidad</span><span>Costo unitario</span><span>Subtotal</span></div>
           {% for purchase in order.lines %}
-          <div class="purchase-order-detail-line">
+          <div class="purchase-order-line-v23">
             <span><strong>{{ purchase.asset.name }}</strong>{% if purchase.notes %}<small>{{ purchase.notes }}</small>{% endif %}</span>
             <span>{{ purchase.quantity }}</span>
             <span>{{ money(purchase.unit_cost) }}</span>
@@ -46,7 +61,7 @@
       {% endfor %}
     </div>
     {% else %}
-      <div class="empty-state"><span class="empty-icon">{{ icon('home-purchases', 34) }}</span><h3>Aún no hay órdenes</h3><p>Registra una compra y CuotaGo actualizará costo y existencia del inventario.</p>{% if can('purchases.manage') %}<a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">Crear primera orden</a>{% endif %}</div>
+      <div class="empty-state"><span class="empty-icon">{{ icon('home-purchases', 36) }}</span><h3>Aún no hay órdenes</h3><p>Registra una compra y CuotaGo actualizará costo y existencia del inventario.</p>{% if can('purchases.manage') %}<a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">Crear primera orden</a>{% endif %}</div>
     {% endif %}
   </section>
 </section>

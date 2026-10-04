@@ -22,19 +22,19 @@
   ],
   "icons": [
     {
-      "src": "/static/icons/icon-192.png?v=1.22.0-ui-v53",
+      "src": "/static/icons/icon-192.png?v=1.23.0-ui-v54",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/icon-512.png?v=1.22.0-ui-v53",
+      "src": "/static/icons/icon-512.png?v=1.23.0-ui-v54",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/icon-maskable-512.png?v=1.22.0-ui-v53",
+      "src": "/static/icons/icon-maskable-512.png?v=1.23.0-ui-v54",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -47,29 +47,18 @@
       "url": "/contracts/new",
       "icons": [
         {
-          "src": "/static/icons/icon-192.png?v=1.22.0-ui-v53",
+          "src": "/static/icons/icon-192.png?v=1.23.0-ui-v54",
           "sizes": "192x192"
         }
       ]
     },
     {
-      "name": "Notificaciones de pago",
-      "short_name": "Alertas",
-      "url": "/notifications",
-      "icons": [
-        {
-          "src": "/static/icons/icon-192.png?v=1.22.0-ui-v53",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Cobros",
+      "name": "Cobros pendientes",
       "short_name": "Cobros",
       "url": "/collections",
       "icons": [
         {
-          "src": "/static/icons/icon-192.png?v=1.22.0-ui-v53",
+          "src": "/static/icons/icon-192.png?v=1.23.0-ui-v54",
           "sizes": "192x192"
         }
       ]
@@ -80,7 +69,7 @@
       "url": "/clients",
       "icons": [
         {
-          "src": "/static/icons/icon-192.png?v=1.22.0-ui-v53",
+          "src": "/static/icons/icon-192.png?v=1.23.0-ui-v54",
           "sizes": "192x192"
         }
       ]

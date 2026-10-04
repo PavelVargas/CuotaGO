@@ -5,11 +5,11 @@
 {% set client_mode = 'existing' if form.get('client_id') else ('new' if form.get('client_name') else ('existing' if clients else 'new')) %}
 {% set allow_new_asset = can('inventory.manage') %}
 {% set asset_mode = 'existing' if not allow_new_asset else ('existing' if form.get('asset_id') else ('new' if form.get('asset_name') else ('existing' if assets else 'new'))) %}
-<section class="content-page narrow-page agreement-wizard-page agreement-wizard-page-v20">
+<section class="content-page narrow-page agreement-wizard-page agreement-wizard-page-v20 agreement-wizard-page-v23">
   <div class="page-head simple-page-head wizard-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.contracts') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><h1>Nuevo acuerdo</h1><p>4 pasos claros. Completa uno y sigue al próximo.</p></div>
+      <div><span class="eyebrow">ACUERDOS</span><h1>Nuevo acuerdo</h1><p>Cliente, artículo, plan de pago y revisión final.</p></div>
     </div>
   </div>
 
@@ -53,7 +53,7 @@
 
       <div class="wizard-fields" data-client-fields="new">
         <label class="field"><span>Nombre *</span><input name="client_name" id="clientName" value="{{ form.get('client_name','') }}" placeholder="Ej. Juan Perez" autocomplete="name"></label>
-        <label class="field"><span>Telefono</span><input name="client_phone" id="clientPhone" value="{{ form.get('client_phone','') }}" placeholder="809-000-0000" inputmode="tel" autocomplete="tel"></label>
+        <label class="field"><span>Teléfono</span><input name="client_phone" id="clientPhone" value="{{ form.get('client_phone','') }}" placeholder="809-000-0000" inputmode="tel" autocomplete="tel"></label>
       </div>
 
       <p class="wizard-inline-error" data-step-error="1" hidden></p>
@@ -66,9 +66,9 @@
         <div><span>Paso 2 de 4</span><h2>¿Qué vas a entregar?</h2><p>{{ 'Elige un artículo del inventario.' if not allow_new_asset else 'Elige un artículo o regístralo aquí mismo.' }}</p></div>
       </div>
 
-      <div class="choice-buttons {{ 'two' if allow_new_asset else '' }}" role="group" aria-label="Tipo de articulo">
+      <div class="choice-buttons {{ 'two' if allow_new_asset else '' }}" role="group" aria-label="Tipo de artículo">
         <button type="button" data-asset-mode="existing" {{ 'disabled' if not assets }}>Del inventario</button>
-        {% if allow_new_asset %}<button type="button" data-asset-mode="new">+ Articulo nuevo</button>{% endif %}
+        {% if allow_new_asset %}<button type="button" data-asset-mode="new">+ Artículo nuevo</button>{% endif %}
       </div>
       {% if not assets and not allow_new_asset %}<p class="wizard-inline-note-v16">No hay artículos disponibles. Pide a un supervisor que registre inventario.</p>{% endif %}
 
@@ -284,7 +284,7 @@
 
   const syncAssetPrice = (force = false) => {
     if (assetMode === 'new') {
-      if (detectedAssetName) detectedAssetName.textContent = assetName?.value?.trim() || 'Articulo nuevo';
+      if (detectedAssetName) detectedAssetName.textContent = assetName?.value?.trim() || 'Artículo nuevo';
       return;
     }
     const option = currentAsset();
@@ -372,7 +372,7 @@
     const qty = Math.max(1, Number(contractQuantity?.value || 1));
     const name = assetMode === 'existing'
       ? (currentAsset()?.dataset?.name || currentAsset()?.textContent?.split(' \u00b7 ')[0] || 'Sin articulo')
-      : (assetName?.value?.trim() || 'Articulo nuevo');
+      : (assetName?.value?.trim() || 'Artículo nuevo');
     return `${qty} x ${name}`;
   };
 

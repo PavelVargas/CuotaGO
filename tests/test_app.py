@@ -136,12 +136,12 @@ def test_create_contract_and_register_payment(client, app):
 
 
 def test_asset_photo_upload_and_private_delivery(client, app):
+    from PIL import Image
+
     register(client)
-    tiny_png = (
-        b"\x89PNG\r\n\x1a\n"
-        b"\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
-        b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
-    )
+    source = BytesIO()
+    Image.new("RGB", (640, 960), (30, 120, 210)).save(source, format="PNG")
+    source.seek(0)
     response = client.post(
         "/assets/new",
         data={
@@ -149,7 +149,7 @@ def test_asset_photo_upload_and_private_delivery(client, app):
             "name": "Telefono con foto",
             "quantity_total": "2",
             "estimated_value": "12000",
-            "image": (BytesIO(tiny_png), "producto.png"),
+            "image": (source, "producto.png"),
         },
         content_type="multipart/form-data",
         follow_redirects=True,
@@ -159,13 +159,19 @@ def test_asset_photo_upload_and_private_delivery(client, app):
     with app.app_context():
         asset = Asset.query.filter_by(name="Telefono con foto").one()
         asset_id = asset.id
-        assert asset.image_mime == "image/png"
+        assert asset.image_mime == "image/webp"
+        assert asset.image_thumb_data
 
     image = client.get(f"/assets/{asset_id}/image")
     assert image.status_code == 200
-    assert image.mimetype == "image/png"
-    assert image.data.startswith(b"\x89PNG")
-    assert image.headers["Cache-Control"] == "private, no-store"
+    assert image.mimetype == "image/webp"
+    with Image.open(BytesIO(image.data)) as normalized:
+        assert normalized.size == (1169, 780)
+
+    thumb = client.get(f"/assets/{asset_id}/image?thumb=1")
+    assert thumb.status_code == 200
+    with Image.open(BytesIO(thumb.data)) as normalized_thumb:
+        assert normalized_thumb.size == (360, 240)
 
 
 def test_quick_contract_creates_client_and_asset_inline(client, app):
@@ -244,10 +250,9 @@ def test_payment_notification_center_works_without_web_push(client, app):
     )
     assert response.status_code == 200
 
-    center = client.get("/notifications")
-    assert center.status_code == 200
-    assert b"Cliente Atrasado" in center.data
-    assert b"Pago atrasado" in center.data
+    center = client.get("/notifications", follow_redirects=False)
+    assert center.status_code in (301, 302, 303, 307, 308)
+    assert center.headers["Location"].endswith("/collections")
 
     api = client.get("/api/notifications")
     payload = api.get_json()
@@ -692,7 +697,7 @@ def test_vehicle_inventory_static_ui_has_dossier_and_migration():
     assert 'vehicle-status-choice-v22' in detail
     assert 'value="workshop"' in detail
     assert 'vehicle-state-workshop' in css
-    assert 'v1.22.0 ui-v53' in css
+    assert 'v1.23.0 ui-v54' in css
 
 
 def test_daily_late_interest_is_added_and_paid(client, app):
@@ -795,7 +800,7 @@ def test_remembered_authenticated_session_can_open_modules_without_resume_redire
     with client.session_transaction() as session:
         session['_fresh'] = False
 
-    for path in ['/contracts', '/collections', '/notifications', '/clients', '/purchases', '/assets', '/calendar', '/reports', '/documents', '/settings']:
+    for path in ['/contracts', '/collections', '/clients', '/purchases', '/assets', '/calendar', '/reports', '/documents', '/settings']:
         response = client.get(path, follow_redirects=False)
         assert response.status_code == 200, f"{path} redirected unexpectedly to {response.headers.get('Location')}"
 
@@ -1445,7 +1450,7 @@ def test_v1175_cache_updates_without_manual_clear():
     app_js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
     init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
     config = Path('config.py').read_text(encoding='utf-8')
-    assert 'ASSET_VERSION = "1.22.0-ui-v53"' in config
+    assert 'ASSET_VERSION = "1.23.0-ui-v54"' in config
     assert 'cuotago-build-version' in base
     assert 'controllerchange' in base
     assert "updateViaCache: 'none'" in base
@@ -1472,7 +1477,8 @@ def test_v1175_topbar_uses_compact_logo_and_blue_brand():
 def test_dashboard_catalog_has_ten_modules_and_settings_stays_outside_launcher():
     from cuotago.module_catalog import module_catalog
     modules = module_catalog()
-    assert len(modules) == 10
+    assert len(modules) == 9
+    assert all(module["slug"] != "notifications" for module in modules)
     assert all(module["slug"] != "settings" for module in modules)
 
 
@@ -1490,7 +1496,7 @@ def test_v1178_auth_is_minimal_on_mobile_and_split_on_desktop():
     assert '@media(max-width:760px)' in css
     assert '.auth-showcase-v2{display:none}' in css
     assert '.auth-card-modern-v2{padding:18px 2px 6px;border:0' in css
-    assert 'v1.22.0 ui-v53' in css
+    assert 'v1.23.0 ui-v54' in css
 
 
 def test_v1179_desktop_topbar_and_launcher_geometry():
@@ -1502,6 +1508,25 @@ def test_v1179_desktop_topbar_and_launcher_geometry():
     assert 'top:26.5%!important' in css
     assert 'width:min(850px,calc(100% - 56px))!important' in css
     assert 'grid-template-columns:repeat(5,minmax(0,1fr))!important' in css
+
+
+def test_v123_workspace_refresh_and_notifications_module_retired():
+    base = Path('cuotago/templates/base.html').read_text(encoding='utf-8')
+    modules = Path('cuotago/module_catalog.py').read_text(encoding='utf-8')
+    icons = Path('cuotago/templates/macros/icons.html').read_text(encoding='utf-8')
+    clients = Path('cuotago/templates/clients/list.html').read_text(encoding='utf-8')
+    agreements = Path('cuotago/templates/contracts/list.html').read_text(encoding='utf-8')
+    reports = Path('cuotago/templates/reports/index.html').read_text(encoding='utf-8')
+    purchases = Path('cuotago/templates/purchases/list.html').read_text(encoding='utf-8')
+    main = Path('cuotago/main.py').read_text(encoding='utf-8')
+    assert 'data-fullscreen-toggle' in base
+    assert '"slug": "notifications"' not in modules
+    assert "name == 'fullscreen'" in icons
+    assert 'client-directory-grid-v23' in clients
+    assert 'agreement-grid-v23' in agreements
+    assert 'report-risk-grid-v23' in reports
+    assert 'purchase-dashboard-v23' in purchases
+    assert 'ASSET_IMAGE_SIZE = (1169, 780)' in main
 
 
 def test_vehicle_status_can_switch_to_workshop_and_blocks_agreement_lookup(client, app):

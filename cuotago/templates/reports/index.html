@@ -2,7 +2,7 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Reportes · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page reports-v19 reports-v20 reports-v22">
+<section class="content-page reports-v19 reports-v20 reports-v22 reports-v23">
   <div class="page-head report-page-head report-page-head-v22">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
@@ -39,6 +39,24 @@
     <article class="report-health-card-v22 is-danger"><div><span>Morosidad sobre cartera</span><strong>{{ '%.1f'|format(overdue_ratio_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 100 if overdue_ratio_percent > 100 else overdue_ratio_percent }}%"></i></div><small>{{ money(overdue_total) }} vencido frente a {{ money(receivable) }} por cobrar</small></article>
     <article class="report-health-card-v22 {{ 'is-danger' if expense_ratio_percent > 70 else '' }}"><div><span>Gasto / ingreso</span><strong>{{ '%.1f'|format(expense_ratio_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 100 if expense_ratio_percent > 100 else expense_ratio_percent }}%"></i></div><small>Por cada RD$100 cobrados, RD${{ '%.0f'|format(expense_ratio_percent) }} salen en gastos</small></article>
     <article class="report-health-card-v22 {{ 'is-success' if cash_flow_margin_percent >= 0 else 'is-danger' }}"><div><span>Margen de caja</span><strong>{{ '%.1f'|format(cash_flow_margin_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 0 if cash_flow_margin_percent < 0 else 100 if cash_flow_margin_percent > 100 else cash_flow_margin_percent }}%"></i></div><small>Qué porcentaje de lo cobrado queda después de gastos</small></article>
+  </section>
+
+  <section class="report-risk-grid-v23" aria-label="Analítica de cartera vencida">
+    <article class="surface report-aging-panel-v23">
+      <div class="report-section-head-v19 report-section-head-v22"><div><span class="eyebrow">ANTIGÜEDAD DE CARTERA</span><h2>¿Hace cuánto está vencido el dinero?</h2><p>Promedio actual: {{ average_overdue_days }} días de atraso.</p></div><strong>{{ money(overdue_total) }}</strong></div>
+      <div class="report-aging-grid-v23">
+        {% for item in overdue_aging %}
+        <div class="report-aging-card-v23 {% if item.key == '61_plus' %}is-critical{% elif item.key == '31_60' %}is-warning{% endif %}"><div><span>{{ item.label }}</span><strong>{{ money(item.amount) }}</strong></div><div class="report-progress-v22"><i style="width:{{ item.percent }}%"></i></div><small>{{ item.count }} cuota{{ 's' if item.count != 1 }} · {{ '%.1f'|format(item.percent) }}% del vencido</small></div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="surface report-attention-panel-v23">
+      <div class="report-section-head-v19"><div><span class="eyebrow">PRIORIDAD DE COBRO</span><h2>Clientes que requieren atención</h2></div></div>
+      <div class="report-attention-list-v23">
+        {% for item in overdue_attention %}<a href="{{ url_for('main.client_detail', client_id=item.client.id) }}"><span><strong>{{ item.client.full_name }}</strong><small>{{ item.installments }} cuota{{ 's' if item.installments != 1 }} · hasta {{ item.days }} días vencida{{ 's' if item.days != 1 }}</small></span><b>{{ money(item.amount) }}</b><i>›</i></a>{% else %}<div class="report-all-good-v23">{{ icon('shield',20) }} <span><strong>Sin cartera vencida</strong><small>No hay clientes que priorizar ahora mismo.</small></span></div>{% endfor %}
+      </div>
+    </article>
   </section>
 
   <div class="report-main-grid-v22">

@@ -5,57 +5,71 @@
 {% block scripts %}
 <script>
 (() => {
-  document.querySelectorAll('[data-client-url]').forEach((row) => {
-    const open = () => { window.location.href = row.dataset.clientUrl; };
-    row.addEventListener('click', (event) => {
+  document.querySelectorAll('[data-client-url]').forEach((card) => {
+    const open = () => { window.location.href = card.dataset.clientUrl; };
+    card.addEventListener('click', (event) => {
       if (event.target.closest('a,button,input,select,textarea,form')) return;
       open();
     });
-    row.addEventListener('keydown', (event) => {
+    card.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); }
     });
   });
 })();
 </script>
 {% endblock %}
+
 {% block content %}
-<section class="content-page clients-page-v19 clients-page-v20">
-  <div class="page-head">
+<section class="content-page clients-page-v23">
+  <div class="page-head clients-head-v23">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <div><span class="eyebrow">CLIENTES</span><h1>Clientes</h1><p>Busca una persona y abre su historial.</p></div>
+      <div><span class="eyebrow">CLIENTES</span><h1>Clientes</h1><p>Contactos, acuerdos e historial de cada persona.</p></div>
     </div>
-    {% if can('clients.manage') %}<a class="btn btn-primary" href="{{ url_for('main.client_new') }}">+ Nuevo cliente</a>{% endif %}
+    {% if can('clients.manage') %}<a class="btn btn-primary clients-new-v23" href="{{ url_for('main.client_new') }}">{{ icon('plus',17) }} Nuevo cliente</a>{% endif %}
   </div>
 
-  <div class="toolbar">
-    <form class="search-box" method="get">
+  <section class="surface clients-toolbar-v23">
+    <form class="clients-search-v23" method="get">
       {{ icon('search', 19) }}
-      <input name="q" value="{{ q }}" placeholder="Buscar por nombre, teléfono o documento">
+      <input name="q" value="{{ q }}" placeholder="Buscar por nombre, teléfono o documento" autocomplete="off">
+      {% if q %}<a href="{{ url_for('main.clients') }}" aria-label="Limpiar búsqueda">×</a>{% endif %}
     </form>
-    <span class="result-count">{{ pagination.total }} cliente{{ 's' if pagination.total != 1 }}</span>
-  </div>
+    <div class="clients-toolbar-count-v23"><strong>{{ pagination.total }}</strong><span>cliente{{ 's' if pagination.total != 1 }}</span></div>
+  </section>
 
-  <div class="surface table-surface">
-    {% if clients %}
-    <table class="data-table">
-      <thead><tr><th>Cliente</th><th>Teléfono</th><th>Documento</th><th>Acuerdos</th><th></th></tr></thead>
-      <tbody>
-      {% for client in clients %}
-        <tr class="client-click-row-v19" data-client-url="{{ url_for('main.client_detail', client_id=client.id) }}" tabindex="0" role="link" aria-label="Abrir cliente {{ client.full_name }}">
-          <td data-label="Cliente"><div class="person-cell"><span class="mini-avatar">{{ client.full_name[:1]|upper }}</span><div><strong>{{ client.full_name }}</strong><small>{{ client.email or 'Sin correo' }}</small></div></div></td>
-          <td data-label="Teléfono">{{ client.phone or '—' }}</td>
-          <td data-label="Documento">{{ client.document_id or '—' }}</td>
-          <td data-label="Acuerdos">{{ client.contracts|length }}</td>
-          <td class="table-actions"><span class="client-open-hint-v19">Abrir ›</span>{% if can('clients.manage') %}<a class="text-link" href="{{ url_for('main.client_edit', client_id=client.id) }}">Editar</a>{% endif %}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-      <div class="empty-state"><span class="empty-icon">{{ icon('users', 34) }}</span><h3>No hay clientes</h3><p>Agrega la primera persona para poder crear un acuerdo.</p>{% if can('clients.manage') %}<a class="btn btn-primary" href="{{ url_for('main.client_new') }}">Crear cliente</a>{% endif %}</div>
-    {% endif %}
+  {% if clients %}
+  <div class="client-directory-grid-v23">
+    {% for client in clients %}
+      {% set active_contracts = client.contracts|selectattr('status','equalto','active')|list %}
+      <article class="surface client-directory-card-v23" data-client-url="{{ url_for('main.client_detail', client_id=client.id) }}" tabindex="0" role="link" aria-label="Abrir cliente {{ client.full_name }}">
+        <div class="client-directory-top-v23">
+          <span class="client-directory-avatar-v23">{{ client.full_name[:1]|upper }}</span>
+          <div class="client-directory-name-v23">
+            <strong>{{ client.full_name }}</strong>
+            <small>{{ client.document_id or 'Documento no registrado' }}</small>
+          </div>
+          {% if active_contracts %}<span class="client-directory-status-v23 is-active">Activo</span>{% else %}<span class="client-directory-status-v23">Sin acuerdo activo</span>{% endif %}
+        </div>
+
+        <div class="client-directory-contact-v23">
+          <div><span>Teléfono</span><strong>{{ client.phone or '—' }}</strong></div>
+          <div><span>Correo</span><strong>{{ client.email or '—' }}</strong></div>
+        </div>
+
+        <div class="client-directory-footer-v23">
+          <div><span>Acuerdos</span><strong>{{ client.contracts|length }}</strong></div>
+          <div><span>Activos</span><strong>{{ active_contracts|length }}</strong></div>
+          <span class="client-directory-open-v23">Abrir cliente <b>›</b></span>
+          {% if can('clients.manage') %}<a class="client-directory-edit-v23" href="{{ url_for('main.client_edit', client_id=client.id) }}" aria-label="Editar {{ client.full_name }}">{{ icon('edit',16) }}</a>{% endif %}
+        </div>
+      </article>
+    {% endfor %}
   </div>
-  {% if pagination.pages > 1 %}<nav class="simple-pagination-v16" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.clients', page=pagination.prev_num, q=q) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.clients', page=pagination.next_num, q=q) }}"{% endif %}>Siguiente</a></nav>{% endif %}
+  {% else %}
+    <section class="surface empty-state clients-empty-v23"><span class="empty-icon">{{ icon('home-clients', 36) }}</span><h3>{% if q %}No encontramos ese cliente{% else %}Aún no hay clientes{% endif %}</h3><p>{% if q %}Prueba con otro nombre, teléfono o documento.{% else %}Agrega una persona para comenzar a crear acuerdos.{% endif %}</p>{% if can('clients.manage') and not q %}<a class="btn btn-primary" href="{{ url_for('main.client_new') }}">Crear cliente</a>{% endif %}</section>
+  {% endif %}
+
+  {% if pagination.pages > 1 %}<nav class="simple-pagination-v16 clients-pagination-v23" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.clients', page=pagination.prev_num, q=q) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.clients', page=pagination.next_num, q=q) }}"{% endif %}>Siguiente</a></nav>{% endif %}
 </section>
 {% endblock %}

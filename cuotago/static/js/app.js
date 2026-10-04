@@ -438,7 +438,7 @@
 
     const link = document.createElement('a');
     link.className = 'inapp-alert-link';
-    link.href = item.url || '/notifications';
+    link.href = item.url || '/collections';
     const title = document.createElement('strong');
     title.textContent = item.title || 'Alerta de cobro';
     const body = document.createElement('span');
@@ -671,7 +671,7 @@
         title: 'Alertas activadas',
         body: 'CuotaGo ya puede avisarte. Esta alerta confirma el sonido mientras la app está abierta.',
         detail: 'Configuración lista',
-        url: '/notifications',
+        url: '/collections',
       }, { forceSound: true });
       await updatePushUI();
     } catch (error) {
@@ -722,7 +722,7 @@
         title: 'Prueba de notificación',
         body: 'El servidor envió la prueba Push. Esta alerta confirma el aviso dentro de CuotaGo.',
         detail: 'Prueba completada',
-        url: '/notifications',
+        url: '/collections',
       }, { forceSound: true });
     } catch (error) {
       if (Notification.permission === 'granted') {
@@ -780,7 +780,7 @@
         title: payload.title || 'Alerta de cobro',
         body: payload.body || 'Tienes un pago que necesita atención.',
         detail: 'Toca para abrir',
-        url: payload.url || '/notifications',
+        url: payload.url || '/collections',
       }, { forceSound: true });
       if ('setAppBadge' in navigator) navigator.setAppBadge().catch?.(() => {});
     }
@@ -1141,7 +1141,7 @@
         type: 'overdue',
         title: 'Pago atrasado',
         body: 'Pago de Cliente de ejemplo atrasado · RD$2,500.00',
-        url: '/notifications',
+        url: '/collections',
       }, { forceSound: true });
 
       if (subscription) {
@@ -1499,7 +1499,7 @@
         type: 'overdue',
         title: 'Pago atrasado',
         body: 'Pago de Cliente de ejemplo atrasado · RD$2,500.00',
-        url: '/notifications',
+        url: '/collections',
       }, { forceSound: true });
     }));
     updateLocalAlertStatus();
@@ -1507,4 +1507,45 @@
     updatePushUI();
   });
 
+})();
+
+// v1.23: optional browser fullscreen from the account menu.
+(() => {
+  const button = document.querySelector('[data-fullscreen-toggle]');
+  if (!button) return;
+
+  const root = document.documentElement;
+  const requestFullscreen = root.requestFullscreen?.bind(root) || root.webkitRequestFullscreen?.bind(root);
+  const exitFullscreen = document.exitFullscreen?.bind(document) || document.webkitExitFullscreen?.bind(document);
+  const fullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+  const standalone = matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+  if (!requestFullscreen || !exitFullscreen || standalone) {
+    button.hidden = true;
+    return;
+  }
+
+  const sync = () => {
+    const active = Boolean(fullscreenElement());
+    button.hidden = false;
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    const label = button.querySelector('[data-fullscreen-label]');
+    if (label) label.textContent = active ? 'Salir de pantalla completa' : 'Pantalla completa';
+  };
+
+  button.addEventListener('click', async () => {
+    try {
+      if (fullscreenElement()) await exitFullscreen();
+      else await requestFullscreen({ navigationUI: 'hide' });
+    } catch (_) {
+      try {
+        if (!fullscreenElement()) await requestFullscreen();
+      } catch (_) {}
+    }
+    sync();
+  });
+
+  document.addEventListener('fullscreenchange', sync);
+  document.addEventListener('webkitfullscreenchange', sync);
+  sync();
 })();

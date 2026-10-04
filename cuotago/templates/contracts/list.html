@@ -2,43 +2,66 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Acuerdos · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page contracts-page-v20">
-  <div class="page-head">
+<section class="content-page agreements-page-v23">
+  <div class="page-head agreements-head-v23">
     <div class="page-head-left">
-      <a class="icon-btn" href="{{ url_for('main.dashboard') }}">{{ icon('back', 22) }}</a>
-      <div><span class="eyebrow">ACUERDOS</span><h1>Acuerdos</h1><p>Crea y revisa financiamientos sin pasos innecesarios.</p></div>
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <div><span class="eyebrow">ACUERDOS</span><h1>Acuerdos</h1><p>Financiamientos, saldos y próximos cobros en una sola vista.</p></div>
     </div>
-    {% if can('contracts.create') %}<a class="btn btn-primary" href="{{ url_for('main.contract_new') }}">+ Nuevo acuerdo</a>{% endif %}
+    {% if can('contracts.create') %}<a class="btn btn-primary" href="{{ url_for('main.contract_new') }}">{{ icon('plus',17) }} Nuevo acuerdo</a>{% endif %}
   </div>
 
-  <div class="toolbar">
-    <form class="filter-row" method="get">
-      <select name="status" onchange="this.form.submit()">
-        <option value="">Todos</option>
-        <option value="active" {{ 'selected' if status=='active' }}>Activos</option>
-        <option value="completed" {{ 'selected' if status=='completed' }}>Completados</option>
-        <option value="cancelled" {{ 'selected' if status=='cancelled' }}>Anulados</option>
-      </select>
+  <div class="agreements-overview-v23">
+    <article class="surface"><span>Mostrados</span><strong>{{ pagination.total }}</strong><small>{{ 'Resultado filtrado' if status or q else 'Acuerdos registrados' }}</small></article>
+    <article class="surface is-primary"><span>Activos en pantalla</span><strong>{{ visible_active }}</strong><small>Con saldo abierto</small></article>
+    <article class="surface {% if visible_overdue %}is-danger{% endif %}"><span>Con atraso</span><strong>{{ visible_overdue }}</strong><small>Necesitan seguimiento</small></article>
+    <article class="surface"><span>Saldo visible</span><strong>{{ money(visible_balance) }}</strong><small>Acuerdos activos mostrados</small></article>
+  </div>
+
+  <section class="surface agreements-toolbar-v23">
+    <form method="get" class="agreements-search-v23">
+      <input type="hidden" name="status" value="{{ status }}">
+      {{ icon('search',18) }}
+      <input name="q" value="{{ q }}" placeholder="Cliente, teléfono, vehículo o código" autocomplete="off">
+      {% if q %}<a href="{{ url_for('main.contracts', status=status) }}" aria-label="Limpiar búsqueda">×</a>{% endif %}
     </form>
-    <span class="result-count">{{ pagination.total }} acuerdo{{ 's' if pagination.total != 1 }}</span>
-  </div>
+    <nav class="agreement-status-tabs-v23" aria-label="Filtrar acuerdos">
+      <a class="{% if not status %}is-active{% endif %}" href="{{ url_for('main.contracts', q=q) }}">Todos</a>
+      <a class="{% if status=='active' %}is-active{% endif %}" href="{{ url_for('main.contracts', status='active', q=q) }}">Activos</a>
+      <a class="{% if status=='completed' %}is-active{% endif %}" href="{{ url_for('main.contracts', status='completed', q=q) }}">Completados</a>
+      <a class="{% if status=='cancelled' %}is-active{% endif %}" href="{{ url_for('main.contracts', status='cancelled', q=q) }}">Anulados</a>
+    </nav>
+  </section>
 
-  <div class="contract-grid">
+  <div class="agreement-grid-v23">
   {% for contract in contracts %}
-    <a class="contract-card" href="{{ url_for('main.contract_detail', contract_id=contract.id) }}">
-      <div class="contract-card-top">
-        <div><span class="contract-code">{{ contract.code }}</span><h3>{{ contract.client.full_name }}</h3><p>{{ contract.asset.name }}{% if contract.quantity > 1 %} · {{ contract.quantity }} unidades{% endif %}</p></div>
+    {% set is_overdue = contract.status == 'active' and contract.next_installment and contract.next_installment.due_date < today %}
+    <a class="surface agreement-card-v23 {% if is_overdue %}has-overdue{% endif %}" href="{{ url_for('main.contract_detail', contract_id=contract.id) }}">
+      <div class="agreement-card-head-v23">
+        <span class="agreement-card-icon-v23">{{ icon('contract',20) }}</span>
+        <div><span class="agreement-card-code-v23">{{ contract.code }}</span><h3>{{ contract.client.full_name }}</h3><p>{{ contract.asset.name }}{% if contract.quantity > 1 %} · {{ contract.quantity }} unidades{% endif %}</p></div>
         <span class="status-pill status-{{ contract.status }}">{{ contract_status_label(contract.status) }}</span>
       </div>
-      <div class="progress-track"><span style="width: {{ contract.progress_percent }}%"></span></div>
-      <div class="contract-numbers"><div><small>Pagado</small><strong>{{ money(contract.paid_total) }}</strong></div><div><small>Pendiente</small><strong>{{ money(contract.balance) }}</strong></div></div>
-      {% if contract.late_fee_balance > 0 or contract.daily_late_interest > 0 %}<div class="contract-late-note"><span>Interés atraso</span><strong>{{ money(contract.daily_late_interest) }}/día{% if contract.late_fee_balance > 0 %} · {{ money(contract.late_fee_balance) }} acumulado{% endif %}</strong></div>{% endif %}
-      <div class="contract-footer"><span>{{ deal_type_label(contract.deal_type) }}</span><strong>{% if contract.next_installment %}Próximo: {{ contract.next_installment.due_date.strftime('%d/%m/%Y') }}{% else %}Sin pagos pendientes{% endif %}</strong></div>
+
+      <div class="agreement-progress-v23"><div><span>Progreso</span><strong>{{ '%.0f'|format(contract.progress_percent) }}%</strong></div><div class="progress-track"><span style="width: {{ contract.progress_percent }}%"></span></div></div>
+
+      <div class="agreement-money-v23">
+        <div><span>Total</span><strong>{{ money(contract.total_amount) }}</strong></div>
+        <div class="is-success"><span>Pagado</span><strong>{{ money(contract.paid_total) }}</strong></div>
+        <div class="{% if contract.balance > 0 %}is-primary{% endif %}"><span>Pendiente</span><strong>{{ money(contract.balance) }}</strong></div>
+      </div>
+
+      <div class="agreement-next-v23">
+        <span>{{ deal_type_label(contract.deal_type) }}</span>
+        {% if contract.next_installment %}<strong class="{% if contract.next_installment.due_date < today %}is-danger{% endif %}">{{ 'Vencido' if contract.next_installment.due_date < today else 'Próximo' }} · {{ contract.next_installment.due_date.strftime('%d/%m/%Y') }} · {{ money(contract.next_installment.remaining) }}</strong>{% else %}<strong>Sin pagos pendientes</strong>{% endif %}
+      </div>
+      {% if contract.late_fee_balance > 0 %}<div class="agreement-late-v23">Mora pendiente <strong>{{ money(contract.late_fee_balance) }}</strong></div>{% endif %}
     </a>
   {% else %}
-    <div class="surface empty-state full-grid"><span class="empty-icon">{{ icon('contract', 34) }}</span><h3>Aún no hay acuerdos</h3><p>Crea el primero y {{ app_name }} generará automáticamente las fechas de pago.</p>{% if can('contracts.create') %}<a class="btn btn-primary" href="{{ url_for('main.contract_new') }}">Crear acuerdo</a>{% endif %}</div>
+    <div class="surface empty-state agreement-empty-v23"><span class="empty-icon">{{ icon('home-agreements', 36) }}</span><h3>{% if q %}No encontramos acuerdos{% else %}Aún no hay acuerdos{% endif %}</h3><p>{% if q %}Prueba con otro cliente, código o vehículo.{% else %}Crea el primero y CuotaGo generará automáticamente el calendario de pagos.{% endif %}</p>{% if can('contracts.create') and not q %}<a class="btn btn-primary" href="{{ url_for('main.contract_new') }}">Crear acuerdo</a>{% endif %}</div>
   {% endfor %}
   </div>
-  {% if pagination.pages > 1 %}<nav class="simple-pagination-v16" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.contracts', page=pagination.prev_num, status=status) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.contracts', page=pagination.next_num, status=status) }}"{% endif %}>Siguiente</a></nav>{% endif %}
+
+  {% if pagination.pages > 1 %}<nav class="simple-pagination-v16" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.contracts', page=pagination.prev_num, status=status, q=q) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.contracts', page=pagination.next_num, status=status, q=q) }}"{% endif %}>Siguiente</a></nav>{% endif %}
 </section>
 {% endblock %}

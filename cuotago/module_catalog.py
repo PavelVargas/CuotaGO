@@ -44,24 +44,6 @@ MODULE_CATALOG = [
         ],
     },
     {
-        "slug": "notifications",
-        "name": "Notificaciones",
-        "endpoint": "main.notifications",
-        "icon": "home-alerts",
-        "accent": "accent-red",
-        "home_description": "Alertas de cobro",
-        "guide_summary": "Concentra los pagos vencidos, los que vencen hoy y los próximos vencimientos.",
-        "guide_steps": [
-            "Abre Notificaciones para revisar alertas activas.",
-            "Toca una alerta para ir directamente al acuerdo.",
-            "Registra el pago o usa el aviso por WhatsApp cuando corresponda.",
-        ],
-        "guide_tips": [
-            "Una alerta desaparece automáticamente cuando el pago queda saldado.",
-            "Puedes activar las notificaciones del dispositivo desde Configuración en el menú superior.",
-        ],
-    },
-    {
         "slug": "clients",
         "name": "Clientes",
         "endpoint": "main.clients",

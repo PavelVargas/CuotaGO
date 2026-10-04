@@ -28,20 +28,42 @@ CENT = Decimal("0.01")
 
 
 ASSET_IMAGE_MAX_BYTES = 12 * 1024 * 1024
-ASSET_IMAGE_MAX_DIMENSION = 1600
-ASSET_THUMB_MAX_DIMENSION = 360
+ASSET_IMAGE_SIZE = (1169, 780)
+ASSET_THUMB_SIZE = (360, 240)
 
 
-def _encode_asset_image(image, max_dimension, quality=82):
-    """Return a compact WebP copy suitable for the UI and database."""
-    from PIL import Image
+def _encode_asset_image(image, target_size, quality=82):
+    """Return an exact-size WebP without cutting the uploaded photo.
 
+    CuotaGo normalizes every inventory upload to the same 1169x780 canvas.
+    A softly blurred copy fills the background while the original image is
+    contained in full, so portrait/odd aspect photos keep all important pixels.
+    """
+    from PIL import Image, ImageFilter, ImageOps
+
+    width, height = target_size
     prepared = image.copy()
-    prepared.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
-    if prepared.mode not in {"RGB", "RGBA"}:
-        prepared = prepared.convert("RGBA" if "transparency" in prepared.info else "RGB")
+    if prepared.mode != "RGB":
+        if prepared.mode == "RGBA":
+            canvas = Image.new("RGB", prepared.size, (245, 247, 250))
+            canvas.paste(prepared, mask=prepared.getchannel("A"))
+            prepared = canvas
+        else:
+            prepared = prepared.convert("RGB")
+
+    background = ImageOps.fit(
+        prepared, (width, height), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5)
+    ).filter(ImageFilter.GaussianBlur(radius=max(width, height) * 0.018))
+    veil = Image.new("RGB", (width, height), (244, 247, 250))
+    background = Image.blend(background, veil, 0.16)
+
+    foreground = ImageOps.contain(prepared, (width, height), method=Image.Resampling.LANCZOS)
+    left = (width - foreground.width) // 2
+    top = (height - foreground.height) // 2
+    background.paste(foreground, (left, top))
+
     output = io.BytesIO()
-    prepared.save(output, format="WEBP", quality=quality, method=4)
+    background.save(output, format="WEBP", quality=quality, method=4)
     return output.getvalue()
 
 
@@ -63,8 +85,8 @@ def read_asset_image_upload(file_storage):
             source.verify()
         with Image.open(io.BytesIO(payload)) as source:
             source = ImageOps.exif_transpose(source)
-            main_payload = _encode_asset_image(source, ASSET_IMAGE_MAX_DIMENSION, quality=82)
-            thumb_payload = _encode_asset_image(source, ASSET_THUMB_MAX_DIMENSION, quality=76)
+            main_payload = _encode_asset_image(source, ASSET_IMAGE_SIZE, quality=84)
+            thumb_payload = _encode_asset_image(source, ASSET_THUMB_SIZE, quality=78)
     except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError) as exc:
         raise ValueError("Usa una foto JPG, PNG o WebP válida.") from exc
 
@@ -687,11 +709,6 @@ def dashboard():
             if due_today_count
             else {"kind": "small", "text": "Todo al día"}
         ),
-        "notifications": (
-            {"kind": "badge-danger", "text": f"{notification_count} pendiente{'s' if notification_count != 1 else ''}"}
-            if notification_count
-            else {"kind": "small", "text": "Todo al día"}
-        ),
     }
 
     return render_template(
@@ -749,18 +766,9 @@ def reminders():
 @login_required
 @permission_required("collections.view")
 def notifications():
-    items = payment_notification_items(limit=100)
-    overdue = [item for item in items if item["type"] == "overdue"]
-    due_today = [item for item in items if item["type"] == "today"]
-    upcoming = [item for item in items if item["type"] == "upcoming"]
-    return render_template(
-        "notifications/index.html",
-        items=items,
-        overdue=overdue,
-        due_today=due_today,
-        upcoming=upcoming,
-        urgent_count=len(overdue) + len(due_today),
-    )
+    # The dedicated Notifications module was retired in v1.23. Keep the route
+    # as a compatibility redirect for old bookmarks and previously delivered push links.
+    return redirect(url_for("main.collections"))
 
 
 @main_bp.get("/api/notifications")
@@ -1095,7 +1103,7 @@ def asset_image(asset_id):
             from PIL import Image, ImageOps
             with Image.open(io.BytesIO(bytes(asset.image_data))) as source:
                 source = ImageOps.exif_transpose(source)
-                payload = _encode_asset_image(source, ASSET_THUMB_MAX_DIMENSION, quality=76)
+                payload = _encode_asset_image(source, ASSET_THUMB_SIZE, quality=78)
             asset.image_thumb_data = payload
             if asset.image_updated_at is None:
                 asset.image_updated_at = datetime.utcnow()
@@ -1637,13 +1645,36 @@ def purchases():
         if not item.supplier_id and (item.supplier or "").strip()
     }
 
+    order_count = len(orders)
+    average_order = money_decimal(invested / Decimal(order_count)) if order_count else Decimal("0.00")
+    average_unit_cost = money_decimal(invested / Decimal(units)) if units else Decimal("0.00")
+    month_start = local_today().replace(day=1)
+    month_items = [item for item in items if item.purchase_date >= month_start]
+    month_invested = sum((money_decimal(item.total_cost) for item in month_items), Decimal("0.00"))
+
+    supplier_totals = {}
+    for item in items:
+        supplier_name = item.supplier_record.name if item.supplier_record else (item.supplier or "Proveedor no registrado")
+        supplier_totals[supplier_name] = supplier_totals.get(supplier_name, Decimal("0.00")) + money_decimal(item.total_cost)
+    top_supplier_name = None
+    top_supplier_total = Decimal("0.00")
+    if supplier_totals:
+        top_supplier_name, top_supplier_total = max(supplier_totals.items(), key=lambda row: row[1])
+
     return render_template(
         "purchases/list.html",
         orders=orders,
         invested=money_decimal(invested),
         units=units,
-        order_count=len(orders),
+        order_count=order_count,
         supplier_count=len(supplier_ids) + len(legacy_suppliers),
+        average_order=average_order,
+        average_unit_cost=average_unit_cost,
+        month_invested=money_decimal(month_invested),
+        month_order_count=len({item.batch_key or f"legacy-{item.id}" for item in month_items}),
+        top_supplier_name=top_supplier_name,
+        top_supplier_total=money_decimal(top_supplier_total),
+        latest_order=orders[0] if orders else None,
     )
 
 
@@ -1975,15 +2006,30 @@ def asset_lookup_api():
 def contracts():
     sync_org_late_fees(commit=True)
     status = request.args.get("status", "").strip()
+    q = request.args.get("q", "").strip()[:100]
     query = Contract.query.options(
         joinedload(Contract.client), joinedload(Contract.asset),
         selectinload(Contract.installments), selectinload(Contract.payments),
     ).filter_by(organization_id=current_user.organization_id)
     if status:
         query = query.filter_by(status=status)
+    if q:
+        pattern = f"%{q}%"
+        query = query.join(Client, Contract.client_id == Client.id).join(Asset, Contract.asset_id == Asset.id).filter(
+            or_(Contract.code.ilike(pattern), Client.full_name.ilike(pattern), Client.phone.ilike(pattern), Asset.name.ilike(pattern))
+        )
     page = max(request.args.get("page", 1, type=int) or 1, 1)
     pagination = query.order_by(Contract.created_at.desc()).paginate(page=page, per_page=60, error_out=False)
-    return render_template("contracts/list.html", contracts=pagination.items, status=status, pagination=pagination)
+    visible = pagination.items
+    visible_active = sum(1 for item in visible if item.status == "active")
+    visible_balance = sum((money_decimal(item.balance) for item in visible if item.status == "active"), Decimal("0.00"))
+    visible_overdue = sum(1 for item in visible if item.status == "active" and any(
+        installment.remaining > Decimal("0.009") and installment.due_date < local_today() for installment in item.installments
+    ))
+    return render_template(
+        "contracts/list.html", contracts=visible, status=status, q=q, pagination=pagination,
+        visible_active=visible_active, visible_balance=visible_balance, visible_overdue=visible_overdue,
+    )
 
 
 @main_bp.route("/contracts/new", methods=["GET", "POST"])
@@ -3023,6 +3069,42 @@ def reports():
     ]
     overdue_total = sum((item.remaining for item in overdue_installments), Decimal("0.00"))
     overdue_client_ids = {item.contract.client_id for item in overdue_installments}
+
+    aging_defs = [
+        ("1_7", "1–7 días", 1, 7),
+        ("8_30", "8–30 días", 8, 30),
+        ("31_60", "31–60 días", 31, 60),
+        ("61_plus", "61+ días", 61, None),
+    ]
+    aging_map = {key: {"key": key, "label": label, "amount": Decimal("0.00"), "count": 0} for key, label, _, _ in aging_defs}
+    overdue_days_total = 0
+    overdue_attention_map = {}
+    for item in overdue_installments:
+        days = max((today_value - item.due_date).days, 1)
+        overdue_days_total += days
+        remaining = money_decimal(item.remaining)
+        for key, _label, minimum, maximum in aging_defs:
+            if days >= minimum and (maximum is None or days <= maximum):
+                aging_map[key]["amount"] += remaining
+                aging_map[key]["count"] += 1
+                break
+        client = item.contract.client
+        attention = overdue_attention_map.setdefault(client.id, {
+            "client": client, "amount": Decimal("0.00"), "days": 0, "installments": 0,
+        })
+        attention["amount"] += remaining
+        attention["days"] = max(attention["days"], days)
+        attention["installments"] += 1
+
+    overdue_aging = []
+    for key, label, _minimum, _maximum in aging_defs:
+        row = aging_map[key]
+        row["amount"] = money_decimal(row["amount"])
+        row["percent"] = money_decimal((row["amount"] / overdue_total * Decimal("100")) if overdue_total > 0 else Decimal("0.00"))
+        overdue_aging.append(row)
+    overdue_attention = sorted(overdue_attention_map.values(), key=lambda row: (row["amount"], row["days"]), reverse=True)[:6]
+    average_overdue_days = int(round(overdue_days_total / len(overdue_installments))) if overdue_installments else 0
+
     active_client_ids = {contract.client_id for contract in active}
     current_client_ids = active_client_ids - overdue_client_ids
     upcoming_items = [
@@ -3288,6 +3370,9 @@ def reports():
         overdue_total=overdue_total,
         overdue_clients_count=len(overdue_client_ids),
         current_clients_count=len(current_client_ids),
+        overdue_aging=overdue_aging,
+        overdue_attention=overdue_attention,
+        average_overdue_days=average_overdue_days,
         upcoming_total=upcoming_total,
         period_collected=period_collected,
         period_payment_count=period_payment_count,
