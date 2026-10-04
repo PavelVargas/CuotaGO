@@ -280,7 +280,7 @@ def _clear_collections(organization_id):
             contract.status = "completed"
     db.session.flush()
     for asset in Asset.query.filter_by(organization_id=organization_id).all():
-        if asset.status == "maintenance" and asset.committed_quantity == 0:
+        if asset.status in {"maintenance", "workshop"} and asset.committed_quantity == 0:
             continue
         if asset.available_quantity > 0:
             asset.status = "available"

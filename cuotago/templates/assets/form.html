@@ -76,8 +76,9 @@
         <div class="dealer-status-field-v19">
           <label class="field"><span>Estado actual</span><select name="status">
             <option value="available" {{ 'selected' if not asset or asset.status=='available' }}>Disponible</option>
-            <option value="maintenance" {{ 'selected' if asset and asset.status=='maintenance' }}>Mantenimiento / reparación</option>
-          </select><small>Vendido o entregado se actualiza automáticamente con los acuerdos.</small></label>
+            <option value="maintenance" {{ 'selected' if asset and asset.status=='maintenance' }}>Mantenimiento</option>
+            <option value="workshop" {{ 'selected' if asset and asset.status=='workshop' }}>En taller</option>
+          </select><small>Disponible, mantenimiento y taller se cambian manualmente. Entregado y vendido se actualizan con los acuerdos.</small></label>
         </div>
         {% endif %}
       </section>

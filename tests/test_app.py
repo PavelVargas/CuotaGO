@@ -686,7 +686,12 @@ def test_vehicle_inventory_static_ui_has_dossier_and_migration():
     assert 'Gastos por producto' in expense_template
     assert 'data-client-url' in clients_template
     assert 'object-fit:contain' in css
-    assert 'v1.20.0 ui-v51' in css
+    assert 'finance-target-cell-v21' in detail
+    assert 'Venta objetivo' in detail
+    assert 'vehicle-status-control-v21' in detail
+    assert 'value="workshop"' in detail
+    assert 'vehicle-state-workshop' in css
+    assert 'v1.21.0 ui-v52' in css
 
 
 def test_daily_late_interest_is_added_and_paid(client, app):
@@ -1433,7 +1438,7 @@ def test_v1175_cache_updates_without_manual_clear():
     app_js = Path('cuotago/static/js/app.js').read_text(encoding='utf-8')
     init = Path('cuotago/__init__.py').read_text(encoding='utf-8')
     config = Path('config.py').read_text(encoding='utf-8')
-    assert 'ASSET_VERSION = "1.20.0-ui-v51"' in config
+    assert 'ASSET_VERSION = "1.21.0-ui-v52"' in config
     assert 'cuotago-build-version' in base
     assert 'controllerchange' in base
     assert "updateViaCache: 'none'" in base
@@ -1478,7 +1483,7 @@ def test_v1178_auth_is_minimal_on_mobile_and_split_on_desktop():
     assert '@media(max-width:760px)' in css
     assert '.auth-showcase-v2{display:none}' in css
     assert '.auth-card-modern-v2{padding:18px 2px 6px;border:0' in css
-    assert 'v1.20.0 ui-v51' in css
+    assert 'v1.21.0 ui-v52' in css
 
 
 def test_v1179_desktop_topbar_and_launcher_geometry():
@@ -1490,6 +1495,40 @@ def test_v1179_desktop_topbar_and_launcher_geometry():
     assert 'top:26.5%!important' in css
     assert 'width:min(850px,calc(100% - 56px))!important' in css
     assert 'grid-template-columns:repeat(5,minmax(0,1fr))!important' in css
+
+
+def test_vehicle_status_can_switch_to_workshop_and_blocks_agreement_lookup(client, app):
+    register(client)
+    response = client.post('/assets/new', data={
+        'kind': 'car',
+        'name': 'Hyundai Sonata Limited',
+        'estimated_value': '875000',
+        'sale_price': '1045000',
+        'status': 'available',
+    }, follow_redirects=True)
+    assert response.status_code == 200
+
+    with app.app_context():
+        asset = Asset.query.filter_by(name='Hyundai Sonata Limited').one()
+        asset_id = asset.id
+
+    response = client.post(f'/assets/{asset_id}/status', data={'status': 'workshop'}, follow_redirects=True)
+    assert response.status_code == 200
+    assert 'En taller'.encode('utf-8') in response.data
+
+    with app.app_context():
+        asset = db.session.get(Asset, asset_id)
+        assert asset.status == 'workshop'
+        assert TenantAuditLog.query.filter_by(action='asset.status_changed', entity_id=str(asset_id)).count() == 1
+
+    lookup = client.get('/api/lookups/assets?q=Sonata')
+    assert lookup.status_code == 200
+    assert all(item['id'] != asset_id for item in lookup.get_json()['items'])
+
+    response = client.post(f'/assets/{asset_id}/status', data={'status': 'available'}, follow_redirects=True)
+    assert response.status_code == 200
+    with app.app_context():
+        assert db.session.get(Asset, asset_id).status == 'available'
 
 
 def test_v120_desktop_workbench_is_browser_only():

@@ -31,8 +31,19 @@
 
       <div class="vehicle-state-banner-v19 vehicle-state-{{ asset.status }}">
         <span class="vehicle-state-dot-v19"></span>
-        <div><small>Estado actual</small><strong>{{ asset_status_label(asset.status) }}</strong></div>
-        <span class="vehicle-state-help-v19">{% if asset.status == 'available' %}Disponible para vender o financiar{% elif asset.status == 'maintenance' %}Fuera de venta mientras se trabaja{% elif asset.status == 'on_loan' %}Entregado en un acuerdo activo{% elif asset.status == 'sold' %}Venta completada{% endif %}</span>
+        <div class="vehicle-state-copy-v21"><small>Estado actual</small><strong>{{ asset_status_label(asset.status) }}</strong></div>
+        <span class="vehicle-state-help-v19">{% if asset.status == 'available' %}Disponible para vender o financiar{% elif asset.status == 'maintenance' %}En mantenimiento interno{% elif asset.status == 'workshop' %}Unidad enviada al taller{% elif asset.status == 'on_loan' %}Entregado en un acuerdo activo{% elif asset.status == 'sold' %}Venta completada{% endif %}</span>
+        {% if can('inventory.manage') and asset.committed_quantity == 0 %}
+        <form method="post" action="{{ url_for('main.asset_status_update', asset_id=asset.id) }}" class="vehicle-status-control-v21">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <select name="status" aria-label="Cambiar estado del vehículo">
+            <option value="available" {{ 'selected' if asset.status=='available' }}>Disponible</option>
+            <option value="maintenance" {{ 'selected' if asset.status=='maintenance' }}>Mantenimiento</option>
+            <option value="workshop" {{ 'selected' if asset.status=='workshop' }}>En taller</option>
+          </select>
+          <button type="submit">Cambiar</button>
+        </form>
+        {% endif %}
       </div>
 
       {% if is_vehicle %}
@@ -54,8 +65,9 @@
   </article>
 
   <section class="vehicle-section finance-section">
-    <div class="vehicle-section-heading"><div><span class="eyebrow">NÚMEROS</span><h2>Resumen financiero</h2></div>{% if asset.sale_price %}<small>Venta objetivo: {{ money(asset.sale_price) }}</small>{% endif %}</div>
+    <div class="vehicle-section-heading"><div><span class="eyebrow">NÚMEROS</span><h2>Resumen financiero</h2></div></div>
     <div class="surface vehicle-finance-strip">
+      <div class="finance-cell finance-target-cell-v21"><span>Venta objetivo</span><strong>{{ money(asset.sale_price) if asset.sale_price else 'No definida' }}</strong><small>Precio esperado de salida</small></div>
       <div class="finance-cell"><span>Precio de compra</span><strong>{{ money(purchase_price) }}</strong></div>
       <div class="finance-cell"><span>Inversión total</span><strong>{{ money(total_investment) }}</strong><small>Compra + trabajos y gastos</small></div>
       <div class="finance-cell"><span>Gastos totales</span><strong>{{ money(expenses_total) }}</strong></div>

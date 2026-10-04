@@ -242,8 +242,8 @@ def sync_org_late_fees(commit=True):
 
 
 def refresh_asset_status(asset):
-    """Keep the legacy status field useful while stock is quantity based."""
-    if asset.status == "maintenance" and asset.committed_quantity == 0:
+    """Keep automatic sale states while respecting manual workshop states."""
+    if asset.status in {"maintenance", "workshop"} and asset.committed_quantity == 0:
         return
     if asset.available_quantity > 0:
         asset.status = "available"
@@ -521,6 +521,7 @@ def asset_status_label(value):
         "available": "Disponible",
         "on_loan": "Entregado",
         "maintenance": "Mantenimiento",
+        "workshop": "En taller",
         "sold": "Vendido",
     }.get(value, value or "—")
 
@@ -1131,7 +1132,7 @@ def assets():
                 Asset.serial_number.ilike(pattern),
             )
         )
-    if status in {"available", "on_loan", "maintenance", "sold"}:
+    if status in {"available", "on_loan", "maintenance", "workshop", "sold"}:
         query = query.filter(Asset.status == status)
     page = max(request.args.get("page", 1, type=int) or 1, 1)
     pagination = query.order_by(Asset.created_at.desc()).paginate(page=page, per_page=80, error_out=False)
@@ -1199,7 +1200,7 @@ def asset_detail(asset_id):
             entity_type="asset",
             entity_id=str(asset.id),
         )
-        .filter(TenantAuditLog.action.in_(["asset.updated"]))
+        .filter(TenantAuditLog.action.in_(["asset.updated", "asset.status_changed"]))
         .order_by(TenantAuditLog.created_at.desc())
         .limit(30)
         .all()
@@ -1207,7 +1208,7 @@ def asset_detail(asset_id):
     for row in audit_rows:
         activity.append({
             "at": row.created_at,
-            "title": "Información actualizada",
+            "title": "Estado actualizado" if row.action == "asset.status_changed" else "Información actualizada",
             "detail": row.summary,
             "url": None,
         })
@@ -1237,6 +1238,38 @@ def asset_detail(asset_id):
         latest_purchase=latest_purchase,
         activity=activity[:30],
     )
+
+
+@main_bp.post("/assets/<int:asset_id>/status")
+@login_required
+@permission_required("inventory.manage")
+def asset_status_update(asset_id):
+    asset = scoped_asset(asset_id)
+    requested_status = (request.form.get("status") or "").strip()
+    allowed_statuses = {"available", "maintenance", "workshop"}
+    if requested_status not in allowed_statuses:
+        flash("Selecciona un estado válido.", "error")
+        return redirect(url_for("main.asset_detail", asset_id=asset.id))
+
+    if asset.committed_quantity > 0:
+        refresh_asset_status(asset)
+        db.session.commit()
+        flash("El estado de una unidad entregada o vendida se administra automáticamente desde el acuerdo.", "error")
+        return redirect(url_for("main.asset_detail", asset_id=asset.id))
+
+    previous_status = asset.status
+    asset.status = requested_status
+    if previous_status != requested_status:
+        tenant_audit(
+            "asset.status_changed", "asset", asset.id,
+            f"Estado de {asset.name}: {asset_status_label(previous_status)} → {asset_status_label(requested_status)}.",
+            json.dumps({"before": previous_status, "after": requested_status}, ensure_ascii=False),
+        )
+        db.session.commit()
+        flash(f"Estado actualizado a {asset_status_label(requested_status)}.", "success")
+    else:
+        flash("El vehículo ya tiene ese estado.", "success")
+    return redirect(url_for("main.asset_detail", asset_id=asset.id))
 
 
 @main_bp.post("/assets/<int:asset_id>/investments")
@@ -1353,7 +1386,7 @@ def asset_new():
             # Cada vehículo debe conservar su propio chasis, kilometraje e historial.
             quantity_total = 1
         requested_status = (request.form.get("status") or "available").strip()
-        initial_status = "maintenance" if requested_status == "maintenance" else "available"
+        initial_status = requested_status if requested_status in {"maintenance", "workshop"} else "available"
 
         vehicle_year = parse_int(request.form.get("vehicle_year"), None, minimum=1886)
         mileage = parse_int(request.form.get("mileage"), None, minimum=0)
@@ -1482,11 +1515,11 @@ def asset_edit(asset_id):
             asset.image_thumb_data = image_thumb_data
             asset.image_updated_at = datetime.utcnow()
 
-        requested_status = request.form.get("status", "available")
-        if requested_status == "maintenance" and asset.committed_quantity == 0:
-            asset.status = "maintenance"
+        requested_status = (request.form.get("status") or "available").strip()
+        if requested_status in {"maintenance", "workshop"} and asset.committed_quantity == 0:
+            asset.status = requested_status
         else:
-            if asset.status == "maintenance":
+            if asset.status in {"maintenance", "workshop"}:
                 asset.status = "available"
             refresh_asset_status(asset)
         after = {
@@ -1775,7 +1808,7 @@ def purchase_new():
                     asset.acquisition_type = asset.acquisition_type or "purchase"
                     asset.acquisition_origin = asset.acquisition_origin or supplier_record.name
                     asset.acquisition_date = asset.acquisition_date or purchase_date
-                if asset.status != "maintenance":
+                if asset.status not in {"maintenance", "workshop"}:
                     refresh_asset_status(asset)
 
             db.session.add(Purchase(
@@ -1823,7 +1856,7 @@ def agreement_form_choices(selected_client=None, selected_asset=None):
     )
     asset_candidates = (
         Asset.query.options(selectinload(Asset.contracts))
-        .filter(Asset.organization_id == org_id, Asset.status != "maintenance")
+        .filter(Asset.organization_id == org_id, Asset.status.notin_(["maintenance", "workshop"]))
         .order_by(Asset.name.asc())
         .limit(120)
         .all()
@@ -1861,7 +1894,7 @@ def asset_lookup_api():
     q = (request.args.get("q") or "").strip()[:80]
     query = Asset.query.options(selectinload(Asset.contracts)).filter(
         Asset.organization_id == current_user.organization_id,
-        Asset.status != "maintenance",
+        Asset.status.notin_(["maintenance", "workshop"]),
     )
     if q:
         like = f"%{q}%"
@@ -2037,8 +2070,8 @@ def contract_new():
             errors.append("La cantidad a entregar debe ser al menos 1.")
         if asset is not None:
             refresh_asset_status(asset)
-            if asset.status == "maintenance":
-                errors.append("Ese bien está en mantenimiento.")
+            if asset.status in {"maintenance", "workshop"}:
+                errors.append("Ese bien no está disponible: está en mantenimiento o en taller.")
             elif quantity > asset.available_quantity:
                 errors.append(f"Solo quedan {asset.available_quantity} unidad(es) disponibles de {asset.name}.")
         elif quantity > asset_stock_quantity:

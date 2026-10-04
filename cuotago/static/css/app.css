@@ -36,30 +36,30 @@
 
 html[data-theme="dark"]{
   color-scheme:dark;
-  --bg:#101216;
-  --surface:#181b20;
-  --surface-2:#1d2127;
-  --surface-3:#252a31;
-  --line:#2b3139;
-  --line-strong:#3a424c;
-  --text:#d7dce3;
-  --text-strong:#f4f6f8;
-  --muted:#9ca5b0;
-  --muted-2:#747f8c;
-  --primary:#5b98ff;
-  --primary-deep:#a9c8ff;
-  --primary-soft:#13233d;
-  --success:#42c997;
-  --success-soft:#183128;
-  --danger:#f07171;
-  --danger-soft:#321d1f;
-  --warning:#e7a74c;
-  --warning-soft:#30271a;
-  --blue:#8cb6ff;
-  --purple:#a997d2;
-  --shadow:0 16px 42px rgba(0,0,0,.30);
-  --shadow-soft:0 8px 24px rgba(0,0,0,.18);
-  --shadow-float:0 22px 54px rgba(0,0,0,.40);
+  --bg:#090d12;
+  --surface:#11171e;
+  --surface-2:#161d25;
+  --surface-3:#1d2630;
+  --line:#26313d;
+  --line-strong:#354353;
+  --text:#dce5ef;
+  --text-strong:#f7f9fc;
+  --muted:#9eacbd;
+  --muted-2:#748398;
+  --primary:#70a6ff;
+  --primary-deep:#dbe8ff;
+  --primary-soft:#14243b;
+  --success:#45d59d;
+  --success-soft:#102b22;
+  --danger:#ff7b83;
+  --danger-soft:#321b22;
+  --warning:#ffc06a;
+  --warning-soft:#302617;
+  --blue:#7db3ff;
+  --purple:#c0a7ff;
+  --shadow:0 18px 46px rgba(0,0,0,.34);
+  --shadow-soft:0 8px 24px rgba(0,0,0,.24);
+  --shadow-float:0 24px 58px rgba(0,0,0,.48);
 }
 
 *{box-sizing:border-box}
@@ -1320,7 +1320,7 @@ button,input,select,textarea{font-family:inherit}
 
 .toolbar{margin-bottom:10px}
 .filter-row select,.search-box{min-height:40px;border-radius:11px}
-.result-count{font-size:9px}
+.result-count{font-size:10px}
 
 /* Less card-heavy lists. */
 .asset-grid,.contract-grid{gap:9px}
@@ -1384,7 +1384,7 @@ button,input,select,textarea{font-family:inherit}
 .wizard-panel-head{grid-template-columns:38px minmax(0,1fr);gap:9px;margin-bottom:13px}
 .wizard-panel-icon{width:38px;height:38px;border-radius:12px}
 .wizard-panel-head h2{font-size:16px}
-.wizard-panel-head p{font-size:9.5px}
+.wizard-panel-head p{font-size:10px}
 .choice-buttons{gap:6px;margin-bottom:11px}
 .choice-buttons>button,.choice-buttons>label{min-height:40px;border-radius:11px;padding:7px 8px;font-size:9.5px}
 .wizard-fields{gap:9px}
@@ -3005,7 +3005,7 @@ html[data-theme="dark"] .admin-nav a.is-active{background:var(--surface-3);color
 .admin-editor-card{margin-bottom:12px}
 .admin-card-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .admin-card-title>div{min-width:0}
-.admin-step-chip{width:26px;height:26px;border-radius:9px;display:grid;place-items:center;background:var(--surface-3);font-size:8px;font-weight:850;color:var(--muted)}
+.admin-step-chip{width:26px;height:26px;border-radius:9px;display:grid;place-items:center;background:var(--surface-3);font-size:10px;font-weight:850;color:var(--muted)}
 .admin-card-divider{height:1px;background:var(--line);margin:16px 0}
 .admin-form-grid{display:grid;gap:9px;margin-top:11px}
 .admin-form-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -3640,7 +3640,7 @@ html[data-theme="dark"] .admin-nav a.is-active{background:var(--primary-soft);co
 .docs-lead{max-width:690px;margin:7px 0 15px;color:var(--muted);font-size:10px;line-height:1.55}
 .docs-flow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:12px}
 .docs-flow>div{min-height:92px;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);display:grid;grid-template-columns:25px minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:8px;align-content:start}
-.docs-flow>div>span{grid-row:1/3;width:25px;height:25px;border-radius:8px;background:var(--primary-soft);display:grid;place-items:center;color:var(--primary);font-size:8px;font-weight:850}
+.docs-flow>div>span{grid-row:1/3;width:25px;height:25px;border-radius:8px;background:var(--primary-soft);display:grid;place-items:center;color:var(--primary);font-size:10px;font-weight:850}
 .docs-flow strong{font-size:9px;color:var(--text-strong)}
 .docs-flow small{margin-top:3px;font-size:7.5px;line-height:1.45;color:var(--muted)}
 .docs-callout{margin-top:10px;padding:11px 12px;border-left:3px solid var(--primary);border-radius:0 11px 11px 0;background:var(--primary-soft)}
@@ -4326,7 +4326,7 @@ a.vehicle-activity-row:hover .activity-copy strong{color:var(--primary)}
 .dealer-form-section-v19{padding:0 0 14px;border-bottom:1px solid var(--line)}
 .dealer-form-section-v19:last-of-type{border-bottom:0}
 .dealer-form-heading-v19{display:flex;align-items:center;gap:9px;margin:0 0 10px}
-.dealer-form-heading-v19>span{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;background:var(--surface-2);color:var(--muted);font-size:8px;font-weight:850}
+.dealer-form-heading-v19>span{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;background:var(--surface-2);color:var(--muted);font-size:10px;font-weight:850}
 .dealer-form-heading-v19>div{display:flex;flex-direction:column;gap:1px;min-width:0}
 .dealer-form-heading-v19 strong{font-size:11px;color:var(--text-strong)}
 .dealer-form-heading-v19 small{font-size:8px;line-height:1.35;color:var(--muted)}
@@ -4456,7 +4456,7 @@ a.vehicle-activity-row:hover .activity-copy strong{color:var(--primary)}
   .clients-page-v19{max-width:1260px;margin:0 auto}
   .clients-page-v19 .data-table tbody tr.client-click-row-v19:hover{background:color-mix(in srgb,var(--primary) 5%,var(--surface));transform:translateY(-1px)}
   .clients-page-v19 .data-table td{font-size:11px}
-  .clients-page-v19 .person-cell strong{font-size:12px}.clients-page-v19 .person-cell small{font-size:9px}
+  .clients-page-v19 .person-cell strong{font-size:12px}.clients-page-v19 .person-cell small{font-size:10px}
   .client-open-hint-v19{font-size:9px;color:var(--primary)}
 }
 
@@ -4993,4 +4993,318 @@ a.vehicle-activity-row:hover .activity-copy strong{color:var(--primary)}
   html.is-browser-app body.app-authenticated:not(.dashboard-home) .statement-summary-v15>div{padding:15px}
   html.is-browser-app body.app-authenticated:not(.dashboard-home) .statement-summary-v15 span{font-size:9.5px}
   html.is-browser-app body.app-authenticated:not(.dashboard-home) .statement-summary-v15 strong{font-size:15px}
+}
+
+/* --------------------------------------------------------------------------
+   v1.21.0 ui-v52 · compact desktop + clearer dark mode
+   Desktop rules intentionally require is-browser-app. Installed PWA keeps
+   its dedicated mobile layout, while dark-mode palette improvements are shared.
+   -------------------------------------------------------------------------- */
+.vehicle-status-workshop,.status-workshop{background:color-mix(in srgb,#e8792f 14%,var(--surface));color:#d76520}
+.vehicle-state-workshop{color:#d76520;background:color-mix(in srgb,#e8792f 11%,var(--surface));border-color:color-mix(in srgb,#e8792f 30%,var(--line))}
+.finance-target-cell-v21{background:linear-gradient(145deg,color-mix(in srgb,var(--primary) 12%,var(--surface)),color-mix(in srgb,var(--primary) 4%,var(--surface)))}
+.finance-target-cell-v21>span,.finance-target-cell-v21>strong{color:var(--primary-deep)}
+.vehicle-status-control-v21{margin-left:8px;display:flex;align-items:center;gap:6px;padding:4px;border:1px solid color-mix(in srgb,currentColor 24%,var(--line));border-radius:11px;background:color-mix(in srgb,var(--surface) 84%,transparent)}
+.vehicle-status-control-v21 select{min-height:30px;max-width:128px;padding:4px 26px 4px 8px;border:0;border-radius:8px;background:var(--surface);color:var(--text-strong);font-size:10px;font-weight:750;outline:0}
+.vehicle-status-control-v21 button{min-height:30px;padding:5px 9px;border:0;border-radius:8px;background:var(--text-strong);color:var(--surface);font-size:10px;font-weight:850}
+
+html[data-theme="dark"] body{background:radial-gradient(circle at 50% -22%,rgba(68,117,184,.13),transparent 42%),var(--bg)}
+html[data-theme="dark"] .topbar{background:color-mix(in srgb,var(--bg) 91%,transparent);border-bottom-color:rgba(148,163,184,.12)}
+html[data-theme="dark"] .surface,
+html[data-theme="dark"] .table-surface,
+html[data-theme="dark"] .form-surface{box-shadow:0 8px 24px rgba(0,0,0,.18)}
+html[data-theme="dark"] .field input,
+html[data-theme="dark"] .field select,
+html[data-theme="dark"] .field textarea,
+html[data-theme="dark"] .filter-row select,
+html[data-theme="dark"] .search-box,
+html[data-theme="dark"] .calendar-search{background:#0e141b;border-color:#2b3744}
+html[data-theme="dark"] .field input:hover,
+html[data-theme="dark"] .field select:hover,
+html[data-theme="dark"] .field textarea:hover{border-color:#3b4b5d}
+html[data-theme="dark"] .field input:focus,
+html[data-theme="dark"] .field select:focus,
+html[data-theme="dark"] .field textarea:focus,
+html[data-theme="dark"] .filter-row select:focus{background:#111922;border-color:var(--primary);box-shadow:0 0 0 3px rgba(112,166,255,.13)}
+html[data-theme="dark"] .btn-secondary,
+html[data-theme="dark"] .icon-btn{background:#151c24;border-color:#2c3946}
+html[data-theme="dark"] .btn-secondary:hover,
+html[data-theme="dark"] .icon-btn:hover{background:#1a232d;border-color:#3a4a5b}
+html[data-theme="dark"] .btn-primary{background:linear-gradient(180deg,#438cff,#236fe8)!important;box-shadow:0 7px 18px rgba(35,111,232,.23)!important}
+html[data-theme="dark"] .data-table th{background:#141b23!important}
+html[data-theme="dark"] .data-table tbody tr:hover{background:#151e28!important}
+html[data-theme="dark"] .profile-sheet,
+html[data-theme="dark"] .payment-dialog-sheet,
+html[data-theme="dark"] dialog{border-color:#2a3643}
+html[data-theme="dark"] .vehicle-status-workshop,
+html[data-theme="dark"] .status-workshop{color:#ff9a57;background:rgba(232,121,47,.14)}
+html[data-theme="dark"] .vehicle-state-workshop{color:#ff9a57;background:rgba(232,121,47,.10);border-color:rgba(232,121,47,.30)}
+html[data-theme="dark"] .finance-target-cell-v21{background:linear-gradient(145deg,rgba(112,166,255,.14),rgba(112,166,255,.05))}
+html[data-theme="dark"] .finance-target-cell-v21>span{color:#a9c8ff}
+html[data-theme="dark"] .finance-target-cell-v21>strong{color:#f5f8ff}
+
+@media(max-width:719px){
+  .finance-target-cell-v21{grid-column:1/-1;min-height:72px}
+  .vehicle-state-banner-v19{flex-wrap:wrap}
+  .vehicle-state-help-v19{order:3;width:100%;margin-left:18px}
+  .vehicle-status-control-v21{order:4;width:100%;margin:3px 0 0 18px;justify-content:space-between}
+  .vehicle-status-control-v21 select{max-width:none;flex:1;font-size:10px}
+  .vehicle-status-control-v21 button{font-size:10px}
+}
+
+@media(min-width:900px){
+  /* Global desktop density: fewer empty pixels, same readable type. */
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .content-page:not(.admin-console){
+    width:min(100%,1540px);
+    max-width:1540px;
+    padding:16px 24px 28px;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .content-page.narrow-page:not(.admin-console){max-width:1220px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .page-head{min-height:44px;margin-bottom:10px;gap:12px;align-items:center}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .page-head-left{gap:10px;align-items:center}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .page-head h1{margin:1px 0 2px;font-size:23px;line-height:1.1}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .page-head p{font-size:11px;line-height:1.35}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .eyebrow{font-size:9.5px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .icon-btn{width:38px;height:38px;flex-basis:38px;border-radius:13px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .surface{border-radius:21px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .btn{min-height:38px;padding:7px 13px;border-radius:13px;font-size:11px;font-weight:760}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .btn-sm,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .btn-small{min-height:32px;padding:5px 10px;border-radius:10px;font-size:10.5px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .btn-lg{min-height:42px;border-radius:14px;font-size:12px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .toolbar{min-height:40px;margin-bottom:9px;gap:9px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .search-box{min-height:38px;border-radius:13px;padding-inline:11px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .search-box input{font-size:12px!important}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .result-count{font-size:10px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field{gap:5px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field>span{font-size:10.5px;font-weight:750}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field>small{font-size:10px;line-height:1.3}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field input,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field select,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field textarea,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .filter-row select{
+    min-height:38px;
+    padding:7px 11px;
+    border-radius:13px;
+    font-size:12px!important;
+  }
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .field textarea{min-height:72px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .form-surface{padding:16px 18px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .form-grid,
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .form-stack{gap:10px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .form-actions{margin-top:12px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .section-heading{margin-bottom:8px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .section-heading h2{font-size:14px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .data-table th{padding:9px 12px;font-size:10.5px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .data-table td{min-height:48px;padding:10px 12px;font-size:11.5px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .person-cell strong{font-size:12px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .person-cell small{font-size:10px}
+  html.is-browser-app body.app-authenticated:not(.dashboard-home) .mini-avatar{width:32px;height:32px}
+
+  /* Inventory workbench */
+  html.is-browser-app .inventory-page-v20 .inventory-toolbar-v18{padding:6px 8px;border-radius:15px}
+  html.is-browser-app .inventory-page-v20 .inventory-list-v18{gap:9px}
+  html.is-browser-app .inventory-page-v20 .inventory-product-card-v18{min-height:96px;grid-template-columns:86px minmax(0,1fr) auto 10px;gap:10px;padding:9px 10px;border-radius:18px}
+  html.is-browser-app .inventory-page-v20 .inventory-row-media-v18{width:86px;height:74px;border-radius:13px}
+  html.is-browser-app .inventory-page-v20 .inventory-card-topline .inventory-product-name{font-size:13px}
+  html.is-browser-app .inventory-page-v20 .inventory-row-main-v18 .inventory-row-subtitle{font-size:10px}
+  html.is-browser-app .inventory-page-v20 .inventory-row-meta-v18{font-size:10px;gap:4px 9px}
+  html.is-browser-app .inventory-page-v20 .inventory-row-side-v18{min-width:105px}
+  html.is-browser-app .inventory-page-v20 .inventory-row-side-v18>strong{font-size:12px}
+  html.is-browser-app .inventory-page-v20 .vehicle-status{min-height:22px;padding:3px 7px;font-size:9.5px}
+
+  /* Vehicle editor: dense two-column dealership form. */
+  html.is-browser-app .dealer-editor-v20 .dealer-entry-card-v19{grid-template-columns:280px minmax(0,1fr);gap:20px;padding:16px 18px 18px}
+  html.is-browser-app .dealer-editor-v20 .dealer-photo-column-v19{top:76px}
+  html.is-browser-app .dealer-editor-v20 .dealer-photo-picker-v19{aspect-ratio:4/3;border-radius:18px}
+  html.is-browser-app .dealer-editor-v20 .dealer-form-content-v19{gap:10px}
+  html.is-browser-app .dealer-editor-v20 .dealer-form-section-v19{padding-bottom:10px}
+  html.is-browser-app .dealer-editor-v20 .dealer-form-heading-v19{margin-bottom:8px}
+  html.is-browser-app .dealer-editor-v20 .dealer-form-heading-v19>span{width:27px;height:27px;font-size:9.5px}
+  html.is-browser-app .dealer-editor-v20 .dealer-form-heading-v19 strong{font-size:12.5px}
+  html.is-browser-app .dealer-editor-v20 .dealer-form-heading-v19 small{font-size:10px}
+  html.is-browser-app .dealer-editor-v20 .dealer-fields-v19{gap:8px 10px}
+  html.is-browser-app .dealer-editor-v20 .dealer-status-field-v19{margin-top:7px}
+  html.is-browser-app .dealer-editor-v20 .dealer-save-row-v19{padding-top:0}
+
+  /* Vehicle dossier: everything important fits much earlier in the viewport. */
+  html.is-browser-app .vehicle-detail-v20{max-width:1480px!important}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-detail-head{margin-bottom:9px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-hero-v19{grid-template-columns:minmax(420px,.95fr) minmax(560px,1.2fr);border-radius:22px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-hero-media-v19{height:318px;min-height:318px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-hero-copy-v19{padding:18px 20px;justify-content:flex-start}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-title-row h2{font-size:24px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-title-row p{font-size:11px;margin-top:3px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-state-banner-v19{margin-top:10px;padding:8px 10px;border-radius:14px;gap:8px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-state-banner-v19 small{font-size:9.5px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-state-banner-v19 strong{font-size:11px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-state-help-v19{font-size:10px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-status-control-v21{margin-left:auto}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-status-control-v21 select{min-height:28px;font-size:10px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-status-control-v21 button{min-height:28px;font-size:10px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-primary-facts-v19{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:10px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-primary-facts-v19>div{padding:8px 10px!important;border-top:1px solid var(--line);border-left:0!important}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-primary-facts-v19>div:nth-child(-n+3){border-top:0}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-primary-facts-v19>div:not(:nth-child(3n+1)){border-left:1px solid var(--line)!important}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-primary-facts span{font-size:9.5px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-primary-facts strong{font-size:11px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-section{margin-top:12px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-section-heading{margin-bottom:6px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-section-heading h2{font-size:15px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-finance-strip{grid-template-columns:repeat(5,minmax(0,1fr));border-radius:19px}
+  html.is-browser-app .vehicle-detail-v20 .finance-cell{min-height:82px;padding:11px 13px}
+  html.is-browser-app .vehicle-detail-v20 .finance-cell>span{font-size:9.5px}
+  html.is-browser-app .vehicle-detail-v20 .finance-cell>strong{font-size:18px}
+  html.is-browser-app .vehicle-detail-v20 .finance-cell>small{font-size:9.5px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-info-layout-v19{grid-template-columns:minmax(300px,.72fr) minmax(0,1.75fr);gap:10px;margin-top:12px}
+  html.is-browser-app .vehicle-detail-v20 .acquisition-panel,
+  html.is-browser-app .vehicle-detail-v20 .investment-panel{padding:13px 15px;border-radius:19px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-section-heading.compact{margin-bottom:7px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-info-list>div{min-height:36px;padding:7px 0}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-info-list dt{font-size:9.5px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-info-list dd{font-size:10.5px}
+  html.is-browser-app .vehicle-detail-v20 .investment-heading p{font-size:9.5px}
+  html.is-browser-app .vehicle-detail-v20 .investment-add-button-v19{width:34px;height:34px;border-radius:11px}
+  html.is-browser-app .vehicle-detail-v20 .investment-row{grid-template-columns:32px minmax(0,1fr) auto;gap:8px;padding:8px 0}
+  html.is-browser-app .vehicle-detail-v20 .investment-icon{width:30px;height:30px}
+  html.is-browser-app .vehicle-detail-v20 .investment-title strong,
+  html.is-browser-app .vehicle-detail-v20 .investment-title span{font-size:10px}
+  html.is-browser-app .vehicle-detail-v20 .investment-meta{font-size:9.5px;margin-top:2px}
+  html.is-browser-app .vehicle-detail-v20 .investment-main p{font-size:9.5px;margin-top:3px}
+  html.is-browser-app .vehicle-detail-v20 .investment-total{padding-top:7px;margin-top:2px}
+  html.is-browser-app .vehicle-detail-v20 .investment-total span{font-size:9.5px}
+  html.is-browser-app .vehicle-detail-v20 .investment-total strong{font-size:12px}
+  html.is-browser-app .vehicle-detail-v20 .activity-section{margin-top:12px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-activity-list{padding:2px 13px}
+  html.is-browser-app .vehicle-detail-v20 .vehicle-activity-row{min-height:48px;padding:7px 0}
+  html.is-browser-app .vehicle-detail-v20 .activity-copy strong{font-size:10.5px}
+  html.is-browser-app .vehicle-detail-v20 .activity-copy small,
+  html.is-browser-app .vehicle-detail-v20 .vehicle-activity-row time{font-size:9.5px}
+
+  /* Clients / agreements / collections: more rows visible before scrolling. */
+  html.is-browser-app .client-profile-v20{gap:10px}
+  html.is-browser-app .client-profile-v20>.client-section{padding:13px 15px}
+  html.is-browser-app .client-profile-v20 .client-risk-card{padding:11px 14px}
+  html.is-browser-app .client-profile-v20 .client-kpi-grid{gap:8px}
+  html.is-browser-app .client-profile-v20 .mini-kpi{padding:10px 12px}
+  html.is-browser-app .client-profile-v20 .mini-kpi strong{font-size:17px}
+  html.is-browser-app .client-profile-v20 .client-action-strip-v37{gap:7px}
+  html.is-browser-app .client-profile-v20 .client-action-strip-v37 .btn{min-width:150px}
+  html.is-browser-app .client-profile-v20 .promise-row-v15,
+  html.is-browser-app .client-profile-v20 .client-contract-list-v15>a,
+  html.is-browser-app .client-profile-v20 .timeline-row-v15{min-height:44px;padding:7px 0}
+  html.is-browser-app .client-form-page-v20 .simple-form-card{padding:16px 18px}
+  html.is-browser-app .contracts-page-v20 .contract-grid{gap:9px}
+  html.is-browser-app .contracts-page-v20 .contract-card{min-height:164px;padding:13px;border-radius:19px}
+  html.is-browser-app .contracts-page-v20 .contract-card h3{font-size:13px}
+  html.is-browser-app .contracts-page-v20 .contract-card p{font-size:10px}
+  html.is-browser-app .contracts-page-v20 .contract-numbers>div{padding:8px}
+  html.is-browser-app .contract-detail-v20 .simple-balance-card{padding:14px 16px}
+  html.is-browser-app .contract-detail-v20 .balance-top strong{font-size:24px}
+  html.is-browser-app .contract-detail-v20 .compact-balance-metrics{gap:7px}
+  html.is-browser-app .contract-detail-v20 .compact-balance-metrics>div{padding:8px 10px}
+  html.is-browser-app .contract-detail-v20 .simple-schedule-card{padding:13px 15px}
+  html.is-browser-app .contract-detail-v20 .installment-row{min-height:52px;padding:7px 3px}
+  html.is-browser-app .agreement-wizard-page-v20 .wizard-progress{margin-bottom:10px}
+  html.is-browser-app .agreement-wizard-page-v20 .agreement-wizard{max-width:980px;padding:15px 18px 17px!important;border-radius:21px!important}
+  html.is-browser-app .agreement-wizard-page-v20 .wizard-panel-head h2{font-size:18px}
+  html.is-browser-app .agreement-wizard-page-v20 .wizard-panel-head p{font-size:10px}
+  html.is-browser-app .collections-page-v20 .kpi-grid.three-kpi{gap:8px;margin-bottom:9px}
+  html.is-browser-app .collections-page-v20 .kpi-card{min-height:78px;padding:11px 13px}
+  html.is-browser-app .collections-page-v20 .kpi-card>strong{font-size:19px}
+  html.is-browser-app .collections-page-v20 .collection-section{padding:11px 14px;margin-bottom:9px}
+  html.is-browser-app .collections-page-v20 .collection-row{min-height:58px;grid-template-columns:48px minmax(0,1fr) 150px 170px;padding:7px 0}
+  html.is-browser-app .collections-page-v20 .collection-date{width:42px;height:44px}
+
+  /* Expenses / purchases */
+  html.is-browser-app .expenses-page-v20 .expense-assets-section-v19{margin-bottom:9px}
+  html.is-browser-app .expenses-page-v20 .expense-asset-strip-v19{grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+  html.is-browser-app .expenses-page-v20 .expense-asset-card-v19{min-height:54px;padding:7px 8px;border-radius:14px}
+  html.is-browser-app .expenses-page-v20 .expense-asset-thumb-v19,
+  html.is-browser-app .expenses-page-v20 .expense-asset-icon-v19{width:36px;height:36px}
+  html.is-browser-app .expenses-page-v20 .expense-top-grid-v19{grid-template-columns:minmax(0,1.8fr) minmax(300px,.62fr);gap:9px}
+  html.is-browser-app .expenses-page-v20 .expense-entry-v19,
+  html.is-browser-app .expenses-page-v20 .expense-summary-v19,
+  html.is-browser-app .expenses-page-v20 .expense-list-card-v19{padding:13px 15px}
+  html.is-browser-app .expenses-page-v20 .expense-form-v19{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  html.is-browser-app .expenses-page-v20 .expense-form-v19 .expense-asset-field-v19{grid-column:span 2}
+  html.is-browser-app .expenses-page-v20 .expense-submit-v19{grid-column:4;min-width:140px}
+  html.is-browser-app .expenses-page-v20 .expense-row-v19{min-height:52px;padding:7px 2px}
+  html.is-browser-app .purchases-page-v20 .purchase-kpis{gap:8px;margin-bottom:9px}
+  html.is-browser-app .purchases-page-v20 .purchase-kpi{min-height:76px;padding:10px 12px}
+  html.is-browser-app .purchases-page-v20 .purchase-kpi strong{font-size:18px}
+  html.is-browser-app .purchases-page-v20 .purchase-orders-panel-head{padding:11px 14px}
+  html.is-browser-app .purchases-page-v20 .purchase-order-row>summary{min-height:52px;padding:8px 14px}
+  html.is-browser-app .purchase-order-page-v20 .purchase-order-sheet-head{padding:11px 15px}
+  html.is-browser-app .purchase-order-page-v20 .purchase-order-meta{padding:11px 15px;gap:8px}
+  html.is-browser-app .purchase-order-page-v20 .purchase-lines-head{padding:10px 15px 7px}
+  html.is-browser-app .purchase-order-page-v20 .purchase-table-labels{padding-inline:15px}
+  html.is-browser-app .purchase-order-page-v20 .purchase-order-line{padding:9px 15px}
+  html.is-browser-app .purchase-order-page-v20 .purchase-order-total{padding:11px 15px}
+
+  /* Calendar / reports */
+  html.is-browser-app .calendar-page-v20 .calendar-filterbar{padding:7px 9px;margin-bottom:8px}
+  html.is-browser-app .calendar-page-v20 .calendar-search{height:38px}
+  html.is-browser-app .calendar-page-v20 .calendar-workspace{grid-template-columns:minmax(0,1.85fr) minmax(320px,.65fr);gap:9px}
+  html.is-browser-app .calendar-page-v20 .real-calendar{padding:12px 14px 10px}
+  html.is-browser-app .calendar-page-v20 .real-calendar-head h2{font-size:16px}
+  html.is-browser-app .calendar-page-v20 .real-calendar-day{min-height:54px}
+  html.is-browser-app .calendar-page-v20 .calendar-day-panel{padding:13px;min-height:360px}
+  html.is-browser-app .calendar-page-v20 .calendar-payment-item{min-height:52px;padding:7px 5px}
+  html.is-browser-app .reports-v20 .report-filter-disclosure-v37{margin-bottom:8px}
+  html.is-browser-app .reports-v20 .report-filter-disclosure-v37>summary{min-height:40px;padding:7px 10px}
+  html.is-browser-app .reports-v20 .report-filters-v19{gap:8px;padding:9px}
+  html.is-browser-app .reports-v20 .report-kpi-grid-v19{gap:8px;margin-bottom:9px}
+  html.is-browser-app .reports-v20 .report-kpi-v19{min-height:80px;padding:10px 12px}
+  html.is-browser-app .reports-v20 .report-kpi-v19 strong{font-size:19px!important}
+  html.is-browser-app .reports-v20 .report-primary-grid-v19,
+  html.is-browser-app .reports-v20 .report-detail-grid-v19{gap:9px;margin-bottom:9px}
+  html.is-browser-app .reports-v20 .report-panel-v19,
+  html.is-browser-app .reports-v20 .report-cashflow-v15{padding:12px!important}
+  html.is-browser-app .reports-v20 .report-chart-v19{min-height:190px}
+  html.is-browser-app .reports-v20 .report-chart-v19 svg{height:148px}
+  html.is-browser-app .reports-v20 .report-metric-list-v19>div,
+  html.is-browser-app .reports-v20 .report-money-stack-v19>div{min-height:38px}
+  html.is-browser-app .reports-v20 .report-activity-row-v19{min-height:48px}
+
+  /* Notifications / reminders / settings / docs */
+  html.is-browser-app .notifications-page-v20 .notification-overview,
+  html.is-browser-app .reminders-page-v20 .reminder-overview-v20{padding:11px 14px}
+  html.is-browser-app .notifications-page-v20 .notification-mini-kpis{gap:8px;margin-bottom:8px}
+  html.is-browser-app .notifications-page-v20 .notification-mini-kpis>div{min-height:64px;padding:9px 11px}
+  html.is-browser-app .notifications-page-v20 .notification-mini-kpis strong{font-size:18px}
+  html.is-browser-app .notifications-page-v20 .notification-group{margin-bottom:8px}
+  html.is-browser-app .notifications-page-v20 .notification-group-head{padding:10px 12px 7px}
+  html.is-browser-app .notifications-page-v20 .payment-notification-row{min-height:60px;padding:8px 10px}
+  html.is-browser-app .reminders-page-v20 .reminder-group-v20{margin-top:9px}
+  html.is-browser-app .reminders-page-v20 .reminder-v20-row{min-height:58px;padding:8px 10px}
+  html.is-browser-app .settings-page-v20{gap:9px}
+  html.is-browser-app .settings-page-v20>.settings-account-card{padding:14px}
+  html.is-browser-app .settings-page-v20 .settings-switch-panel{padding:0 12px}
+  html.is-browser-app .settings-page-v20 .settings-section-heading{padding-top:11px}
+  html.is-browser-app .settings-page-v20 .settings-switch-row,
+  html.is-browser-app .settings-page-v20 .settings-test-row{min-height:54px}
+  html.is-browser-app .settings-page-v20 .settings-account-grid{gap:8px}
+  html.is-browser-app .team-page-v20 .team-list-v16{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  html.is-browser-app .team-page-v20 .team-user-v16{padding:11px 13px}
+  html.is-browser-app .team-page-v20 .team-role-help-v16{padding:12px}
+  html.is-browser-app .documents-page-v20 .docs-document-head{padding:11px 14px}
+  html.is-browser-app .documents-page-v20 .docs-search-row{padding:8px 14px}
+  html.is-browser-app .documents-page-v20 .docs-guide-layout{grid-template-columns:225px minmax(0,1fr)}
+  html.is-browser-app .documents-page-v20 .docs-index{top:72px;padding:10px;gap:3px}
+  html.is-browser-app .documents-page-v20 .docs-index a{min-height:32px;padding:0 8px;font-size:10px}
+  html.is-browser-app .documents-page-v20 .docs-manual{padding:0 20px 8px}
+  html.is-browser-app .documents-page-v20 .docs-section{grid-template-columns:42px minmax(0,1fr);gap:12px;padding:18px 0}
+  html.is-browser-app .documents-page-v20 .docs-section-body>h2,
+  html.is-browser-app .documents-page-v20 .docs-module-heading h2{font-size:18px}
+}
+
+@media(min-width:1280px){
+  html.is-browser-app .contracts-page-v20 .contract-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+
+
+@media(min-width:900px){
+  html.is-browser-app .inventory-page-v20 .inventory-state-workshop::before{
+    background:linear-gradient(100deg,color-mix(in srgb,#e8792f 11%,transparent),transparent 38%);
+  }
 }
