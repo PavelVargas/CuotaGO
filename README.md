@@ -1,8 +1,19 @@
-# CuotaGo MOBILE PWA v1.24.2 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.24.3 · PostgreSQL + Railway
 
 Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
+
+## Hotfix v1.24.3 — Launcher circular + Inventario móvil
+
+- El Home PWA mantiene **4 + 4 + 1 módulos de derecha a izquierda**, pero elimina por completo las tarjetas blancas detrás de cada módulo.
+- El objetivo táctil principal ahora es un **botón circular grande** con borde y color por módulo; el nombre queda debajo.
+- Los KPIs y la Agenda de cobranza continúan fijados al pie del Home.
+- Inventario móvil reorganiza cada unidad en dos zonas: identidad/foto arriba y una franja financiera clara abajo.
+- Para vehículos la franja muestra **Venta / Compra / Ganancia**; para otros artículos, **Venta / Costo / Stock**.
+- Búsqueda, filtro y resumen de inventario se compactan para teléfono sin afectar la vista de escritorio.
+- Build de assets: `1.24.3-ui-v58`.
+
 
 ## Hotfix v1.24.2 — Home PWA 4 columnas + footer inferior
 

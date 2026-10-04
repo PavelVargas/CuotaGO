@@ -78,6 +78,18 @@
             {% if asset.sale_price %}<em>{{ money(asset.expected_profit_per_unit) }} potencial · {{ '%.1f'|format(asset.expected_margin_percent) }}%</em>{% endif %}
           {% endif %}
         </span>
+
+        <span class="inventory-mobile-finance-v58" aria-label="Resumen financiero de {{ asset.name }}">
+          {% if is_vehicle %}
+            <span class="inventory-mobile-money-v58 is-sale"><small>Venta</small><strong>{{ money(asset.sale_price if asset.sale_price else asset.estimated_value) }}</strong></span>
+            <span class="inventory-mobile-money-v58"><small>Compra</small><strong>{{ money(asset.estimated_value) }}</strong></span>
+            <span class="inventory-mobile-money-v58 is-profit"><small>Ganancia</small><strong>{{ money(asset.expected_profit_per_unit if asset.sale_price else 0) }}</strong></span>
+          {% else %}
+            <span class="inventory-mobile-money-v58 is-sale"><small>Venta</small><strong>{{ money(asset.sale_price if asset.sale_price else asset.estimated_value) }}</strong></span>
+            <span class="inventory-mobile-money-v58"><small>Costo</small><strong>{{ money(asset.estimated_value) }}</strong></span>
+            <span class="inventory-mobile-money-v58 is-stock"><small>Stock</small><strong>{{ asset.available_quantity }}</strong></span>
+          {% endif %}
+        </span>
         <span class="inventory-row-chevron" aria-hidden="true">›</span>
       </a>
     {% else %}

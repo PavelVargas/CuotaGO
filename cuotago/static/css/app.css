@@ -6304,3 +6304,280 @@ html[data-theme="dark"] .report-attention-panel-v23{box-shadow:none}
   html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .status-kpis>div{min-height:45px!important;padding-block:6px!important}
   html.is-standalone-app body.dashboard-home .home-reminder-button{min-height:46px!important;margin-top:5px!important}
 }
+
+/* --------------------------------------------------------------------------
+   CuotaGo v1.24.3 ui-v58 · PWA launcher circles + inventory finance hierarchy
+   - Home modules are four large round icon buttons per row, right-to-left.
+   - No white card/surface behind launcher buttons.
+   - Inventory mobile cards place Sale / Purchase / Profit in a dedicated strip.
+   -------------------------------------------------------------------------- */
+.inventory-mobile-finance-v58{display:none}
+
+@media (max-width:719px){
+  /* HOME · 4 + 4 + 1, right-to-left, with the circle itself as the button. */
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    direction:rtl!important;
+    width:100%!important;
+    max-width:390px!important;
+    column-gap:5px!important;
+    row-gap:13px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card,
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card:nth-last-child(2),
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card:last-child{
+    direction:ltr!important;
+    min-width:0!important;
+    min-height:88px!important;
+    padding:0 2px!important;
+    gap:6px!important;
+    background:transparent!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card::before,
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card::after{display:none!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon{
+    width:68px!important;
+    height:68px!important;
+    aspect-ratio:1!important;
+    border-radius:50%!important;
+    border:1.5px solid color-mix(in srgb,var(--accent,var(--primary)) 30%,var(--line-strong))!important;
+    background:color-mix(in srgb,var(--accent,var(--primary)) 14%,var(--surface))!important;
+    box-shadow:0 5px 12px rgba(31,45,61,.05)!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon::before{
+    width:74%!important;
+    height:74%!important;
+    border-radius:50%!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon svg{
+    width:45px!important;
+    height:45px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card strong{
+    width:100%!important;
+    min-height:12px!important;
+    font-size:9.5px!important;
+    line-height:1.08!important;
+    font-weight:780!important;
+    white-space:nowrap!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    text-align:center!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card>small{display:none!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-badge{
+    max-width:72px!important;
+    margin-top:-3px!important;
+    padding:2px 6px!important;
+    font-size:6.5px!important;
+    border-radius:999px!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card:active{
+    transform:none!important;
+    background:transparent!important;
+  }
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card:active .module-icon{
+    transform:scale(.94)!important;
+    filter:brightness(.98)!important;
+  }
+
+  /* INVENTORY · mobile card reads as product first, money second. */
+  html.is-standalone-app .inventory-page-v22 .inventory-overview-v22{
+    gap:7px!important;
+    margin-bottom:9px!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-overview-card-v22{
+    min-height:64px!important;
+    padding:8px 10px!important;
+    border-radius:18px!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-overview-card-v22 small{display:none!important}
+  html.is-standalone-app .inventory-page-v22 .inventory-overview-card-v22 span{font-size:7.8px!important}
+  html.is-standalone-app .inventory-page-v22 .inventory-overview-card-v22 strong{font-size:14.5px!important}
+
+  html.is-standalone-app .inventory-page-v22 .inventory-toolbar-v18{
+    margin-bottom:9px!important;
+    padding:0!important;
+    background:transparent!important;
+    border:0!important;
+    box-shadow:none!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-filter-row{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) 112px!important;
+    gap:7px!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-filter-row .search-box,
+  html.is-standalone-app .inventory-page-v22 .inventory-filter-row select{
+    min-height:40px!important;
+    height:40px!important;
+    border-radius:14px!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-filter-row select{
+    width:112px!important;
+    min-width:0!important;
+    padding:7px 28px 7px 9px!important;
+    font-size:8.8px!important;
+  }
+
+  html.is-standalone-app .inventory-page-v22 .inventory-list-v18{gap:9px!important}
+  html.is-standalone-app .inventory-page-v22 .inventory-product-card-v18{
+    position:relative!important;
+    display:grid!important;
+    grid-template-columns:88px minmax(0,1fr) 10px!important;
+    grid-template-rows:auto auto!important;
+    min-height:0!important;
+    padding:9px!important;
+    gap:8px 10px!important;
+    border-radius:21px!important;
+    background:var(--surface)!important;
+    border:1px solid var(--line)!important;
+    box-shadow:none!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-product-card-v18::before{
+    opacity:.45!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-row-media-v18{
+    grid-column:1!important;
+    grid-row:1!important;
+    width:88px!important;
+    height:59px!important;
+    aspect-ratio:1169/780!important;
+    border-radius:15px!important;
+    overflow:hidden!important;
+    align-self:start!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-row-media-v18 img{
+    width:100%!important;
+    height:100%!important;
+    object-fit:cover!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-row-main-v18{
+    grid-column:2!important;
+    grid-row:1!important;
+    min-width:0!important;
+    padding:1px 2px 0 0!important;
+    justify-content:flex-start!important;
+    gap:3px!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-card-topline{
+    display:flex!important;
+    align-items:center!important;
+    flex-wrap:wrap!important;
+    gap:4px 6px!important;
+    min-width:0!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-card-topline .inventory-product-name{
+    max-width:100%!important;
+    font-size:11.5px!important;
+    line-height:1.12!important;
+    font-weight:800!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-card-topline .vehicle-status{
+    display:inline-flex!important;
+    min-height:18px!important;
+    padding:3px 6px!important;
+    border-radius:999px!important;
+    font-size:6.6px!important;
+    line-height:1!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-row-subtitle{
+    font-size:8.2px!important;
+    line-height:1.2!important;
+    color:var(--text)!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-row-meta-v18{
+    display:flex!important;
+    gap:4px 7px!important;
+    max-width:100%!important;
+    margin-top:1px!important;
+    font-size:7.2px!important;
+    line-height:1.15!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    color:var(--muted)!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-row-meta-v18>span{
+    min-width:0!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-row-side-v18{display:none!important}
+
+  html.is-standalone-app .inventory-page-v22 .inventory-mobile-finance-v58{
+    position:relative!important;
+    z-index:1!important;
+    grid-column:1 / 4!important;
+    grid-row:2!important;
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    min-width:0!important;
+    padding:7px 5px!important;
+    border:1px solid color-mix(in srgb,var(--line) 88%,transparent)!important;
+    border-radius:14px!important;
+    background:color-mix(in srgb,var(--surface-2) 80%,var(--surface))!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-mobile-money-v58{
+    min-width:0!important;
+    padding:0 6px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:center!important;
+    gap:3px!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-mobile-money-v58 + .inventory-mobile-money-v58{
+    border-left:1px solid var(--line)!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-mobile-money-v58 small{
+    font-size:6.7px!important;
+    line-height:1!important;
+    font-weight:750!important;
+    letter-spacing:.04em!important;
+    text-transform:uppercase!important;
+    color:var(--muted)!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-mobile-money-v58 strong{
+    min-width:0!important;
+    font-size:9.7px!important;
+    line-height:1.08!important;
+    font-weight:820!important;
+    letter-spacing:-.025em!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    color:var(--text-strong)!important;
+    font-variant-numeric:tabular-nums!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-mobile-money-v58.is-sale strong{color:var(--primary-deep)!important}
+  html.is-standalone-app .inventory-page-v22 .inventory-mobile-money-v58.is-profit strong{color:var(--success)!important}
+  html.is-standalone-app .inventory-page-v22 .inventory-mobile-money-v58.is-stock strong{color:var(--teal)!important}
+  html.is-standalone-app .inventory-page-v22 .inventory-product-card-v18 .inventory-row-chevron{
+    grid-column:3!important;
+    grid-row:1!important;
+    align-self:start!important;
+    justify-self:end!important;
+    margin-top:3px!important;
+    color:var(--muted-2)!important;
+  }
+}
+
+@media (max-width:360px){
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-grid{column-gap:3px!important;row-gap:11px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card{min-height:84px!important;padding-inline:0!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon{width:64px!important;height:64px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-icon svg{width:42px!important;height:42px!important}
+  html.is-standalone-app body.dashboard-home .dashboard-launcher-v3 .module-card strong{font-size:9px!important}
+
+  html.is-standalone-app .inventory-page-v22 .inventory-product-card-v18{
+    grid-template-columns:80px minmax(0,1fr) 9px!important;
+    gap:7px 8px!important;
+    padding:8px!important;
+  }
+  html.is-standalone-app .inventory-page-v22 .inventory-row-media-v18{width:80px!important;height:53px!important}
+  html.is-standalone-app .inventory-page-v22 .inventory-mobile-money-v58{padding-inline:4px!important}
+  html.is-standalone-app .inventory-page-v22 .inventory-mobile-money-v58 strong{font-size:9.1px!important}
+}
