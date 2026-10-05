@@ -1,0 +1,5 @@
+{% from 'macros/icons.html' import icon %}
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Comprobante {{ receipt.code }} · {{ receipt.business_name }}</title><link rel="stylesheet" href="{{ url_for('static',filename='css/sale-receipt.css',v=config['ASSET_VERSION']) }}"></head>
+<body class="receipt-page"><nav class="cr-actions" aria-label="Acciones del comprobante"><a href="{{ back_url }}">{{ icon('back',18) }}Volver</a><div><a download href="{{ pdf_url }}">{{ icon('download',18) }}PDF cliente</a><button type="button" onclick="window.print()">{{ icon('sales-print',18) }}Imprimir</button></div></nav>
+<main>{% include 'sales/_customer_receipt.html' %}</main></body></html>

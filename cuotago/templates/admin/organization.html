@@ -71,7 +71,7 @@
             <label class="field"><span>Gracia hasta</span><input type="date" name="grace_ends_at" value="{{ subscription.grace_ends_at.isoformat() if subscription and subscription.grace_ends_at else '' }}"><small>Durante la gracia no se bloquea el acceso.</small></label>
           </div>
           <label class="field admin-notes-field"><span>Nota interna</span><textarea name="notes" rows="3" placeholder="Solo visible para superadmin">{{ subscription.notes if subscription and subscription.notes else '' }}</textarea></label>
-          <div class="admin-form-actions"><button class="btn btn-primary" type="submit">Guardar suscripción</button></div>
+          <div class="admin-form-actions"><button class="btn btn-primary" type="submit">{{ icon('sales-check',16) }} Guardar suscripción</button></div>
         </form>
         <div class="admin-quick-actions">
           <span>Extender rápidamente</span>
@@ -103,7 +103,7 @@
             <label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="No. transferencia / recibo"></label>
             <label class="field admin-field-span-2"><span>Nota</span><input name="note" maxlength="240" placeholder="Opcional"></label>
           </div>
-          <div class="admin-form-actions"><button class="btn btn-primary" type="submit">Registrar pago y renovar</button></div>
+          <div class="admin-form-actions"><button class="btn btn-primary" type="submit">{{ icon('plus',16) }} Registrar pago y renovar</button></div>
         </form>
         <details class="admin-inline-disclosure" {% if payments %}open{% endif %}>
           <summary><span>Historial de pagos</span><b>{{ payments|length }}</b></summary>
@@ -151,7 +151,7 @@
           <form method="post" action="{{ url_for('admin.update_company', organization_id=organization.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label class="field"><span>Nombre</span><input name="name" required value="{{ organization.name }}"></label>
-            <div class="admin-form-actions"><button class="btn btn-secondary" type="submit">Guardar nombre</button></div>
+            <div class="admin-form-actions"><button class="btn btn-secondary" type="submit">{{ icon('sales-check',16) }} Guardar nombre</button></div>
           </form>
           <dl class="admin-info-list"><div><dt>ID</dt><dd>#{{ organization.id }}</dd></div><div><dt>Creada</dt><dd>{{ organization.created_at.strftime('%d/%m/%Y') }}</dd></div><div><dt>Moneda</dt><dd>{{ organization.currency }}</dd></div></dl>
         </div>

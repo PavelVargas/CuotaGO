@@ -4,7 +4,7 @@
 {% block content %}
 <section class="content-page narrow-page global-search-page-v16">
   <div class="page-head simple-page-head"><div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back',22) }}</a><div><span class="eyebrow">BUSCAR</span><h1>Encuentra cualquier cosa</h1><p>Cliente, venta, acuerdo, recibo o artículo.</p></div></div></div>
-  <form class="surface global-search-box-v16" method="get"><span>{{ icon('search',20) }}</span><input name="q" value="{{ q }}" placeholder="Nombre, teléfono, CGV-..., CG-..., recibo..." minlength="2" autofocus autocomplete="off"><button class="btn btn-primary" type="submit">Buscar</button></form>
+  <form class="surface global-search-box-v16" method="get"><span>{{ icon('search',20) }}</span><input name="q" value="{{ q }}" placeholder="Nombre, teléfono, CGV-..., CG-..., recibo..." minlength="2" autofocus autocomplete="off"><button class="btn btn-primary" type="submit">{{ icon('search',16) }} Buscar</button></form>
   {% if q %}
     {% if total_results %}<p class="global-search-count-v16">{{ total_results }} resultado{{ 's' if total_results != 1 }} para “{{ q }}”</p>{% endif %}
     <div class="global-search-groups-v16">

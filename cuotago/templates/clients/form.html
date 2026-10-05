@@ -40,7 +40,7 @@
         </div>
       </div>
 
-      <div class="client-editor-actions-v23"><a class="btn btn-secondary" href="{{ url_for('main.clients') }}">Cancelar</a><button class="btn btn-primary" type="submit">{{ 'Guardar cambios' if client else 'Crear cliente' }}</button></div>
+      <div class="client-editor-actions-v23"><a class="btn btn-secondary" href="{{ url_for('main.clients') }}">{{ icon('back',16) }} Cancelar</a><button class="btn btn-primary" type="submit">{{ 'Guardar cambios' if client else 'Crear cliente' }}</button></div>
     </form>
   </div>
 </section>

@@ -2,9 +2,11 @@
 {% from 'macros/icons.html' import icon %}
 {% from 'sales/_components.html' import heading, media with context %}
 {% block title %}{{ sale.code }} · Ventas · {{ app_name }}{% endblock %}
+{% block body_class %}sales-module sales-detail{% endblock %}
+{% block styles %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static',filename='css/sale-receipt.css',v=config['ASSET_VERSION']) }}">{% endblock %}
 {% block content %}
 <section class="sls-workspace sls-detail">
-  {{ heading(sale.code, 'Detalle de la venta · ' ~ sale.sale_date.strftime('%d/%m/%Y'), url_for('main.sales'), print_button=true) }}
+  {{ heading(sale.code, 'Detalle de la venta · ' ~ sale.sale_date.strftime('%d/%m/%Y'), url_for('main.sales'), receipt_id=sale.id) }}
   {% if sale.status=='voided' %}<div class="sls-notice sls-error"><strong>Venta anulada.</strong> {{ sale.void_reason or 'Sin motivo registrado.' }} La unidad fue devuelta al inventario.</div>{% endif %}
   <div class="sls-detail-layout">
     <article class="sls-panel sls-vehicle-file">
@@ -16,13 +18,14 @@
     </article>
     <div class="sls-detail-sidebar">
       <article class="sls-panel sls-receipt"><div class="sls-panel-heading"><span class="sls-eyebrow">Venta directa</span><span class="sls-subtle">{{ payment_method_label(sale.payment_method) }}</span></div><span class="sls-receipt-label">Total vendido</span><strong class="sls-receipt-total">{{ money(sale.total_amount) }}</strong><p>{{ sale.quantity }} unidad{{ 'es' if sale.quantity!=1 }} × {{ money(sale.unit_price) }}</p>
-        <dl class="sls-review-lines"><div><dt>Costo de compra</dt><dd>{{ money(sale.unit_cost * sale.quantity) }}</dd></div><div><dt>Inversiones asignadas</dt><dd>{{ money(sale.investment_cost) }}</dd></div><div><dt>Costo real</dt><dd>{{ money(sale.total_cost) }}</dd></div><div class="sls-profit-line"><dt>Utilidad</dt><dd class="{{ 'sls-positive' if sale.profit_amount>=0 else 'sls-negative' }}">{{ money(sale.profit_amount) }}</dd></div></dl><small>{{ '%.2f'|format(sale.margin_percent) }}% sobre costo · Valores guardados al vender</small>
+        <div class="sls-private-caption">{{ icon('shield',15) }}Información interna <span>No se incluye en el comprobante</span></div><dl class="sls-review-lines"><div><dt>Costo de compra</dt><dd>{{ money(sale.unit_cost * sale.quantity) }}</dd></div><div><dt>Inversiones asignadas</dt><dd>{{ money(sale.investment_cost) }}</dd></div><div><dt>Costo real</dt><dd>{{ money(sale.total_cost) }}</dd></div><div class="sls-profit-line"><dt>Utilidad</dt><dd class="{{ 'sls-positive' if sale.profit_amount>=0 else 'sls-negative' }}">{{ money(sale.profit_amount) }}</dd></div></dl><small>{{ '%.2f'|format(sale.margin_percent) }}% sobre costo · Valores guardados al vender</small>
       </article>
       <article class="sls-panel sls-info-panel"><h3>{{ icon('users',19) }}Comprador</h3><strong>{{ sale.buyer_display }}</strong><p>{{ sale.buyer_phone or (sale.client.phone if sale.client else None) or 'Sin teléfono registrado' }}</p>{% if sale.client and can('clients.view') %}<a class="sls-text-link" href="{{ url_for('main.client_detail',client_id=sale.client.id) }}">Ver cliente {{ icon('sales-arrow',16) }}</a>{% endif %}</article>
       <article class="sls-panel sls-info-panel"><h3>{{ icon('calendar',19) }}Datos de la operación</h3><dl class="sls-review-lines"><div><dt>Fecha</dt><dd>{{ sale.sale_date.strftime('%d/%m/%Y') }}</dd></div><div><dt>Referencia</dt><dd>{{ sale.reference or '—' }}</dd></div><div><dt>Registro</dt><dd>{{ sale.code }}</dd></div></dl></article>
     </div>
   </div>
-  {% if sale.notes %}<article class="sls-panel sls-note-panel"><h3>Nota de la operación</h3><p>{{ sale.notes }}</p></article>{% endif %}
+  {% if sale.notes %}<article class="sls-panel sls-note-panel"><h3>{{ icon('contract',18) }}Nota interna de la operación</h3><p>{{ sale.notes }}</p></article>{% endif %}
   {% if can('sales.manage') and sale.status=='completed' %}<details class="sls-void"><summary>Anular esta venta</summary><p>La unidad regresará al inventario. La operación permanecerá en el historial como anulada.</p><form method="post" action="{{ url_for('main.sale_void',sale_id=sale.id) }}" data-sale-void><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="sls-field"><span>Motivo de anulación</span><input name="reason" required minlength="3" maxlength="240" placeholder="Escribe el motivo"></label><button class="sls-button sls-danger" type="submit">Anular y devolver al inventario</button></form></details>{% endif %}
 </section>
+<div class="customer-print">{% include 'sales/_customer_receipt.html' %}</div>
 {% endblock %}

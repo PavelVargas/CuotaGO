@@ -1,8 +1,10 @@
-const VERSION = new URL(self.location.href).searchParams.get('v') || '1.25.2-ui-v66';
+const VERSION = new URL(self.location.href).searchParams.get('v') || '1.25.3-ui-v67';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const CORE_ASSETS = [
   '/static/css/app.css',
   '/static/css/sales.css',
+  '/static/css/ui.css',
+  '/static/css/sale-receipt.css',
   '/static/js/sales.js',
   '/static/js/app.js',
   '/static/manifest.webmanifest',
@@ -113,6 +115,7 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  if (/^\/sales\/\d+\/receipt(?:\.pdf)?$/.test(url.pathname)) return;
 
   // Financial/tenant HTML is never persisted in a runtime cache. Navigation
   // preload only removes service-worker startup latency and still comes from

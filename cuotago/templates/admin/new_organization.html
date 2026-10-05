@@ -25,7 +25,7 @@
       <label class="field"><span>Vencimiento</span><input type="date" name="current_period_end" value="{{ request.form.get('current_period_end','') }}"><small>Si queda vacío, CuotaGo puede calcular el primer periodo.</small></label>
       <label class="field"><span>Precio personalizado</span><input type="number" step="0.01" min="0" name="amount_override" value="{{ request.form.get('amount_override','') }}" placeholder="Usar precio del plan"></label>
     </div>
-    <div class="admin-form-actions"><a class="btn btn-secondary" href="{{ url_for('admin.dashboard') }}">Cancelar</a><button class="btn btn-primary" type="submit">Crear empresa</button></div>
+    <div class="admin-form-actions"><a class="btn btn-secondary" href="{{ url_for('admin.dashboard') }}">{{ icon('back',16) }} Cancelar</a><button class="btn btn-primary" type="submit">Crear empresa</button></div>
   </form>
 </section>
 {% endblock %}

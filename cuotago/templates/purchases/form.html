@@ -93,7 +93,7 @@
       </footer>
     </section>
 
-    <button class="btn btn-primary btn-lg btn-block purchase-order-submit" type="submit" id="purchaseSubmit">Guardar orden de compra</button>
+    <button class="btn btn-primary btn-lg btn-block purchase-order-submit" type="submit" id="purchaseSubmit">{{ icon('sales-check',16) }} <span data-purchase-submit-label>Guardar orden de compra</span></button>
   </form>
 </section>
 {% endblock %}
@@ -130,7 +130,7 @@
     });
     totalCost.textContent = money.format(invested);
     itemCount.textContent = `${all.length} artículo${all.length === 1 ? '' : 's'} · ${units} unidad${units === 1 ? '' : 'es'}`;
-    submit.textContent = all.length === 1 ? 'Guardar orden de compra' : `Guardar orden · ${all.length} artículos`;
+    submit.querySelector('[data-purchase-submit-label]').textContent = all.length === 1 ? 'Guardar orden de compra' : `Guardar orden · ${all.length} artículos`;
     all.forEach((item) => {
       const remove = item.querySelector('[data-remove-purchase-item]');
       if (remove) remove.hidden = all.length === 1;

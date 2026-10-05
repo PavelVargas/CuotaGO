@@ -1,4 +1,4 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
 {% block title %}Acceso limitado · {{ app_name }}{% endblock %}
-{% block content %}<section class="offline-card"><div class="empty-icon">{{ icon('shield',28) }}</div><h1>Esta función no está en tu rol</h1><p>Tu cuenta conserva solo las herramientas necesarias para tu trabajo.</p><a class="btn btn-primary" href="{{ url_for('main.dashboard') }}">Volver al inicio</a></section>{% endblock %}
+{% block content %}<section class="offline-card"><div class="empty-icon">{{ icon('shield',28) }}</div><h1>Esta función no está en tu rol</h1><p>Tu cuenta conserva solo las herramientas necesarias para tu trabajo.</p><a class="btn btn-primary" href="{{ url_for('main.dashboard') }}">{{ icon('back',16) }} Volver al inicio</a></section>{% endblock %}

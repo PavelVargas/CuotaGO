@@ -371,3 +371,134 @@ body.sales-module .page-shell { padding-bottom: 28px !important; }
   .sls-receipt-total { font-size: 26px; }
   .sls-vehicle-info, .sls-receipt, .sls-info-panel { padding: 16px; }
 }
+
+/* v67: same components and blue accent as the rest of CuotaGo. */
+body.sales-module { --sls-action:var(--primary); --sls-action-text:#fff; --sls-accent:var(--primary); }
+html[data-theme="dark"] body.sales-module { --sls-action:var(--primary); --sls-action-text:#102340; --sls-accent:var(--primary); }
+.sls-header .sls-eyebrow { letter-spacing:.07em; }
+.sls-context-icon { display:grid; flex:0 0 42px; width:42px; height:42px; place-items:center; }
+.sls-heading { gap:12px; }
+.sls-primary { border-radius:15px; }
+.sls-stats article>span { display:flex; align-items:center; gap:7px; }
+.sls-stats article>span .ui-icon { width:15px; height:15px; color:var(--primary); }
+.sls-panel-heading h2,.sls-buyer-heading h3 { display:flex; align-items:center; gap:7px; }
+.sls-panel-heading h2>.ui-icon,.sls-buyer-heading h3>.ui-icon { width:17px; height:17px; color:var(--primary); }
+.sls-field>span { display:flex; align-items:center; gap:6px; }
+.sls-field>span>.ui-icon { width:14px; height:14px; color:var(--sls-muted); }
+.sls-categories button { display:inline-flex; align-items:center; justify-content:center; gap:6px; border-radius:12px; }
+.sls-categories button[aria-pressed="true"] { border-color:transparent; background:var(--primary-soft); color:var(--primary); }
+.sls-categories .ui-icon { width:15px; height:15px; }
+.sls-tabs { gap:4px; border:1px solid var(--line); background:var(--surface); border-radius:15px; padding:4px; }
+.sls-tabs a { padding:9px 13px; border:0; min-height:35px; border-radius:11px; justify-content:center; }
+.sls-tabs a[aria-current] { background:var(--primary-soft); color:var(--primary); }
+.sls-badge { border-radius:999px; }
+.sls-selected-photo { border-radius:18px; }
+.sls-selected-heading h2 { font-size:22px; }
+.sls-selected-actions .sls-text-link { color:var(--primary); }
+.sls-review { border-radius:0 0 var(--ui-card-radius,26px) var(--ui-card-radius,26px); background:var(--surface-2); }
+.sls-private-caption { display:flex; flex-wrap:wrap; align-items:center; gap:7px; padding:10px 12px; border-radius:12px; margin:14px 0; background:var(--surface-2); color:var(--muted); font-size:11px; }
+.sls-private-caption>span { flex-basis:100%; font-size:10px; padding-left:22px; }
+.sls-note-panel h3 { display:flex; gap:7px; align-items:center; }
+@media screen and (min-width:761px) {
+  body.sales-module .page-shell { padding-bottom:12px!important; }
+  .sls-workspace { max-width:1400px; padding:18px 28px 24px; }
+  .sls-header { margin-bottom:18px; }
+  .sls-heading h1 { font-size:26px; margin-top:2px; }
+  .sls-heading p { margin-top:3px; font-size:11px; }
+  .sls-layout { grid-template-columns:minmax(0,1.12fr) minmax(0,1fr); gap:20px; }
+  .sls-product { padding:18px; position:static; }
+  .sls-panel-heading { margin-bottom:12px; gap:10px; }
+  .sls-panel-heading h2 { font-size:17px; margin-top:2px; }
+  /* Fit the photo instead of scaling the entire UI or clipping the vehicle. */
+  .sls-selected-photo { aspect-ratio:auto; height:clamp(180px,calc(100dvh - 490px),335px); }
+  .sls-selected-actions { padding:8px 0 10px; }
+  .sls-selected-actions .sls-text-link { min-height:30px; font-size:11px; }
+  .sls-selected-heading { gap:14px; margin:5px 0 14px; }
+  .sls-selected-heading h2 { font-size:21px; line-height:1.25; }
+  .sls-target strong { font-size:16px; margin-top:3px; }
+  .sls-specs { gap:12px 20px; padding-top:12px; }
+  .sls-specs dd { font-size:12px; margin-top:3px; }
+  .sls-picker-grid { max-height:clamp(260px,calc(100dvh - 375px),570px); }
+  .sls-result-label { margin:10px 0!important; }
+  .sls-picker-copy { padding:11px; }
+  .sls-picker-card .sls-media { max-height:180px; }
+  .sls-sale-fields { padding:17px 18px 12px; }
+  .sls-field-grid { gap:10px 12px; }
+  .sls-field { gap:5px; }
+  .sls-field input,.sls-field select { min-height:37px; padding:8px 11px; font-size:13px; }
+  .sls-field textarea { min-height:56px; padding:8px 11px; }
+  .sls-price-input input { font-size:16px; }
+  .sls-buyer-heading { padding-top:12px; margin:12px 0 10px; }
+  .sls-buyer-heading h3 { font-size:14px; }
+  .sls-client-field { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px 8px; }
+  .sls-client-field>span,.sls-client-field>.smart-select-results-v61 { grid-column:1/-1; }
+  .sls-client-search::placeholder { font-size:11px; }
+  .sls-buyer-fields { margin-top:10px; }
+  .sls-extra-fields { margin-top:10px; }
+  .sls-extra-fields summary { min-height:30px; font-size:11px; }
+  .sls-extra-fields>div { padding-top:9px; gap:9px; }
+  .sls-review { padding:13px 18px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px 12px; align-items:center; }
+  .sls-review>.sls-review-lines { grid-column:1/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+  .sls-review>.sls-review-lines>div { display:flex; flex-direction:column; gap:2px; }
+  .sls-review>.sls-review-lines>.sls-mobile-only { display:none; }
+  .sls-review>.sls-review-lines dt { font-size:10px; }
+  .sls-review>.sls-review-lines dd { font-size:13px; }
+  .sls-review>.sls-final-total { grid-column:1; display:block; border:0; padding:0; margin:0; }
+  .sls-review>.sls-final-total>span { display:block; font-size:10px; }
+  .sls-review>.sls-final-total>strong { display:block; font-size:24px; line-height:1.3; }
+  .sls-review>.sls-desktop-submit { grid-column:2; grid-row:2; margin:0; min-height:40px; width:auto; font-size:12px; padding:10px 13px; }
+  .sls-review>.sls-close-note { grid-column:1/-1; font-size:10px; }
+  .sls-review>.sls-separation-note { grid-column:1/-1; font-size:9px; margin:0!important; text-align:left; }
+  .sls-review>.sls-warning:not([hidden]) { grid-column:1/-1; grid-row:4; margin:0!important; }
+  .sls-stats { padding:18px 0; margin-bottom:20px; }
+  .sls-toolbar { gap:18px; margin-bottom:20px; }
+  .sls-stats strong { font-size:25px; }
+  .sls-sales-grid { gap:18px; }
+  .sls-card-photo>.sls-media { max-height:230px; }
+  .sls-detail-layout { gap:20px; }
+  .sls-vehicle-file>.sls-card-photo>.sls-media { max-height:360px; }
+  .sls-vehicle-info { padding:20px; }
+  .sls-vehicle-info h2 { font-size:25px; }
+  .sls-vehicle-info>p { margin-bottom:16px; }
+  .sls-receipt { padding:20px; }
+  .sls-receipt-total { font-size:30px; }
+  .sls-receipt>p { margin-bottom:16px; }
+  .sls-info-panel { padding:18px 20px; }
+}
+@media screen and (min-width:761px) and (max-height:820px) {
+  .sls-workspace { padding-top:12px; }
+  .sls-header { margin-bottom:12px; }
+  .sls-heading h1 { font-size:24px; }
+  .sls-sale-fields { padding:14px 16px 10px; }
+  .sls-field-grid { gap:8px 11px; }
+  .sls-panel-heading { margin-bottom:10px; }
+  .sls-buyer-heading { margin-top:10px; padding-top:10px; margin-bottom:8px; }
+  .sls-review { padding:11px 16px; gap:8px 10px; }
+  .sls-selected-heading h2 { font-size:19px; }
+  .sls-review>.sls-final-total>strong { font-size:22px; }
+}
+@media screen and (max-width:760px) {
+  .sls-context-icon { display:none; }
+  .sls-header { margin-bottom:17px; }
+  .sls-stats { margin-bottom:20px; }
+  .sls-stats article:first-child strong { font-size:27px; }
+  .sls-tabs { gap:4px; padding:4px; }
+  .sls-tabs a { flex:1; min-height:40px; padding:8px 9px; font-size:11px; }
+  .sls-categories { gap:3px; }
+  .sls-categories button { font-size:11px; padding:8px; }
+  .sls-selected-photo { aspect-ratio:auto; height:clamp(185px,29dvh,260px); }
+  .sls-product { padding:15px; }
+  .sls-selected-actions { padding:6px 0; }
+  .sls-selected-heading { display:flex; flex-wrap:wrap; gap:12px; margin:8px 0 15px; }
+  .sls-selected-heading h2 { font-size:21px; }
+  .sls-target { margin:0; padding:0; }
+  .sls-target strong { font-size:17px; }
+  .sls-specs { gap:13px 16px; padding-top:13px; }
+  .sls-sale-form.is-enhanced .sls-mobile-steps { border:0; padding:4px; border-radius:16px; background:var(--surface-3); margin:0 0 15px; gap:4px; }
+  .sls-mobile-steps button { flex:1; justify-content:center; padding:9px 6px; min-height:42px; border:0; border-radius:12px; }
+  .sls-mobile-steps button[aria-current] { background:var(--surface); color:var(--primary); box-shadow:0 2px 7px rgba(20,40,65,.05); }
+  .sls-sale-form.is-enhanced .sls-review { border-radius:23px; }
+  .sls-sale-form.is-enhanced .sls-mobile-actions { border-radius:22px 22px 0 0; padding-top:11px; }
+  .sls-mobile-review-title { margin-bottom:16px; }
+  .sls-private-caption { font-size:11px; }
+}

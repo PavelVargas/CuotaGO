@@ -7,9 +7,9 @@
 <section class="sls-workspace">
   {{ heading('Ventas', 'Registro de operaciones al contado.', url_for('main.dashboard'), create=true) }}
   <section class="sls-stats" aria-label="Resumen del mes, independiente de los filtros">
-    <article><span>Vendido este mes</span><strong>{{ money(month_revenue) }}</strong><small>{{ month_units }} unidad{{ 'es' if month_units != 1 }} vendida{{ 's' if month_units != 1 }}</small></article>
-    <article><span>Utilidad del mes</span><strong class="{{ 'sls-positive' if month_profit >= 0 else 'sls-negative' }}">{{ money(month_profit) }}</strong><small>{{ '%.2f'|format(month_margin) }}% sobre ventas</small></article>
-    <article><span>Vendido hoy</span><strong>{{ money(today_revenue) }}</strong><small>{{ today_count }} operaci{{ 'ones' if today_count != 1 else 'ón' }}</small></article>
+    <article><span>{{ icon('wallet',15) }}Vendido este mes</span><strong>{{ money(month_revenue) }}</strong><small>{{ month_units }} unidad{{ 'es' if month_units != 1 }} vendida{{ 's' if month_units != 1 }}</small></article>
+    <article><span>{{ icon('chart',15) }}Utilidad del mes</span><strong class="{{ 'sls-positive' if month_profit >= 0 else 'sls-negative' }}">{{ money(month_profit) }}</strong><small>{{ '%.2f'|format(month_margin) }}% sobre ventas</small></article>
+    <article><span>{{ icon('calendar',15) }}Vendido hoy</span><strong>{{ money(today_revenue) }}</strong><small>{{ today_count }} operaci{{ 'ones' if today_count != 1 else 'ón' }}</small></article>
   </section>
   <div class="sls-register-head"><h2>Registro de ventas <span class="sls-count">{{ pagination.total }}</span></h2><span class="sls-subtle">Venta directa</span></div>
   <div class="sls-toolbar">

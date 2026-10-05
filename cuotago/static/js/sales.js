@@ -46,7 +46,6 @@
   };
 
   root.querySelectorAll('[data-sales-filter]').forEach((select) => select.addEventListener('change', () => select.form.requestSubmit()));
-  root.querySelector('[data-sales-print]')?.addEventListener('click', () => window.print());
   root.querySelector('[data-sale-void]')?.addEventListener('submit', (event) => {
     if (!window.confirm('Anular esta venta y devolver la unidad al inventario?')) event.preventDefault();
   });

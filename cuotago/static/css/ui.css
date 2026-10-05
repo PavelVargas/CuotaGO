@@ -1,0 +1,91 @@
+/* CuotaGo v67 - one lightweight component language, no layout/permission changes.
+   Legacy geometry is retained; this layer owns radii, outlines and focus states. */
+:root {
+  --radius-xl:28px;
+  --radius-lg:24px;
+  --radius:20px;
+  --radius-sm:14px;
+  --ui-card-radius:26px;
+  --ui-control-radius:15px;
+  --ui-item-radius:20px;
+  --ui-shadow:0 4px 18px rgba(24,43,68,.045);
+  --ui-hover-shadow:0 8px 24px rgba(24,43,68,.075);
+}
+html[data-theme="dark"] { --ui-shadow:0 4px 18px rgba(0,0,0,.12); --ui-hover-shadow:0 8px 24px rgba(0,0,0,.2); }
+@media screen {
+  /* Explicit component allowlist: never round calendar/table cells, toggles,
+     progress bars or the launcher's circular app icons with a universal rule. */
+  html body.ui-v67 .page-shell :is(
+    .surface,.card,.panel,.sls-panel,.sls-stats,.sls-empty,
+    .inventory-product-card,.inventory-overview-card-v22,.agreement-card-v23,
+    .client-directory-card-v23,.client-panel-v23,.purchase-order-card-v23,
+    .expense-asset-card-v19,.expense-all-card-v19,.expense-list-card-v19,
+    .report-executive-card-v22,.report-health-card-v22,.report-aging-card-v23,
+    .settings-account-card,.settings-switch-panel,.admin-plan-card,.admin-editor-card,
+    .admin-tool-panel,.billing-lock-card,.calendar-day-panel
+  ) {
+    border-radius:var(--ui-card-radius)!important;
+    border-color:var(--line)!important;
+    box-shadow:var(--ui-shadow)!important;
+  }
+  html body.ui-v67 :is(.auth-card,.auth-card-modern-v2,.offline-card) {
+    border-radius:30px!important; border-color:var(--line)!important;
+    box-shadow:var(--ui-shadow)!important;
+  }
+  html body.ui-v67 :is(.profile-sheet,.payment-dialog-sheet,.asset-investment-sheet,.quick-search-sheet-v17) {
+    border-radius:28px!important; border-color:var(--line)!important;
+  }
+  html body.ui-v67 .page-shell :is(.sls-sale-card,.sls-stock-card,.sls-picker-card,.person-card,.schedule-card) {
+    border-radius:var(--ui-item-radius)!important; border-color:var(--line)!important;
+  }
+  html body.ui-v67 .page-shell :is(.btn,.sls-button) {
+    border-radius:var(--ui-control-radius)!important;
+    letter-spacing:-.01em;
+  }
+  html body.ui-v67 :is(.btn-primary,.sls-primary) {
+    background:var(--primary)!important; color:#fff!important;
+    border-color:transparent!important;
+    box-shadow:0 3px 10px color-mix(in srgb,var(--primary) 15%,transparent)!important;
+  }
+  html[data-theme="dark"] body.ui-v67 :is(.btn-primary,.sls-primary) { color:#0e1f37!important; }
+  html body.ui-v67 :is(.btn-secondary,.sls-secondary) {
+    background:var(--surface)!important; border-color:var(--line-strong)!important;
+    color:var(--text-strong)!important; box-shadow:none!important;
+  }
+  html body.ui-v67 .page-shell :is(.icon-btn,.icon-action,.sls-icon-button,.module-context-icon) {
+    border-radius:14px!important;
+  }
+  html body.ui-v67 :is(.page-shell,.auth-main) :is(
+    .field>input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+    .field>select,.field>textarea,.sls-field>input,.sls-field>select,.sls-field>textarea,
+    .sls-price-input,.sls-filter-form>select,.search-box,.sls-search,.calendar-search,
+    .filter-row>select,.smart-select-results-v61
+  ) { border-radius:var(--ui-control-radius)!important; }
+  html body.ui-v67 :is(.sls-search,.search-box) input { border-radius:0!important; }
+  html body.ui-v67 :is(.sls-price-input) input { border-radius:0!important; }
+  html body.ui-v67 :is(.sls-menu-list,.menu-dropdown,.smart-select-results-v61) { border-radius:18px!important; }
+  html body.ui-v67 :is(.sls-menu-list a,.smart-select-option-v61) { border-radius:12px!important; }
+  html body.ui-v67 :is(.sls-media,.vehicle-hero-media,.dealer-photo-picker-v19,.asset-photo-picker) { isolation:isolate; }
+  html body.ui-v67 .page-shell :is(.toolbar.surface,.agreements-toolbar-v23,.clients-toolbar-v23,.calendar-filterbar) { border-radius:20px!important; }
+  html body.ui-v67 .page-shell :is(.btn,.sls-button,.icon-action) > .ui-icon { width:17px; height:17px; flex-shrink:0; }
+  html body.ui-v67 :is(button,a,summary,input,select,textarea):focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
+  html body.ui-v67 :is(.field,.sls-field) :is(input,select,textarea):focus-visible { outline-offset:1px; }
+  html body.ui-v67 .ui-section-heading { display:flex; align-items:center; gap:8px; }
+  html body.ui-v67 .ui-section-heading>.ui-icon { width:18px; height:18px; color:var(--primary); }
+  html body.ui-v67 [hidden] { display:none!important; }
+}
+@media (hover:hover) and (pointer:fine) {
+  html body.ui-v67 .page-shell :is(.sls-sale-card,.sls-picker-card,.inventory-product-card,.client-directory-card-v23,.agreement-card-v23):hover {
+    border-color:color-mix(in srgb,var(--primary) 28%,var(--line))!important;
+    box-shadow:var(--ui-hover-shadow)!important;
+  }
+}
+@media screen and (max-width:760px) {
+  :root { --ui-card-radius:23px; --ui-control-radius:15px; --ui-item-radius:20px; }
+  /* Touch targets stay usable, even though the desktop form is more compact. */
+  html body.ui-v67 .page-shell :is(.sls-button,.sls-icon-button) { min-height:44px; }
+  html body.ui-v67 .page-shell :is(.sls-field input,.sls-field select,.sls-field textarea) { font-size:16px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  html body.ui-v67 :is(.btn,.sls-button,.sls-sale-card,.sls-picker-card,.surface,.module-card) { transition:none!important; animation:none!important; }
+}

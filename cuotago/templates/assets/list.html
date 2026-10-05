@@ -94,7 +94,7 @@
         <span class="inventory-row-chevron" aria-hidden="true">›</span>
       </a>
     {% else %}
-      <div class="surface empty-state full-grid"><span class="empty-icon">{{ icon('car', 34) }}</span><h3>Inventario vacío</h3><p>Registra el primer vehículo o producto para empezar a controlar costos, ventas y existencias.</p>{% if can('inventory.manage') %}<a class="btn btn-primary" href="{{ url_for('main.asset_new') }}">Registrar producto</a>{% endif %}</div>
+      <div class="surface empty-state full-grid"><span class="empty-icon">{{ icon('car', 34) }}</span><h3>Inventario vacío</h3><p>Registra el primer vehículo o producto para empezar a controlar costos, ventas y existencias.</p>{% if can('inventory.manage') %}<a class="btn btn-primary" href="{{ url_for('main.asset_new') }}">{{ icon('plus',16) }} Registrar producto</a>{% endif %}</div>
     {% endfor %}
   </div>
   {% if pagination.pages > 1 %}<nav class="simple-pagination-v16" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.assets', page=pagination.prev_num, q=q, status=status) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.assets', page=pagination.next_num, q=q, status=status) }}"{% endif %}>Siguiente</a></nav>{% endif %}

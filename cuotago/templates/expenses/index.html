@@ -39,7 +39,7 @@
         <label class="field"><span>Método</span><select name="method"><option value="cash">Efectivo</option><option value="transfer">Transferencia</option><option value="deposit">Depósito</option><option value="card">Tarjeta</option><option value="other">Otro</option></select></label>
         <label class="field"><span>Concepto</span><input name="note" maxlength="240" placeholder="Ej. Cambio de aceite y filtro"></label>
         <label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="Factura, transferencia..."></label>
-        <button class="btn btn-primary expense-submit-v19" type="submit">Guardar gasto</button>
+        <button class="btn btn-primary expense-submit-v19" type="submit">{{ icon('sales-check',16) }} Guardar gasto</button>
       </form>
     </section>
     {% endif %}

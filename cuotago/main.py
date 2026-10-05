@@ -2340,12 +2340,54 @@ def sale_new():
     )
 
 
+def _customer_sale_document(sale):
+    from .sale_documents import customer_sale_receipt
+    asset = sale.asset
+    version = asset.image_updated_at.strftime("%Y%m%d%H%M%S%f") if asset.image_updated_at else "legacy"
+    photo_url = url_for("main.asset_image", asset_id=asset.id, thumb=1, v=version) if asset.image_mime else ""
+    return customer_sale_receipt(
+        sale, business_name=current_user.organization.name, money=format_money,
+        payment_method_label=payment_method_label, photo_url=photo_url,
+    )
+
+
+
 @main_bp.get("/sales/<int:sale_id>")
 @login_required
 @permission_required("sales.view")
 def sale_detail(sale_id):
     sale = scoped_sale(sale_id)
-    return render_template("sales/detail.html", sale=sale)
+    return render_template("sales/detail.html", sale=sale, receipt=_customer_sale_document(sale))
+
+
+@main_bp.get("/sales/<int:sale_id>/receipt")
+@login_required
+@permission_required("sales.view")
+def sale_receipt(sale_id):
+    sale = scoped_sale(sale_id)
+    return render_template(
+        "sales/receipt.html", receipt=_customer_sale_document(sale),
+        back_url=url_for("main.sale_detail", sale_id=sale.id),
+        pdf_url=url_for("main.sale_receipt_pdf", sale_id=sale.id),
+    )
+
+
+@main_bp.get("/sales/<int:sale_id>/receipt.pdf")
+@login_required
+@permission_required("sales.view")
+def sale_receipt_pdf(sale_id):
+    from .sale_documents import sale_receipt_pdf_bytes
+    sale = scoped_sale(sale_id)
+    receipt = _customer_sale_document(sale)
+    # Deferred image data is loaded only for this authorized document request.
+    photo = bytes(sale.asset.image_data) if sale.asset.image_mime and sale.asset.image_data else None
+    payload = sale_receipt_pdf_bytes(receipt, photo=photo)
+    response = send_file(io.BytesIO(payload), mimetype="application/pdf", as_attachment=True,
+                         download_name=f"comprobante-venta-{sale.organization_id}-{sale.id:06d}.pdf", max_age=0)
+    response.headers["Cache-Control"] = "private, no-store, max-age=0, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @main_bp.post("/sales/<int:sale_id>/void")

@@ -1,0 +1,16 @@
+{# Receives only CustomerSaleReceipt. Never access sale/asset ORM objects here. #}
+<article class="customer-receipt">
+  <header class="cr-heading"><div><span class="cr-kicker">COMPROBANTE DE VENTA</span><h1>{{ receipt.business_name }}</h1></div><span class="cr-brand">CuotaGo</span></header>
+  <div class="cr-reference"><strong>{{ receipt.code }}</strong><span>{{ receipt.date }}</span></div>
+  {% if receipt.voided %}<div class="cr-void"><strong>ANULADO</strong><p>Esta venta fue anulada. Este documento no acredita un pago vigente.</p></div>{% endif %}
+  <section class="cr-buyer"><span class="cr-kicker">COMPRADOR</span><h2>{{ receipt.buyer_name }}</h2>{% if receipt.buyer_phone %}<p>{{ receipt.buyer_phone }}</p>{% endif %}</section>
+  <section class="cr-item">
+    {% if receipt.photo_url %}<img src="{{ receipt.photo_url }}" width="360" height="240" alt="{{ receipt.item_name }}" decoding="async">{% endif %}
+    <div><span class="cr-kicker">DETALLE DE LA VENTA</span><h2>{{ receipt.item_name }}</h2>{% if receipt.item_description %}<p>{{ receipt.item_description }}</p>{% endif %}<dl>{% for label,value in receipt.identifiers %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl></div>
+  </section>
+  <table class="cr-amounts"><thead><tr><th>Cantidad</th><th>Precio unitario</th><th>Importe</th></tr></thead><tbody><tr><td>{{ receipt.quantity }}</td><td>{{ receipt.unit_price }}</td><td>{{ receipt.total }}</td></tr></tbody></table>
+  <dl class="cr-payment"><div><dt>Método de pago</dt><dd>{{ receipt.payment_method }}</dd></div>{% if receipt.reference %}<div><dt>Referencia</dt><dd>{{ receipt.reference }}</dd></div>{% endif %}</dl>
+  <div class="cr-total"><span>{{ 'Total de la venta' if receipt.voided else 'Total pagado' }}</span><strong>{{ receipt.total }}</strong></div>
+  {% if not receipt.voided %}<p class="cr-thanks">Pago completo registrado. Gracias por su compra.</p>{% endif %}
+  <footer>Comprobante de venta emitido con CuotaGo.</footer>
+</article>

@@ -9,7 +9,7 @@
     <div class="statement-buttons-v15">
       <button class="btn btn-primary" type="button" data-share-pdf data-share-url="{{ url_for('main.client_statement_pdf', client_id=client.id) }}" data-share-name="estado-cuenta-{{ client.id }}.pdf" data-share-title="Estado de cuenta · {{ client.full_name }}">{{ icon('download',18) }} Compartir PDF</button>
       {% if statement_wa_link(client) %}<a class="btn btn-whatsapp" target="_blank" rel="noopener" href="{{ statement_wa_link(client) }}">{{ icon('whatsapp',18) }} WhatsApp</a>{% endif %}
-      <button class="btn btn-ghost" type="button" onclick="window.print()">Imprimir</button>
+      <button class="btn btn-ghost" type="button" onclick="window.print()">{{ icon('sales-print',16) }} Imprimir</button>
     </div>
   </div>
 

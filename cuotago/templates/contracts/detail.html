@@ -73,8 +73,8 @@
           <div class="advanced-options-body payment-extra-grid-v15"><label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="Transferencia, depósito..."></label><label class="field"><span>Nota</span><input name="note" maxlength="240" placeholder="Nota opcional"></label></div>
         </details>
         <div class="payment-dialog-actions">
-          <button class="btn btn-secondary" type="button" data-payment-close>Cancelar</button>
-          <button class="btn btn-primary" type="submit" data-payment-submit>Registrar pago</button>
+          <button class="btn btn-secondary" type="button" data-payment-close>{{ icon('back',16) }} Cancelar</button>
+          <button class="btn btn-primary" type="submit" data-payment-submit>{{ icon('plus',16) }} Registrar pago</button>
         </div>
       </form>
     </div>
@@ -98,7 +98,7 @@
         <div class="installment-date"><strong>{{ installment.due_date.strftime('%d/%m/%Y') }}</strong><small>{% if installment.is_paid %}Pagada{% elif installment.due_date < today %}Vencida{% elif installment.due_date == today %}Vence hoy{% else %}Pendiente{% endif %}</small></div>
         <div class="installment-value"><strong>{{ money(installment.remaining if not installment.is_paid else installment.amount + installment.late_fee_amount) }}</strong>{% if installment.late_fee_remaining > 0 %}<small class="late-fee-copy">incluye {{ money(installment.late_fee_remaining) }} de interés</small>{% elif installment.paid_amount and installment.paid_amount > 0 and not installment.is_paid %}<small>abonado {{ money(installment.paid_amount) }}</small>{% endif %}</div>
         {% if contract.status == 'active' and not installment.is_paid and can('payments.record') %}
-        <button class="btn btn-ghost btn-sm quick-pay-button" type="button" data-open-payment data-payment-kind="payment" data-payment-amount="{{ installment.remaining }}">Cobrar</button>
+        <button class="btn btn-ghost btn-sm quick-pay-button" type="button" data-open-payment data-payment-kind="payment" data-payment-amount="{{ installment.remaining }}">{{ icon('wallet',16) }} Cobrar</button>
         {% else %}<span class="paid-check">✓</span>{% endif %}
       </div>
       {% else %}<div class="empty-inline">No hay cuotas pendientes.</div>{% endfor %}
@@ -156,7 +156,7 @@
           {% endif %}
         </div>
         {% if contract.status == 'active' and contract.daily_late_interest <= 0 and can('contracts.modify') %}
-        <button class="btn btn-secondary btn-sm" type="button" data-contract-dialog-open="lateFeeDialog">Agregar mora</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-contract-dialog-open="lateFeeDialog">{{ icon('plus',16) }} Agregar mora</button>
         {% endif %}
       </div>
       {% if contract.status == 'active' and contract.next_installment and can('contracts.modify') %}
@@ -193,7 +193,7 @@
           <label class="field"><span>Cuotas pendientes</span><input type="number" name="installment_count" min="1" max="120" value="{{ contract.installments|rejectattr('is_paid')|list|length }}" required></label>
           <label class="field"><span>Motivo</span><input name="reason" maxlength="240" placeholder="Ej. ajuste acordado con el cliente"></label>
         </div>
-        <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>Cancelar</button><button class="btn btn-primary" type="submit">Guardar nueva programación</button></div>
+        <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>{{ icon('back',16) }} Cancelar</button><button class="btn btn-primary" type="submit">{{ icon('sales-check',16) }} Guardar nueva programación</button></div>
       </form>
     </div>
   </dialog>
@@ -210,7 +210,7 @@
       <form method="post" action="{{ url_for('main.contract_enable_late_fee', contract_id=contract.id) }}" class="form-stack">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label class="field"><span>Mora por día</span><input type="number" name="daily_late_interest" step="0.01" min="0.01" required inputmode="decimal" placeholder="Ej. 100.00"><small>Monto fijo que se suma por cada día de atraso a partir de la activación.</small></label>
-        <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>Cancelar</button><button class="btn btn-primary" type="submit">Activar mora</button></div>
+        <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>{{ icon('back',16) }} Cancelar</button><button class="btn btn-primary" type="submit">Activar mora</button></div>
       </form>
     </div>
   </dialog>
@@ -232,7 +232,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="delete-contract-note"><strong>{{ contract.client.full_name }}</strong><span>{{ contract.asset.name }} · {{ contract.code }}</span></div>
         {% if contract.payments %}<label class="field"><span>Motivo de la anulación</span><input name="reason" maxlength="240" required placeholder="Ej. cliente devolvió el artículo"></label>{% endif %}
-        <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>Volver</button><button class="btn btn-danger" type="submit">{{ 'Anular acuerdo' if contract.payments else 'Eliminar acuerdo' }}</button></div>
+        <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>{{ icon('back',16) }} Volver</button><button class="btn btn-danger" type="submit">{{ 'Anular acuerdo' if contract.payments else 'Eliminar acuerdo' }}</button></div>
       </form>
     </div>
   </dialog>
