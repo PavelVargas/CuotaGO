@@ -1,0 +1,161 @@
+/* CuotaGo v68 - home descriptions and a centered PWA welcome.
+   Loaded by the launcher only; desktop placement and module permissions stay intact. */
+.pwa-home-heading { display:none; }
+.dashboard-launcher-v3 .module-card>.module-description-pwa { display:none!important; }
+
+@media screen {
+  html.is-standalone-app body.dashboard-home .pwa-home-heading {
+    display:block;
+    flex:0 0 auto;
+    width:100%;
+    padding:22px 12px 26px;
+    text-align:center;
+  }
+  html.is-standalone-app body.dashboard-home .pwa-home-heading h1 {
+    margin:0;
+    color:var(--text-strong);
+    font-size:clamp(22px,6vw,26px);
+    font-weight:700;
+    line-height:1.25;
+    letter-spacing:-.035em;
+    text-wrap:balance;
+  }
+  html.is-standalone-app body.dashboard-home .pwa-home-heading::after {
+    content:"";
+    display:block;
+    width:28px;
+    height:3px;
+    margin:12px auto 0;
+    border-radius:99px;
+    background:var(--primary);
+    opacity:.65;
+  }
+}
+
+@media screen and (max-width:719px) {
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-grid {
+    row-gap:16px!important;
+    column-gap:6px!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-card {
+    gap:5px!important;
+    min-height:0!important;
+    padding:0!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-card strong {
+    min-height:13px!important;
+    font-size:10.5px!important;
+    line-height:1.2!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-card>.module-description {
+    display:block!important;
+    width:100%;
+    min-height:0;
+    margin:0;
+    padding:0 1px;
+    color:var(--muted);
+    font-size:10px;
+    font-weight:450;
+    line-height:1.3;
+    letter-spacing:0;
+    white-space:normal;
+    overflow:visible;
+    overflow-wrap:anywhere;
+    text-overflow:clip;
+    text-align:center;
+    text-wrap:pretty;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-badge {
+    margin:0!important;
+    font-size:8px!important;
+    padding:3px 6px!important;
+    line-height:1.15!important;
+  }
+}
+
+@media screen and (max-width:719px) and (max-height:700px) {
+  html.is-standalone-app body.dashboard-home .pwa-home-heading {
+    padding:12px 10px 18px;
+  }
+  html.is-standalone-app body.dashboard-home .pwa-home-heading::after { margin-top:8px; }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-grid { row-gap:11px!important; }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-card { gap:4px!important; }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-icon {
+    width:min(var(--pwa-launcher-button-size),64px)!important;
+    height:min(var(--pwa-launcher-button-size),64px)!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-icon .ui-icon {
+    width:44px!important; height:44px!important;
+  }
+}
+
+/* Short phones keep the full footer and the floating controls unobstructed.
+   Only the icon geometry tightens; secondary text stays at a readable size. */
+@media screen and (max-width:719px) and (max-height:620px) {
+  html.is-standalone-app body.dashboard-home .pwa-home-heading { padding:4px 10px 12px; }
+  html.is-standalone-app body.dashboard-home .pwa-home-heading h1 { font-size:21px; }
+  html.is-standalone-app body.dashboard-home .pwa-home-heading::after { margin-top:6px; }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-grid { row-gap:6px!important; }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-card { gap:3px!important; }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-icon {
+    width:min(var(--pwa-launcher-button-size),52px)!important;
+    height:min(var(--pwa-launcher-button-size),52px)!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-icon .ui-icon {
+    width:36px!important; height:36px!important;
+  }
+}
+
+/* On installed tablets/landscape, use normal flow instead of the desktop's
+   absolute center anchor, so the new heading cannot collide with the grid. */
+@media screen and (min-width:720px) {
+  html.is-standalone-app body.dashboard-home { height:auto!important; overflow:auto!important; }
+  html.is-standalone-app body.dashboard-home .page-shell {
+    height:auto!important; min-height:calc(100svh - 65px)!important; overflow:visible!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions {
+    height:auto!important; min-height:0!important; overflow:visible!important;
+    display:flex!important; flex-direction:column!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-grid {
+    position:static!important; transform:none!important; margin:0 auto!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .home-status {
+    position:static!important; transform:none!important; margin:24px auto 0!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-card>.module-description-pwa {
+    display:block!important;
+  }
+}
+
+/* Very short landscape windows are allowed to scroll rather than crop modules.
+   The right-hand gutter keeps the original utility rail away from the content. */
+@media screen and (max-width:719px) and (max-height:500px) {
+  html.is-standalone-app:has(body.dashboard-home),
+  html.is-standalone-app body.dashboard-home { height:auto!important; overflow-y:auto!important; }
+  html.is-standalone-app body.dashboard-home .page-shell {
+    height:auto!important; min-height:100svh!important; overflow:visible!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions {
+    height:auto!important; min-height:0!important; overflow:visible!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions :is(.module-grid,.home-status) {
+    width:calc(100% - 58px)!important; margin-left:0!important; margin-right:58px!important;
+  }
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .home-status { margin-top:20px!important; }
+  html.is-standalone-app body.dashboard-home .pwa-utility-rail-v62 {
+    bottom:max(12px,var(--safe-bottom))!important;
+  }
+}
+
+@media screen and (max-width:719px) {
+  html.is-standalone-app body.dashboard-home.home-no-status .pwa-utility-rail-v62 {
+    bottom:max(12px,var(--safe-bottom))!important;
+  }
+}
+@media screen and (min-width:720px) {
+  html.is-standalone-app body.dashboard-home .home-with-descriptions .module-card>.module-description {
+    display:block!important; white-space:normal; overflow:visible;
+    overflow-wrap:anywhere; text-overflow:clip; line-height:1.3;
+  }
+}

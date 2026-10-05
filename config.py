@@ -37,8 +37,8 @@ def normalize_database_url(url: str) -> str:
 class Config:
     APP_NAME = os.getenv("APP_NAME", "CuotaGo")
     # Release/build identifiers are code-owned so stale Railway/.env values cannot pin old assets.
-    APP_VERSION = "1.25.3"
-    ASSET_VERSION = "1.25.3-ui-v67"
+    APP_VERSION = "1.25.4"
+    ASSET_VERSION = "1.25.4-ui-v68"
     APP_ENV = os.getenv("APP_ENV", "local").strip().lower()
     APP_CURRENCY = os.getenv("APP_CURRENCY", "DOP")
     APP_TIMEZONE = os.getenv("APP_TIMEZONE", "America/Santo_Domingo")

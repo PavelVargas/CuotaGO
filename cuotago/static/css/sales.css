@@ -478,7 +478,11 @@ html[data-theme="dark"] body.sales-module { --sls-action:var(--primary); --sls-a
   .sls-review>.sls-final-total>strong { font-size:22px; }
 }
 @media screen and (max-width:760px) {
-  .sls-context-icon { display:none; }
+  /* Module identity remains visible in the phone view, too. */
+  .sls-heading .sls-context-icon { display:grid; width:36px; height:36px; flex:0 0 36px; }
+  .sls-context-icon>.ui-icon { width:23px; height:23px; }
+  .sls-heading { gap:8px; }
+  .sls-heading-copy h1 { overflow-wrap:anywhere; }
   .sls-header { margin-bottom:17px; }
   .sls-stats { margin-bottom:20px; }
   .sls-stats article:first-child strong { font-size:27px; }
@@ -501,4 +505,13 @@ html[data-theme="dark"] body.sales-module { --sls-action:var(--primary); --sls-a
   .sls-sale-form.is-enhanced .sls-mobile-actions { border-radius:22px 22px 0 0; padding-top:11px; }
   .sls-mobile-review-title { margin-bottom:16px; }
   .sls-private-caption { font-size:11px; }
+}
+
+/* v68: keep title, identity and actions separate on narrow phones. */
+@media screen and (max-width:430px) {
+  .sls-header-actions :is(.sls-new-sale,.sls-print) {
+    width:44px; height:44px; min-width:44px; padding:0;
+  }
+  .sls-header-actions :is(.sls-new-sale,.sls-print)>span { display:none; }
+  .sls-heading-copy h1 { font-size:20px; line-height:1.18; }
 }

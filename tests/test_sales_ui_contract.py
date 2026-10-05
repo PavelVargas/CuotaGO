@@ -6,6 +6,7 @@ The existing test_app.py suite remains the PostgreSQL integration suite.
 """
 import ast
 import io
+import re
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
@@ -185,11 +186,14 @@ def test_photo_optimizer_and_invalid_upload():
 
 def test_release_versions_and_assets_are_coherent():
     config = (ROOT/'config.py').read_text(encoding='utf-8')
-    assert 'APP_VERSION = "1.25.3"' in config
-    assert 'ASSET_VERSION = "1.25.3-ui-v67"' in config
-    assert (ROOT/'VERSION.txt').read_text().strip() == '1.25.3'
+    version = (ROOT/'VERSION.txt').read_text().strip()
+    build_match = re.search(r'ASSET_VERSION = "([^"\n]+)"', config)
+    assert build_match, 'The release must declare an asset build'
+    build = build_match.group(1)
+    assert f'APP_VERSION = "{version}"' in config
+    assert build.startswith(version + '-ui-v')
     for path in ['cuotago/templates/base.html', 'cuotago/static/js/app.js', 'cuotago/static/service-worker.js']:
-        assert '1.25.3-ui-v67' in (ROOT/path).read_text(encoding='utf-8')
+        assert build in (ROOT/path).read_text(encoding='utf-8')
     worker = (ROOT/'cuotago/static/service-worker.js').read_text(encoding='utf-8')
     for file in ['css/sales.css', 'js/sales.js']:
         assert (ROOT/'cuotago/static'/file).is_file()

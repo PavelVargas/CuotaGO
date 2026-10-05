@@ -1,21 +1,30 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
 {% block title %}Inicio · {{ app_name }}{% endblock %}
-{% block body_class %}dashboard-home{% endblock %}
+{% block body_class %}dashboard-home {{ 'home-has-status' if show_home_status else 'home-no-status' }}{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css', v=config['ASSET_VERSION']) }}">
+{% endblock %}
 {% block content %}
-<section class="launcher-wrap dashboard-launcher-v3">
+<section class="launcher-wrap dashboard-launcher-v3 home-with-descriptions">
+  <header class="pwa-home-heading">
+    <h1>¿Qué quieres hacer?</h1>
+  </header>
   <div class="module-grid">
     {% for module in modules %}
       {% set status = module_status.get(module.slug) %}
       <a class="module-card" href="{{ url_for(module.endpoint) }}">
         <span class="module-icon {{ module.accent }}">{{ icon(module.icon, 36) }}</span>
         <strong>{{ module.name }}</strong>
+        {% if status and status.kind in ['badge-danger', 'badge-warning'] %}
+          <small class="module-description module-description-pwa">{{ module.home_description }}</small>
+        {% endif %}
         {% if status and status.kind == 'badge-danger' %}
           <span class="module-badge badge-danger">{{ status.text }}</span>
         {% elif status and status.kind == 'badge-warning' %}
           <span class="module-badge badge-warning">{{ status.text }}</span>
         {% else %}
-          <small>{{ status.text if status else module.home_description }}</small>
+          <small class="module-description">{{ status.text if status else module.home_description }}</small>
         {% endif %}
       </a>
     {% endfor %}

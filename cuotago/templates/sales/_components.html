@@ -12,12 +12,12 @@
 <header class="sls-header">
   <div class="sls-heading">
     <a class="sls-icon-button" href="{{ back_url }}" data-sales-back aria-label="Volver">{{ icon('back',22) }}</a>
-    <span class="module-context-icon accent-blue sls-context-icon" aria-hidden="true">{{ icon('home-sales',24) }}</span>
-    <div><div class="sls-eyebrow">VENTAS</div><h1>{{ title }}</h1><p>{{ subtitle }}</p></div>
+    <span class="module-context-icon accent-blue sls-context-icon" data-module-icon="sales" aria-hidden="true">{{ icon('home-sales',24) }}</span>
+    <div class="sls-heading-copy"><div class="sls-eyebrow">VENTAS</div><h1>{{ title }}</h1><p>{{ subtitle }}</p></div>
   </div>
   <div class="sls-header-actions">
-    {% if create and can('sales.manage') %}<a class="sls-button sls-primary" href="{{ url_for('main.sale_new') }}">{{ icon('plus',18) }}<span>Nueva venta</span></a>{% endif %}
-    {% if receipt_id %}<a class="sls-button sls-primary sls-print" download href="{{ url_for('main.sale_receipt_pdf',sale_id=receipt_id) }}">{{ icon('download',18) }}<span>PDF cliente</span></a>{% endif %}
+    {% if create and can('sales.manage') %}<a class="sls-button sls-primary sls-new-sale" href="{{ url_for('main.sale_new') }}" aria-label="Nueva venta">{{ icon('plus',18) }}<span>Nueva venta</span></a>{% endif %}
+    {% if receipt_id %}<a class="sls-button sls-primary sls-print" aria-label="Descargar PDF del cliente" download href="{{ url_for('main.sale_receipt_pdf',sale_id=receipt_id) }}">{{ icon('download',18) }}<span>PDF cliente</span></a>{% endif %}
     <details class="sls-menu"><summary class="sls-icon-button" aria-label="Más opciones">{{ icon('sales-more',20) }}</summary><div class="sls-menu-list">
       {% if receipt_id %}<a href="{{ url_for('main.sale_receipt',sale_id=receipt_id) }}">{{ icon('sales-print',18) }}Imprimir comprobante</a>{% endif %}
       {% if can('inventory.view') %}<a href="{{ url_for('main.assets') }}">{{ icon('car',18) }}Ver inventario</a>{% endif %}
