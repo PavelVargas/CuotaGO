@@ -1,42 +1,61 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
 {% block title %}Nuevo acuerdo &middot; {{ app_name }}{% endblock %}
+{% block body_class %}agreement-create-screen{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/agreements.css', v=config['ASSET_VERSION']) }}">
+{% endblock %}
 {% block content %}
 {% set client_mode = 'existing' if form.get('client_id') else ('new' if form.get('client_name') else ('existing' if clients else 'new')) %}
 {% set allow_new_asset = can('inventory.manage') %}
 {% set asset_mode = 'existing' if not allow_new_asset else ('existing' if form.get('asset_id') else ('new' if form.get('asset_name') else ('existing' if assets else 'new'))) %}
-<section class="content-page narrow-page agreement-wizard-page agreement-wizard-page-v20 agreement-wizard-page-v23">
-  <div class="page-head simple-page-head wizard-page-head">
+<section class="content-page agreements-compose">
+  <div class="page-head wizard-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.contracts') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
       <span class="module-context-icon accent-blue" aria-hidden="true">{{ icon('home-agreements', 24) }}</span>
       <div><span class="eyebrow">ACUERDOS</span><h1>Nuevo acuerdo</h1><p>Cliente, artículo, plan de pago y revisión final.</p></div>
     </div>
+    <details class="ag-more-menu">
+      <summary class="icon-btn" aria-label="Opciones del acuerdo">{{ icon('sales-more', 20) }}</summary>
+      <div class="ag-more-links">
+        <a href="{{ url_for('main.contracts') }}">{{ icon('home-agreements', 17) }} Ver acuerdos</a>
+        {% if can('inventory.view') %}<a href="{{ url_for('main.assets') }}">{{ icon('inventory', 17) }} Inventario</a>{% endif %}
+        <a href="{{ url_for('main.settings') }}">{{ icon('settings', 17) }} Configuraci&oacute;n</a>
+      </div>
+    </details>
   </div>
 
   <nav class="wizard-progress" aria-label="Progreso del acuerdo">
-    <button type="button" class="wizard-progress-step is-active" data-step-target="1"><b>1</b><span>Quién recibe</span></button>
+    <button type="button" class="wizard-progress-step is-active" data-step-target="1"><b>1</b><span>Cliente</span></button>
     <i></i>
     <button type="button" class="wizard-progress-step" data-step-target="2" disabled><b>2</b><span>Artículo</span></button>
     <i></i>
-    <button type="button" class="wizard-progress-step" data-step-target="3" disabled><b>3</b><span>Cómo pagará</span></button>
+    <button type="button" class="wizard-progress-step" data-step-target="3" disabled><b>3</b><span>Plan de pago</span></button>
     <i></i>
     <button type="button" class="wizard-progress-step" data-step-target="4" disabled><b>4</b><span>Revisar</span></button>
   </nav>
 
-  <form method="post" class="agreement-wizard" id="contractForm" data-client-mode="{{ client_mode }}" data-asset-mode="{{ asset_mode }}">
+  <div class="ag-workspace">
+  <form method="post" enctype="multipart/form-data" novalidate class="agreement-wizard" id="contractForm"
+        data-client-mode="{{ client_mode }}" data-asset-mode="{{ asset_mode }}"
+        data-due-touched="{{ '1' if form.get('first_due_date') else '0' }}"
+        data-price-touched="{{ '1' if form.get('unit_price') else '0' }}"
+        data-margin-touched="{{ '1' if form.get('profit_margin_percent') else '0' }}"
+        data-inventory-url="{{ url_for('main.agreement_assets_api') }}">
+    <noscript><p class="wizard-inline-error">Activa JavaScript para completar el acuerdo paso a paso.</p></noscript>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="request_key" value="{{ form.get('request_key', '') }}">
 
     <section class="wizard-panel is-active" data-wizard-step="1">
       <div class="wizard-panel-head">
         <span class="wizard-panel-icon">{{ icon('person-card', 25) }}</span>
-        <div><span>Paso 1 de 4</span><h2>¿Quién recibe?</h2><p>Selecciona un cliente o créalo aquí mismo.</p></div>
+        <div><span>Paso 1 de 4</span><h2 tabindex="-1">¿Quién recibe?</h2><p>Selecciona un cliente o créalo aquí mismo.</p></div>
       </div>
 
       <div class="choice-buttons two" role="group" aria-label="Tipo de cliente">
-        <button type="button" data-client-mode="existing" {{ 'disabled' if not clients }}>Cliente guardado</button>
-        <button type="button" data-client-mode="new">+ Cliente nuevo</button>
+        <button type="button" data-client-mode="existing" {{ 'disabled' if not clients }}>{{ icon('users', 17) }} Cliente guardado</button>
+        <button type="button" data-client-mode="new">{{ icon('plus', 17) }} Cliente nuevo</button>
       </div>
 
       <div class="wizard-fields" data-client-fields="existing">
@@ -53,30 +72,43 @@
       </div>
 
       <div class="wizard-fields" data-client-fields="new">
-        <label class="field"><span>Nombre *</span><input name="client_name" id="clientName" value="{{ form.get('client_name','') }}" placeholder="Ej. Juan Perez" autocomplete="name"></label>
-        <label class="field"><span>Teléfono</span><input name="client_phone" id="clientPhone" value="{{ form.get('client_phone','') }}" placeholder="809-000-0000" inputmode="tel" autocomplete="tel"></label>
+        <label class="field"><span>Nombre *</span><input name="client_name" maxlength="140" id="clientName" value="{{ form.get('client_name','') }}" placeholder="Ej. Juan Perez" autocomplete="name"></label>
+        <label class="field"><span>Teléfono</span><input name="client_phone" maxlength="40" id="clientPhone" value="{{ form.get('client_phone','') }}" placeholder="809-000-0000" inputmode="tel" autocomplete="tel"></label>
       </div>
 
-      <p class="wizard-inline-error" data-step-error="1" hidden></p>
-      <div class="wizard-actions wizard-actions-end"><button class="btn btn-primary wizard-next" type="button" data-next-step="2">Continuar</button></div>
+      <p role="alert" class="wizard-inline-error" data-step-error="1" hidden></p>
+      <div class="wizard-actions wizard-actions-end"><button class="btn btn-primary wizard-next" type="button" data-next-step="2">Continuar {{ icon('sales-arrow', 17) }}</button></div>
     </section>
 
     <section class="wizard-panel" data-wizard-step="2" hidden>
       <div class="wizard-panel-head">
         <span class="wizard-panel-icon">{{ icon('inventory', 25) }}</span>
-        <div><span>Paso 2 de 4</span><h2>¿Qué vas a entregar?</h2><p>{{ 'Elige un artículo del inventario.' if not allow_new_asset else 'Elige un artículo o regístralo aquí mismo.' }}</p></div>
+        <div><span>Paso 2 de 4</span><h2 tabindex="-1">¿Qué vas a entregar?</h2><p>{{ 'Elige un artículo del inventario.' if not allow_new_asset else 'Elige un artículo o regístralo aquí mismo.' }}</p></div>
       </div>
 
       <div class="choice-buttons {{ 'two' if allow_new_asset else '' }}" role="group" aria-label="Tipo de artículo">
-        <button type="button" data-asset-mode="existing" {{ 'disabled' if not assets }}>Del inventario</button>
-        {% if allow_new_asset %}<button type="button" data-asset-mode="new">+ Artículo nuevo</button>{% endif %}
+        <button type="button" data-asset-mode="existing" {{ 'disabled' if not assets }}>{{ icon('inventory', 17) }} Del inventario</button>
+        {% if allow_new_asset %}<button type="button" data-asset-mode="new">{{ icon('plus', 17) }} Art&iacute;culo nuevo</button>{% endif %}
       </div>
       {% if not assets and not allow_new_asset %}<p class="wizard-inline-note-v16">No hay artículos disponibles. Pide a un supervisor que registre inventario.</p>{% endif %}
 
-      <div class="wizard-fields" data-asset-fields="existing">
-        <div class="field smart-select-field-v17">
-          <span>Artículo *</span>
-          <input class="smart-select-search-v17" type="search" autocomplete="off" enterkeyhint="search" placeholder="Escribe artículo, IMEI, placa o serial" aria-label="Buscar artículo del inventario" data-remote-select="{{ url_for('main.asset_lookup_api') }}" data-remote-target="assetSelect" data-remote-kind="asset">
+      <div class="wizard-fields ag-existing" data-asset-fields="existing">
+        <div class="ag-picker" id="agreementPicker">
+          <label class="ag-search" for="agreementAssetSearch">{{ icon('search', 19) }}
+            <input id="agreementAssetSearch" type="search" placeholder="Buscar por nombre, placa o IMEI" aria-label="Buscar art&iacute;culo" autocomplete="off" enterkeyhint="search">
+          </label>
+          <div class="ag-kind-filters" role="group" aria-label="Filtrar inventario">
+            <button type="button" data-ag-kind="" aria-pressed="true">Todos</button>
+            <button type="button" data-ag-kind="car" aria-pressed="false">{{ icon('car', 16) }} Veh&iacute;culos</button>
+            <button type="button" data-ag-kind="motorcycle" aria-pressed="false">{{ icon('motorcycle', 16) }} Motores</button>
+            <button type="button" data-ag-kind="other" aria-pressed="false">{{ icon('box', 16) }} Otros</button>
+          </div>
+          <p class="ag-results-status" id="agreementResultsStatus" role="status" aria-live="polite"></p>
+          <div class="ag-asset-grid" id="agreementAssetResults" aria-label="Art&iacute;culos disponibles"></div>
+          <button class="btn btn-secondary ag-load-more" type="button" id="agreementLoadMore" hidden>Ver m&aacute;s art&iacute;culos</button>
+          <button class="btn btn-secondary" type="button" id="agreementRetry" hidden>{{ icon('refresh', 16) }} Reintentar</button>
+        </div>
+        <div class="ag-native-select field"><span>Art&iacute;culo seleccionado</span>
           <select name="asset_id" id="assetSelect" aria-label="Artículo seleccionado">
             <option value="">Seleccionar...</option>
             {% for asset in assets %}
@@ -89,10 +121,30 @@
             {% endfor %}
           </select>
         </div>
+        <article class="ag-selected" id="agreementSelected" hidden>
+          <div class="ag-selected-media" data-ag-media="selected"></div>
+          <div class="ag-selected-body">
+            <div class="ag-selected-heading"><span class="ag-overline" id="agreementSelectedKind"></span><span class="ag-available">{{ icon('sales-check', 16) }} Disponible</span></div>
+            <h3 id="agreementSelectedName"></h3>
+            <p id="agreementSelectedMeta"></p>
+            <div class="ag-selected-footer"><div><span>Precio de inventario</span><strong id="agreementSelectedPrice"></strong></div>
+              <button class="btn btn-secondary" type="button" id="agreementChangeAsset">{{ icon('refresh', 16) }} Cambiar</button>
+            </div>
+          </div>
+        </article>
       </div>
 
       <div class="wizard-fields" data-asset-fields="new">
-        <label class="field"><span>Nombre del artículo *</span><input name="asset_name" id="assetName" value="{{ form.get('asset_name','') }}" placeholder="Ej. iPhone 15 Pro Max"></label>
+        {% if allow_new_asset %}
+        <div class="ag-new-photo">
+          <div class="ag-new-photo-preview" id="agreementNewPhotoPreview">{{ icon('sales-camera', 30) }}</div>
+          <div><label class="btn btn-secondary" for="agreementNewPhoto">{{ icon('sales-camera', 17) }} Agregar foto</label>
+          <input id="agreementNewPhoto" name="asset_image" type="file" accept="image/jpeg,image/png,image/webp" class="sr-only">
+          <p id="agreementPhotoStatus" role="status">Opcional &middot; JPG, PNG o WebP &middot; hasta 12 MB</p>
+          <button type="button" class="ag-text-button" id="agreementRemovePhoto" hidden>Quitar foto</button></div>
+        </div>
+        {% endif %}
+        <label class="field"><span>Nombre del artículo *</span><input name="asset_name" maxlength="140" id="assetName" value="{{ form.get('asset_name','') }}" placeholder="Ej. iPhone 15 Pro Max"></label>
         <div class="form-grid two compact-grid">
           <label class="field"><span>Tipo</span><select name="asset_kind" id="assetKind">
             {% set kind = form.get('asset_kind','other') %}
@@ -103,7 +155,7 @@
             <option value="appliance" {{ 'selected' if kind=='appliance' }}>Electrodomestico</option>
             <option value="other" {{ 'selected' if kind=='other' }}>Otro</option>
           </select></label>
-          <label class="field"><span>Placa / IMEI</span><input name="asset_identifier" id="assetIdentifier" value="{{ form.get('asset_identifier','') }}" placeholder="Opcional"></label>
+          <label class="field"><span>Placa / IMEI</span><input name="asset_identifier" maxlength="120" id="assetIdentifier" value="{{ form.get('asset_identifier','') }}" placeholder="Opcional"></label>
         </div>
         <label class="field"><span>Existencia total *</span><input id="assetStockQuantity" type="number" min="1" step="1" name="asset_stock_quantity" value="{{ form.get('asset_stock_quantity','1') }}" inputmode="numeric"><small>Ej.: si tienes 3 iPhone iguales, escribe 3.</small></label>
       </div>
@@ -113,16 +165,20 @@
         <div class="stock-available-hint" id="stockAvailableHint"><b>0</b><span>disponibles</span></div>
       </div>
 
-      <p class="wizard-inline-error" data-step-error="2" hidden></p>
-      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="1">Atrás</button><button class="btn btn-primary wizard-next" type="button" data-next-step="3">Continuar</button></div>
+      <p role="alert" class="wizard-inline-error" data-step-error="2" hidden></p>
+      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="1">{{ icon('back', 17) }} Atr&aacute;s</button><button class="btn btn-primary wizard-next" type="button" data-next-step="3">Continuar {{ icon('sales-arrow', 17) }}</button></div>
     </section>
 
     <section class="wizard-panel" data-wizard-step="3" hidden>
       <div class="wizard-panel-head">
         <span class="wizard-panel-icon">{{ icon('cash-stack', 25) }}</span>
-        <div><span>Paso 3 de 4</span><h2>¿Cómo te pagará?</h2><p>Elige cuotas y frecuencia. CuotaGo calcula el resto.</p></div>
+        <div><span>Paso 3 de 4</span><h2 tabindex="-1">¿Cómo te pagará?</h2><p>Elige cuotas y frecuencia. CuotaGo calcula el resto.</p></div>
       </div>
 
+      <div class="ag-review-product ag-plan-product" id="agreementPlanProduct" hidden>
+        <div data-ag-media="plan"></div><div><strong id="agreementPlanName"></strong><small id="agreementPlanMeta"></small></div>
+        <button type="button" class="ag-text-button" data-edit-step="2">Cambiar</button>
+      </div>
       <div class="wizard-label">Tipo de acuerdo</div>
       <div class="choice-buttons two radio-buttons deal-segmented">
         <label><input type="radio" name="deal_type" value="credit_sale" {{ 'checked' if form.get('deal_type','credit_sale')=='credit_sale' }}><span>Venta a crédito</span></label>
@@ -134,18 +190,14 @@
         <label class="field compact-price"><span>Costo por unidad</span><input id="unitPrice" type="number" step="0.01" min="0.01" name="unit_price" required value="{{ form.get('unit_price','') }}" placeholder="50000" inputmode="decimal"></label>
       </div>
 
+      <div class="ag-plan-row"><div>
       <div class="wizard-label wizard-label-spaced">Número de cuotas</div>
       <div class="quick-pick-row" aria-label="Cuotas rápidas">
         {% for count in (3, 6, 12, 18) %}<button type="button" data-installment-count="{{ count }}">{{ count }}</button>{% endfor %}
         <label class="custom-count"><input id="installmentCount" type="number" min="1" max="500" step="1" name="installment_count" value="{{ form.get('installment_count','6') }}" inputmode="numeric"><span>cuotas</span></label>
       </div>
 
-      <div class="profit-margin-line">
-        <div class="profit-margin-copy"><strong>Margen de ganancia</strong><span>Se precarga desde Compras y puedes ajustarlo para este acuerdo.</span></div>
-        <label class="profit-margin-input" aria-label="Margen de ganancia"><input id="profitMarginPercent" type="number" min="0" max="1000" step="0.01" name="profit_margin_percent" value="{{ form.get('profit_margin_percent','0') }}" inputmode="decimal"><b>%</b></label>
-        <strong class="profit-margin-money" id="profitAmountPreview">+RD$0</strong>
-      </div>
-
+      </div><div>
       <div class="wizard-label wizard-label-spaced">Frecuencia</div>
       <div class="choice-buttons three radio-buttons frequency-pills">
         {% set freq = form.get('frequency','monthly') %}
@@ -153,6 +205,15 @@
         <label><input type="radio" name="frequency" value="biweekly" {{ 'checked' if freq=='biweekly' }}><span>Quincenal</span></label>
         <label><input type="radio" name="frequency" value="monthly" {{ 'checked' if freq=='monthly' }}><span>Mensual</span></label>
       </div>
+
+      </div></div>
+
+      <div class="profit-margin-line">
+        <div class="profit-margin-copy"><strong>Margen de ganancia</strong><span>Se calcula con el precio de Inventario. Puedes ajustarlo para este acuerdo.</span></div>
+        <label class="profit-margin-input" aria-label="Margen de ganancia"><input id="profitMarginPercent" type="number" min="0" max="1000" step="0.01" name="profit_margin_percent" value="{{ form.get('profit_margin_percent','0') }}" inputmode="decimal"><b>%</b></label>
+        <strong class="profit-margin-money" id="profitAmountPreview">+RD$0</strong>
+      </div>
+
 
       <label class="field wizard-date-field"><span>Primer pago *</span><input id="firstDueDate" type="date" name="first_due_date" required value="{{ form.get('first_due_date', default_due) }}"></label>
 
@@ -179,16 +240,19 @@
         </div>
       </details>
 
-      <p class="wizard-inline-error" data-step-error="3" hidden></p>
-      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="2">Atrás</button><button class="btn btn-primary wizard-next" type="button" data-next-step="4">Revisar acuerdo</button></div>
+      <p role="alert" class="wizard-inline-error" data-step-error="3" hidden></p>
+      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="2">{{ icon('back', 17) }} Atr&aacute;s</button><button class="btn btn-primary wizard-next" type="button" data-next-step="4">Revisar acuerdo {{ icon('sales-arrow', 17) }}</button></div>
     </section>
 
     <section class="wizard-panel" data-wizard-step="4" hidden>
       <div class="wizard-panel-head">
         <span class="wizard-panel-icon">{{ icon('contract', 25) }}</span>
-        <div><span>Paso 4 de 4</span><h2>Revisa y crea</h2><p>Solo lo importante antes de guardar.</p></div>
+        <div><span>Paso 4 de 4</span><h2 tabindex="-1">Revisa y crea</h2><p>Solo lo importante antes de guardar.</p></div>
       </div>
 
+      <div class="ag-review-product" id="agreementReviewProduct" hidden>
+        <div data-ag-media="review"></div><div><span class="ag-overline">Art&iacute;culo del acuerdo</span><strong id="agreementReviewName"></strong><small id="agreementReviewMeta"></small></div>
+      </div>
       <div class="review-list">
         <div class="review-row"><span>Cliente</span><strong id="reviewClient">-</strong><button type="button" data-edit-step="1">Cambiar</button></div>
         <div class="review-row"><span>Artículo</span><strong id="reviewAsset">-</strong><button type="button" data-edit-step="2">Cambiar</button></div>
@@ -197,363 +261,36 @@
       </div>
 
       <div class="final-total"><span>Total del acuerdo</span><strong id="reviewTotal">RD$0</strong><small id="reviewExtra"></small></div>
-      <p class="wizard-inline-error" data-step-error="4" hidden></p>
-      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="3">Atrás</button><button class="btn btn-primary btn-lg" type="submit" id="createContractButton">Crear acuerdo</button></div>
+      <p class="ag-review-note">{{ icon('calendar', 17) }} Al crear el acuerdo se registra el plan de pagos y se reserva la cantidad indicada.</p>
+      <p role="alert" class="wizard-inline-error" data-step-error="4" hidden></p>
+      <div class="wizard-actions"><button class="btn btn-ghost" type="button" data-prev-step="3">{{ icon('back', 17) }} Atr&aacute;s</button><button class="btn btn-primary btn-lg" type="submit" id="createContractButton">{{ icon('sales-check', 17) }} Crear acuerdo</button></div>
     </section>
   </form>
+  <aside class="ag-overview surface" aria-label="Resumen del acuerdo">
+    <div class="ag-overview-title">{{ icon('home-agreements', 21) }} <h2>Tu acuerdo</h2><span id="agreementStepLabel">1 / 4</span></div>
+    <div class="ag-overview-placeholder" id="agreementOverviewEmpty">{{ icon('inventory', 38) }}<strong>El art&iacute;culo, siempre a la vista</strong><p>Selecciona un cliente y luego el producto que vas a entregar.</p></div>
+    <div id="agreementOverviewProduct" hidden>
+      <div class="ag-overview-media" data-ag-media="overview"></div>
+      <span class="ag-overline" id="agreementOverviewKind"></span>
+      <h3 id="agreementOverviewName"></h3><p class="ag-overview-meta" id="agreementOverviewMeta"></p>
+    </div>
+    <dl class="ag-overview-facts">
+      <div><dt>{{ icon('users', 15) }} Cliente</dt><dd id="agreementOverviewClient">Por seleccionar</dd></div>
+      <div><dt>{{ icon('box', 15) }} Cantidad</dt><dd id="agreementOverviewQuantity">&mdash;</dd></div>
+      <div><dt>{{ icon('calendar', 15) }} Plan de pago</dt><dd id="agreementOverviewPlan">Por definir</dd></div>
+      <div><dt>Inicial</dt><dd id="agreementOverviewDown">&mdash;</dd></div>
+    </dl>
+    <div class="ag-overview-total"><span>Total del acuerdo</span><strong id="agreementOverviewTotal">&mdash;</strong></div>
+    <p class="ag-overview-footnote">{{ icon('lock', 14) }} Nada se guarda hasta pulsar Crear acuerdo.</p>
+  </aside>
+  </div>
+  <template id="agFallback-car">{{ icon('car', 35) }}<span>Sin foto</span></template>
+  <template id="agFallback-phone">{{ icon('phone', 35) }}<span>Sin foto</span></template>
+  <template id="agFallback-motorcycle">{{ icon('motorcycle', 35) }}<span>Sin foto</span></template>
+  <template id="agFallback-other">{{ icon('box', 35) }}<span>Sin foto</span></template>
 </section>
 {% endblock %}
 {% block scripts %}
-<script>
-(() => {
-  const form = document.getElementById('contractForm');
-  if (!form) return;
-
-  const clientSelect = document.getElementById('clientSelect');
-  const clientName = document.getElementById('clientName');
-  const clientPhone = document.getElementById('clientPhone');
-  const assetSelect = document.getElementById('assetSelect');
-  const assetName = document.getElementById('assetName');
-  const assetStockQuantity = document.getElementById('assetStockQuantity');
-  const contractQuantity = document.getElementById('contractQuantity');
-  const stockAvailableHint = document.getElementById('stockAvailableHint');
-  const detectedAssetName = document.getElementById('detectedAssetName');
-  const unitPrice = document.getElementById('unitPrice');
-  const installmentCount = document.getElementById('installmentCount');
-  const profitMarginPercent = document.getElementById('profitMarginPercent');
-  const profitAmountPreview = document.getElementById('profitAmountPreview');
-  const dailyLateInterest = document.getElementById('dailyLateInterest');
-  const total = document.getElementById('totalAmount');
-  const down = document.getElementById('downPayment');
-  const downPaymentMeta = document.querySelector('[data-down-payment-meta]');
-  const installment = document.getElementById('installmentAmount');
-  const startDate = document.getElementById('startDate');
-  const firstDue = document.getElementById('firstDueDate');
-  const preview = document.getElementById('schedulePreview');
-  const money = new Intl.NumberFormat('es-DO', {style:'currency', currency:'DOP', minimumFractionDigits:0, maximumFractionDigits:2});
-
-  let currentStep = 1;
-  let clientMode = form.dataset.clientMode || (clientSelect?.options?.length > 1 ? 'existing' : 'new');
-  let assetMode = form.dataset.assetMode || (assetSelect?.options?.length > 1 ? 'existing' : 'new');
-  let dueTouched = {{ 'true' if form.get('first_due_date') else 'false' }};
-  let priceTouched = {{ 'true' if form.get('unit_price') else 'false' }};
-  let marginTouched = {{ 'true' if form.get('profit_margin_percent') else 'false' }};
-
-  const currentAsset = () => assetSelect?.selectedOptions?.[0] || null;
-  const selectedFrequency = () => document.querySelector('input[name="frequency"]:checked')?.value || 'monthly';
-  const selectedDealType = () => document.querySelector('input[name="deal_type"]:checked')?.value || 'credit_sale';
-  const syncDownPaymentMeta = () => { if (downPaymentMeta) downPaymentMeta.hidden = !(Number(down?.value || 0) > 0); };
-  down?.addEventListener('input', syncDownPaymentMeta);
-  syncDownPaymentMeta();
-
-  const setClientMode = (mode) => {
-    clientMode = mode;
-    document.querySelectorAll('button[data-client-mode]').forEach((button) => {
-      button.classList.toggle('is-active', button.dataset.clientMode === mode);
-      button.setAttribute('aria-pressed', button.dataset.clientMode === mode ? 'true' : 'false');
-    });
-    document.querySelectorAll('[data-client-fields]').forEach((box) => { box.hidden = box.dataset.clientFields !== mode; });
-    if (clientName) clientName.required = mode === 'new';
-    if (clientSelect) clientSelect.required = mode === 'existing';
-    refreshWizardState();
-  };
-
-  const availableQuantity = () => assetMode === 'new'
-    ? Math.max(0, Number(assetStockQuantity?.value || 0))
-    : Math.max(0, Number(currentAsset()?.dataset?.available || 0));
-
-  const setAssetMode = (mode) => {
-    assetMode = mode;
-    document.querySelectorAll('button[data-asset-mode]').forEach((button) => {
-      button.classList.toggle('is-active', button.dataset.assetMode === mode);
-      button.setAttribute('aria-pressed', button.dataset.assetMode === mode ? 'true' : 'false');
-    });
-    document.querySelectorAll('[data-asset-fields]').forEach((box) => { box.hidden = box.dataset.assetFields !== mode; });
-    if (assetName) assetName.required = mode === 'new';
-    if (assetStockQuantity) assetStockQuantity.required = mode === 'new';
-    if (assetSelect) assetSelect.required = mode === 'existing';
-    if (mode === 'existing') syncAssetPrice(true);
-    syncStock();
-    refreshWizardState();
-  };
-
-  const syncStock = () => {
-    const available = availableQuantity();
-    if (contractQuantity) contractQuantity.max = String(Math.max(available, 1));
-    if (stockAvailableHint) stockAvailableHint.innerHTML = `<b>${available}</b><span>${available === 1 ? 'disponible' : 'disponibles'}</span>`;
-  };
-
-  const syncAssetPrice = (force = false) => {
-    if (assetMode === 'new') {
-      if (detectedAssetName) detectedAssetName.textContent = assetName?.value?.trim() || 'Artículo nuevo';
-      return;
-    }
-    const option = currentAsset();
-    const price = Number(option?.dataset?.price || 0);
-    const salePrice = Number(option?.dataset?.salePrice || 0);
-    if (detectedAssetName) detectedAssetName.textContent = option?.dataset?.name || 'Selecciona un artículo';
-    if (unitPrice && price > 0 && (force || !priceTouched || !unitPrice.value)) {
-      unitPrice.value = String(price);
-      priceTouched = false;
-    }
-    if (profitMarginPercent && price > 0 && salePrice > 0 && (force || !marginTouched)) {
-      const margin = ((salePrice - price) / price) * 100;
-      profitMarginPercent.value = String(Math.max(0, margin.toFixed(2)));
-      marginTouched = false;
-    }
-  };
-
-  const autoDue = () => {
-    if (dueTouched || !startDate?.value || !firstDue) return;
-    const parts = startDate.value.split('-').map(Number);
-    if (parts.length !== 3) return;
-    const d = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
-    const freq = selectedFrequency();
-    if (freq === 'weekly') d.setDate(d.getDate() + 7);
-    else if (freq === 'biweekly') d.setDate(d.getDate() + 14);
-    else {
-      const originalDay = d.getDate();
-      d.setDate(1);
-      d.setMonth(d.getMonth() + 1);
-      const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-      d.setDate(Math.min(originalDay, lastDay));
-    }
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    firstDue.value = `${y}-${m}-${day}`;
-  };
-
-  const updatePresetState = () => {
-    const count = Number(installmentCount?.value || 0);
-    document.querySelectorAll('[data-installment-count]').forEach((button) => {
-      button.classList.toggle('is-active', Number(button.dataset.installmentCount) === count);
-    });
-  };
-
-  const calculation = () => {
-    const unit = Math.max(0, Number(unitPrice?.value || 0));
-    const qty = Math.max(1, Number(contractQuantity?.value || 1));
-    const base = unit * qty;
-    const marginPercent = Math.max(0, Number(profitMarginPercent?.value || 0));
-    const profit = base * (marginPercent / 100);
-    const gross = base + profit;
-    const initial = Math.max(0, Number(down?.value || 0));
-    const pending = Math.max(0, gross - initial);
-    const count = Math.max(0, Math.floor(Number(installmentCount?.value || 0)));
-    const perPayment = count ? pending / count : 0;
-    return {unit, qty, base, marginPercent, profit, gross, initial, pending, count, perPayment};
-  };
-
-  const updateSummary = () => {
-    const calc = calculation();
-    const late = Math.max(0, Number(dailyLateInterest?.value || 0));
-    if (total) total.value = calc.gross > 0 ? calc.gross.toFixed(2) : '';
-    if (profitAmountPreview) profitAmountPreview.textContent = `+${money.format(calc.profit || 0)}`;
-    if (installment) installment.value = calc.perPayment > 0 ? calc.perPayment.toFixed(2) : '0.00';
-    updatePresetState();
-
-    if (!calc.unit || !calc.count) {
-      preview.innerHTML = '<span>Plan calculado</span><strong>Completa precio y cuotas.</strong>';
-    } else {
-      const labels = {weekly:'semanales', biweekly:'quincenales', monthly:'mensuales'};
-      const initialCopy = calc.initial > 0 ? ` &middot; inicial ${money.format(calc.initial)}` : '';
-      const marginCopy = calc.marginPercent > 0 ? ` &middot; ganancia ${calc.marginPercent.toLocaleString('es-DO', {maximumFractionDigits:2})}%` : '';
-      const lateCopy = late > 0 ? ` &middot; atraso ${money.format(late)}/dia` : '';
-      preview.innerHTML = `<span>Base ${money.format(calc.base)}${marginCopy}${initialCopy}</span><strong>Total ${money.format(calc.gross)} &middot; ${calc.count} cuotas ${labels[selectedFrequency()]} de aprox. ${money.format(calc.perPayment)}${lateCopy}</strong>`;
-    }
-    updateReview();
-  };
-
-  const clientDisplay = () => clientMode === 'existing'
-    ? (clientSelect?.selectedOptions?.[0]?.textContent?.trim() || 'Sin cliente')
-    : (clientName?.value?.trim() || 'Cliente nuevo');
-
-  const assetDisplay = () => {
-    const qty = Math.max(1, Number(contractQuantity?.value || 1));
-    const name = assetMode === 'existing'
-      ? (currentAsset()?.dataset?.name || currentAsset()?.textContent?.split(' \u00b7 ')[0] || 'Sin articulo')
-      : (assetName?.value?.trim() || 'Artículo nuevo');
-    return `${qty} x ${name}`;
-  };
-
-  const updateReview = () => {
-    const calc = calculation();
-    const labels = {weekly:'semanales', biweekly:'quincenales', monthly:'mensuales'};
-    const reviewClient = document.getElementById('reviewClient');
-    const reviewAsset = document.getElementById('reviewAsset');
-    const reviewPlan = document.getElementById('reviewPlan');
-    const reviewDue = document.getElementById('reviewDue');
-    const reviewTotal = document.getElementById('reviewTotal');
-    const reviewExtra = document.getElementById('reviewExtra');
-    if (reviewClient) reviewClient.textContent = clientDisplay();
-    if (reviewAsset) reviewAsset.textContent = assetDisplay();
-    if (reviewPlan) reviewPlan.textContent = calc.count ? `${calc.count} cuotas ${labels[selectedFrequency()]} de ${money.format(calc.perPayment)}` : '-';
-    if (reviewDue) reviewDue.textContent = firstDue?.value || '-';
-    if (reviewTotal) reviewTotal.textContent = money.format(calc.gross || 0);
-    if (reviewExtra) {
-      const parts = [];
-      if (calc.marginPercent > 0) parts.push(`Ganancia ${calc.marginPercent.toLocaleString('es-DO', {maximumFractionDigits:2})}% (+${money.format(calc.profit)})`);
-      if (calc.initial > 0) parts.push(`Inicial ${money.format(calc.initial)}`);
-      const late = Math.max(0, Number(dailyLateInterest?.value || 0));
-      if (late > 0) parts.push(`Interes por atraso ${money.format(late)}/dia`);
-      parts.push(selectedDealType() === 'rental' ? 'Préstamo / alquiler' : 'Venta a crédito');
-      reviewExtra.textContent = parts.join(' \u00b7 ');
-    }
-  };
-
-  const stepError = (step, message = '') => {
-    const box = document.querySelector(`[data-step-error="${step}"]`);
-    if (!box) return;
-    box.textContent = message;
-    box.hidden = !message;
-  };
-
-  const validateStep = (step, showError = false) => {
-    let message = '';
-    if (step === 1) {
-      if (clientMode === 'existing' && !clientSelect?.value) message = 'Selecciona un cliente para continuar.';
-      if (clientMode === 'new' && (clientName?.value?.trim()?.length || 0) < 2) message = 'Escribe el nombre del cliente.';
-    }
-    if (step === 2) {
-      const qty = Math.max(0, Number(contractQuantity?.value || 0));
-      const available = availableQuantity();
-      if (assetMode === 'existing' && !assetSelect?.value) message = 'Selecciona un artículo del inventario.';
-      else if (assetMode === 'new' && (assetName?.value?.trim()?.length || 0) < 2) message = 'Escribe el nombre del articulo.';
-      else if (assetMode === 'new' && available < 1) message = 'Indica cuantas unidades tienes.';
-      else if (qty < 1) message = 'Indica la cantidad a entregar.';
-      else if (qty > available) message = `Solo hay ${available} unidad(es) disponibles.`;
-    }
-    if (step === 3) {
-      const calc = calculation();
-      const late = Number(dailyLateInterest?.value || 0);
-      if (calc.unit <= 0) message = 'Indica el precio base del articulo.';
-      else if (calc.marginPercent < 0 || calc.marginPercent > 1000) message = 'Revisa el margen de ganancia.';
-      else if (calc.count < 1 || calc.count > 500) message = 'Elige entre 1 y 500 cuotas.';
-      else if (calc.initial < 0 || calc.initial > calc.gross) message = 'Revisa el monto inicial.';
-      else if (!firstDue?.value) message = 'Selecciona la fecha del primer pago.';
-      else if (startDate?.value && firstDue.value < startDate.value) message = 'El primer pago no puede ser antes de la entrega.';
-      else if (late < 0) message = 'El interes diario no puede ser negativo.';
-    }
-    if (showError) stepError(step, message);
-    return !message;
-  };
-
-  const canReachStep = (target) => {
-    for (let step = 1; step < target; step += 1) if (!validateStep(step, false)) return false;
-    return true;
-  };
-
-  const updateProgress = () => {
-    document.querySelectorAll('[data-step-target]').forEach((button) => {
-      const step = Number(button.dataset.stepTarget);
-      button.classList.toggle('is-active', step === currentStep);
-      button.classList.toggle('is-complete', step < currentStep && validateStep(step, false));
-      button.disabled = step > currentStep && !canReachStep(step);
-    });
-  };
-
-  const refreshWizardState = () => {
-    updateSummary();
-    syncStock();
-    const next = document.querySelector(`[data-wizard-step="${currentStep}"] [data-next-step]`);
-    if (next) next.disabled = !validateStep(currentStep, false);
-    if (validateStep(currentStep, false)) stepError(currentStep, '');
-    updateProgress();
-  };
-
-  const setStep = (step) => {
-    if (step > currentStep && !canReachStep(step)) {
-      for (let index = 1; index < step; index += 1) {
-        if (!validateStep(index, false)) {
-          currentStep = index;
-          validateStep(index, true);
-          break;
-        }
-      }
-    } else {
-      currentStep = step;
-    }
-    document.querySelectorAll('[data-wizard-step]').forEach((panel) => {
-      const active = Number(panel.dataset.wizardStep) === currentStep;
-      panel.hidden = !active;
-      panel.classList.toggle('is-active', active);
-    });
-    if (currentStep === 3) {
-      syncAssetPrice(false);
-      autoDue();
-    }
-    updateSummary();
-    refreshWizardState();
-    const pageTop = document.querySelector('.wizard-progress')?.getBoundingClientRect().top || 0;
-    if (pageTop < 0) window.scrollTo({top: Math.max(0, window.scrollY + pageTop - 74), behavior:'smooth'});
-  };
-
-  document.querySelectorAll('button[data-client-mode]').forEach((button) => button.addEventListener('click', () => setClientMode(button.dataset.clientMode)));
-  document.querySelectorAll('button[data-asset-mode]').forEach((button) => button.addEventListener('click', () => setAssetMode(button.dataset.assetMode)));
-
-  clientSelect?.addEventListener('change', refreshWizardState);
-  clientName?.addEventListener('input', refreshWizardState);
-  clientPhone?.addEventListener('input', updateReview);
-  assetSelect?.addEventListener('change', () => { priceTouched = false; marginTouched = false; syncAssetPrice(true); syncStock(); refreshWizardState(); });
-  assetName?.addEventListener('input', () => { syncAssetPrice(false); refreshWizardState(); });
-  assetStockQuantity?.addEventListener('input', refreshWizardState);
-  contractQuantity?.addEventListener('input', refreshWizardState);
-  unitPrice?.addEventListener('input', () => { priceTouched = true; refreshWizardState(); });
-  installmentCount?.addEventListener('input', refreshWizardState);
-  profitMarginPercent?.addEventListener('input', () => { marginTouched = true; refreshWizardState(); });
-  dailyLateInterest?.addEventListener('input', refreshWizardState);
-  down?.addEventListener('input', refreshWizardState);
-  startDate?.addEventListener('change', () => { dueTouched = false; autoDue(); refreshWizardState(); });
-  firstDue?.addEventListener('change', () => { dueTouched = true; refreshWizardState(); });
-
-  document.querySelectorAll('input[name="frequency"], input[name="deal_type"]').forEach((el) => el.addEventListener('change', () => {
-    if (el.name === 'frequency') { dueTouched = false; autoDue(); }
-    refreshWizardState();
-  }));
-
-  document.querySelectorAll('[data-installment-count]').forEach((button) => button.addEventListener('click', () => {
-    if (installmentCount) installmentCount.value = button.dataset.installmentCount;
-    refreshWizardState();
-  }));
-
-  document.querySelectorAll('[data-next-step]').forEach((button) => button.addEventListener('click', () => {
-    const next = Number(button.dataset.nextStep);
-    if (!validateStep(currentStep, true)) return;
-    setStep(next);
-  }));
-
-  document.querySelectorAll('[data-prev-step]').forEach((button) => button.addEventListener('click', () => setStep(Number(button.dataset.prevStep))));
-  document.querySelectorAll('[data-edit-step]').forEach((button) => button.addEventListener('click', () => setStep(Number(button.dataset.editStep))));
-  document.querySelectorAll('[data-step-target]').forEach((button) => button.addEventListener('click', () => {
-    const target = Number(button.dataset.stepTarget);
-    if (target <= currentStep || canReachStep(target)) setStep(target);
-  }));
-
-  form.addEventListener('submit', (event) => {
-    for (let step = 1; step <= 3; step += 1) {
-      if (!validateStep(step, false)) {
-        event.preventDefault();
-        setStep(step);
-        validateStep(step, true);
-        return;
-      }
-    }
-    if (currentStep !== 4) {
-      event.preventDefault();
-      setStep(4);
-      return;
-    }
-    const createButton = document.getElementById('createContractButton');
-    if (createButton) { createButton.disabled = true; createButton.textContent = 'Creando...'; }
-  });
-
-  setClientMode(clientMode);
-  setAssetMode(assetMode);
-  syncAssetPrice(false);
-  autoDue();
-  updateSummary();
-  setStep(1);
-})();
-</script>
+<script id="agreementInventoryData" type="application/json">{{ agreement_inventory|tojson }}</script>
+<script src="{{ url_for('static', filename='js/agreements.js', v=config['ASSET_VERSION']) }}" defer></script>
 {% endblock %}

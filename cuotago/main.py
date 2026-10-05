@@ -2000,14 +2000,9 @@ def agreement_form_choices(selected_client=None, selected_asset=None):
         .limit(60)
         .all()
     )
-    asset_candidates = (
-        Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales))
-        .filter(Asset.organization_id == org_id, Asset.status.notin_(["maintenance", "workshop"]))
-        .order_by(Asset.name.asc())
-        .limit(120)
-        .all()
-    )
-    assets = [item for item in asset_candidates if item.available_quantity > 0][:60]
+    # Filter committed stock in SQL before limiting; sold rows must not hide
+    # genuinely available products later in the inventory.
+    assets = _sale_inventory_query().limit(60).all()
     if selected_client is not None and all(item.id != selected_client.id for item in clients):
         clients.append(selected_client)
         clients.sort(key=lambda item: (item.full_name or "").lower())
@@ -2119,6 +2114,38 @@ def _sale_asset_payload(asset):
         "full_image_url": url_for("main.asset_image", asset_id=asset.id, v=version) if asset.image_mime else "",
         "photo_upload_url": url_for("main.sale_asset_photo", asset_id=asset.id) if has_permission(current_user, "inventory.manage") else "",
     }
+
+
+def _agreement_asset_payload(asset):
+    """Photo data only; agreement selection never invokes a sales write endpoint."""
+    payload = _sale_asset_payload(asset)
+    payload.pop("photo_upload_url", None)
+    return payload
+
+
+def _agreement_inventory_bootstrap(assets, selected_id=None):
+    items = list(assets[:12])
+    selected = next((item for item in assets if str(item.id) == str(selected_id)), None)
+    if selected is not None and all(item.id != selected.id for item in items):
+        items.append(selected)
+    return {"items": [_agreement_asset_payload(item) for item in items],
+            "selected_id": selected.id if selected else None}
+
+
+@main_bp.get("/api/agreements/assets")
+@login_required
+@permission_required("contracts.create")
+@permission_required("inventory.view")
+def agreement_assets_api():
+    """Paginated, tenant-scoped stock for the agreement's photo picker."""
+    q = (request.args.get("q") or "").strip()[:100]
+    kind = (request.args.get("kind") or "").strip()
+    page = max(1, request.args.get("page", 1, type=int) or 1)
+    pagination = _sale_inventory_query(q, kind).paginate(page=page, per_page=12, error_out=False)
+    response = jsonify({"ok": True, "items": [_agreement_asset_payload(item) for item in pagination.items],
+                        "total": pagination.total, "next_page": pagination.next_num if pagination.has_next else None})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 @main_bp.get("/api/sales/assets")
@@ -2588,7 +2615,15 @@ def contract_new():
         if first_due < start:
             errors.append("El primer pago no puede ser antes de la entrega.")
 
+        asset_image = (None, None, None)
+        if asset is None and has_permission(current_user, "inventory.manage"):
+            try:
+                asset_image = read_asset_image_upload(request.files.get("asset_image"))
+            except ValueError as exc:
+                errors.append(str(exc))
         if errors:
+            if request.files.get("asset_image") and request.files["asset_image"].filename:
+                flash("Vuelve a seleccionar la foto antes de guardar el acuerdo.", "info")
             for error in errors:
                 flash(error, "error")
             return render_template(
@@ -2596,6 +2631,7 @@ def contract_new():
                 clients=clients_list,
                 assets=assets_list,
                 form=request.form,
+                agreement_inventory=_agreement_inventory_bootstrap(assets_list, request.form.get("asset_id")),
                 default_start=default_start,
                 default_due=default_due,
             )
@@ -2621,6 +2657,8 @@ def contract_new():
                 sale_price=(money_decimal(total / quantity) if total and quantity else Decimal("0.00")),
                 quantity_total=asset_stock_quantity,
                 status="available",
+                image_data=asset_image[0], image_mime=asset_image[1], image_thumb_data=asset_image[2],
+                image_updated_at=datetime.utcnow() if asset_image[0] else None,
             )
             db.session.add(asset)
 
@@ -2660,6 +2698,7 @@ def contract_new():
                 clients=clients_list,
                 assets=assets_list,
                 form=request.form,
+                agreement_inventory=_agreement_inventory_bootstrap(assets_list, request.form.get("asset_id")),
                 default_start=default_start,
                 default_due=default_due,
             )
@@ -2695,6 +2734,7 @@ def contract_new():
         clients=clients_list,
         assets=assets_list,
         form=initial_form,
+        agreement_inventory=_agreement_inventory_bootstrap(assets_list),
         default_start=default_start,
         default_due=default_due,
     )

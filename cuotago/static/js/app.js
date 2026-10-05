@@ -6,11 +6,7 @@
   const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
   const IS_STANDALONE = root.classList.contains('is-standalone-app') || window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  if (IS_STANDALONE) {
-    const pwaMotionStyle = document.createElement('style');
-    pwaMotionStyle.textContent = '@view-transition{navigation:none}';
-    document.head.appendChild(pwaMotionStyle);
-  }
+
 
   /* The viewport already disables pinch zoom. Keep only Safari's native gesture guard in
      standalone mode; avoid document-wide touchmove/touchend blockers that slow scrolling. */
@@ -221,7 +217,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.25.4-ui-v68';
+  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.25.5-ui-v69';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
