@@ -25,6 +25,25 @@ MODULE_CATALOG = [
         ],
     },
     {
+        "slug": "sales",
+        "name": "Ventas",
+        "endpoint": "main.sales",
+        "icon": "home-sales",
+        "accent": "accent-orange",
+        "home_description": "Ventas cerradas y utilidad",
+        "guide_summary": "Registra ventas directas o de contado sin crear cuotas, mora ni una cuenta por cobrar.",
+        "guide_steps": [
+            "Entra a Ventas y toca Nueva venta.",
+            "Selecciona un artículo disponible del Inventario y, si aplica, un cliente.",
+            "Confirma cantidad, precio final y método de pago.",
+            "CuotaGo descuenta el inventario y guarda la utilidad real de la operación.",
+        ],
+        "guide_tips": [
+            "Ventas no crea cuotas ni aparece en Cobros; para financiamiento usa Acuerdos.",
+            "El costo y las inversiones del artículo se congelan al momento de vender para conservar la utilidad histórica.",
+        ],
+    },
+    {
         "slug": "collections",
         "name": "Cobros",
         "endpoint": "main.collections",

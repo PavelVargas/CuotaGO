@@ -29,6 +29,7 @@ ALL_PERMISSIONS = {
     "clients.view", "clients.manage",
     "inventory.view", "inventory.manage",
     "purchases.view", "purchases.manage",
+    "sales.view", "sales.manage",
     "contracts.view", "contracts.create", "contracts.modify", "contracts.cancel",
     "collections.view", "collections.manage", "payments.view", "payments.record",
     "expenses.view", "expenses.manage",
@@ -45,18 +46,18 @@ ROLE_PERMISSIONS = {
     },
     "seller": {
         "clients.view", "clients.manage", "inventory.view",
-        "contracts.view", "contracts.create", "payments.view",
+        "contracts.view", "contracts.create", "payments.view", "sales.view", "sales.manage",
     },
     "sales": {
         "clients.view", "clients.manage", "inventory.view",
-        "contracts.view", "contracts.create", "payments.view",
+        "contracts.view", "contracts.create", "payments.view", "sales.view", "sales.manage",
     },
     "viewer": {
-        "clients.view", "inventory.view", "purchases.view", "contracts.view",
+        "clients.view", "inventory.view", "purchases.view", "sales.view", "contracts.view",
         "collections.view", "payments.view", "reports.view",
     },
     "staff": {
-        "clients.view", "clients.manage", "inventory.view", "contracts.view", "contracts.create",
+        "clients.view", "clients.manage", "inventory.view", "sales.view", "sales.manage", "contracts.view", "contracts.create",
         "collections.view", "collections.manage", "payments.view", "payments.record",
     },
     "superadmin": ALL_PERMISSIONS,
@@ -73,6 +74,7 @@ PERMISSION_ALIASES = {
 
 MODULE_PERMISSIONS = {
     "agreements": "contracts.view",
+    "sales": "sales.view",
     "collections": "collections.view",
     "notifications": "collections.view",
     "clients": "clients.view",

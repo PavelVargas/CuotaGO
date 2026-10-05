@@ -190,6 +190,7 @@ class Client(db.Model):
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
 
     contracts = db.relationship("Contract", back_populates="client")
+    sales = db.relationship("Sale", back_populates="client", order_by="Sale.sale_date.desc()")
     collection_notes = db.relationship(
         "CollectionNote", back_populates="client", cascade="all, delete-orphan", order_by="CollectionNote.created_at.desc()"
     )
@@ -242,6 +243,7 @@ class Asset(db.Model):
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
 
     contracts = db.relationship("Contract", back_populates="asset")
+    sales = db.relationship("Sale", back_populates="asset", order_by="Sale.sale_date.desc()")
     purchases = db.relationship("Purchase", back_populates="asset", order_by="Purchase.purchase_date.desc()")
     investments = db.relationship(
         "AssetInvestment",
@@ -268,8 +270,16 @@ class Asset(db.Model):
         return ((self.expected_profit_per_unit / cost) * Decimal("100")).quantize(Decimal("0.01"))
 
     @property
+    def direct_sold_quantity(self):
+        return sum(
+            max(int(sale.quantity or 1), 1)
+            for sale in self.sales
+            if sale.status == "completed"
+        )
+
+    @property
     def committed_quantity(self):
-        total = 0
+        total = self.direct_sold_quantity
         for contract in self.contracts:
             qty = max(int(contract.quantity or 1), 1)
             if contract.status == "active" or (contract.status == "completed" and contract.deal_type == "credit_sale"):
@@ -347,6 +357,50 @@ class Purchase(db.Model):
         if cost <= 0:
             return Decimal("0.00")
         return ((self.expected_profit / cost) * Decimal("100")).quantize(Decimal("0.01"))
+
+
+class Sale(db.Model):
+    __tablename__ = "sales"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id", ondelete="SET NULL"), nullable=True, index=True)
+    asset_id = db.Column(db.Integer, db.ForeignKey("assets.id"), nullable=False, index=True)
+    code = db.Column(db.String(40), unique=True, index=True)
+    request_key = db.Column(db.String(64), unique=True, index=True)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    sale_date = db.Column(db.Date, nullable=False, default=date.today, index=True)
+    unit_price = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    total_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    unit_cost = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    investment_cost = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    total_cost = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    profit_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    payment_method = db.Column(db.String(30), nullable=False, default="cash")
+    reference = db.Column(db.String(120))
+    buyer_name = db.Column(db.String(140))
+    buyer_phone = db.Column(db.String(40))
+    notes = db.Column(db.String(240))
+    status = db.Column(db.String(20), nullable=False, default="completed", index=True)
+    created_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    voided_at = db.Column(db.DateTime, nullable=True, index=True)
+    voided_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    void_reason = db.Column(db.String(240))
+    created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
+
+    client = db.relationship("Client", back_populates="sales")
+    asset = db.relationship("Asset", back_populates="sales")
+
+    @property
+    def margin_percent(self):
+        cost = Decimal(str(self.total_cost or 0))
+        if cost <= 0:
+            return Decimal("0.00")
+        return ((Decimal(str(self.profit_amount or 0)) / cost) * Decimal("100")).quantize(Decimal("0.01"))
+
+    @property
+    def buyer_display(self):
+        return self.buyer_name or (self.client.full_name if self.client is not None else None) or "Cliente ocasional"
 
 
 class Contract(db.Model):

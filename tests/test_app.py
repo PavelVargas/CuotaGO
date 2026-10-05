@@ -10,7 +10,7 @@ from cuotago import create_app
 from cuotago.extensions import db
 from cuotago.models import (
     AdminAuditLog, Asset, AssetInvestment, Client, CollectionNote, Contract, ContractScheduleChange, Expense, Installment,
-    Organization, OrganizationSubscription, Payment, PaymentPromise, Purchase, PushNotificationLog,
+    Organization, OrganizationSubscription, Payment, PaymentPromise, Purchase, PushNotificationLog, Sale,
     PushSubscription, SubscriptionPayment, SubscriptionPlan, Supplier, TenantAuditLog, User,
 )
 
@@ -133,6 +133,41 @@ def test_create_contract_and_register_payment(client, app):
         contract = db.session.get(Contract, contract_id)
         assert contract.balance == Decimal("40000.00")
         assert contract.installments[0].is_paid
+
+
+def test_direct_sale_is_not_an_agreement_and_restores_inventory_when_voided(client, app):
+    register(client)
+    client.post("/clients/new", data={"full_name": "Comprador Venta", "phone": "8095559911"}, follow_redirects=True)
+    client.post("/assets/new", data={
+        "kind": "phone", "name": "Galaxy S26", "estimated_value": "30000",
+        "sale_price": "42000", "quantity_total": "2",
+    }, follow_redirects=True)
+    with app.app_context():
+        person_id = Client.query.one().id
+        asset_id = Asset.query.one().id
+
+    response = client.post("/sales/new", data={
+        "request_key": "sale-test-1", "client_id": person_id, "asset_id": asset_id,
+        "quantity": "1", "unit_price": "42000", "sale_date": date.today().isoformat(),
+        "payment_method": "cash",
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert b"Venta directa" in response.data
+    with app.app_context():
+        sale = Sale.query.one()
+        assert Contract.query.count() == 0
+        assert sale.total_amount == Decimal("42000.00")
+        assert sale.total_cost == Decimal("30000.00")
+        assert sale.profit_amount == Decimal("12000.00")
+        assert sale.asset.available_quantity == 1
+        sale_id = sale.id
+
+    response = client.post(f"/sales/{sale_id}/void", data={"reason": "Cliente cancelo la compra"}, follow_redirects=True)
+    assert response.status_code == 200
+    with app.app_context():
+        sale = db.session.get(Sale, sale_id)
+        assert sale.status == "voided"
+        assert sale.asset.available_quantity == 2
 
 
 def test_asset_photo_upload_and_private_delivery(client, app):

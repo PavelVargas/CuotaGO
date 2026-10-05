@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% from 'macros/pagination.html' import pagination_links %}
+{% block title %}Ventas · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page sales-page sales-list-page">
+  <div class="page-head sales-page-head">
+    <div class="page-head-left">
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <span class="module-context-icon accent-orange" aria-hidden="true">{{ icon('home-sales', 24) }}</span>
+      <div><span class="eyebrow">VENTAS</span><h1>Ventas</h1><p>Operaciones cerradas. Sin cuotas, mora ni cobranza.</p></div>
+    </div>
+    {% if can('sales.manage') %}<a class="btn btn-primary sales-new-btn" href="{{ url_for('main.sale_new') }}">{{ icon('plus', 17) }} <span>Nueva venta</span></a>{% endif %}
+  </div>
+
+  <section class="sales-kpi-grid" aria-label="Resumen de ventas">
+    <article class="surface sales-kpi"><span>Ventas del mes</span><strong>{{ money(month_revenue) }}</strong><small>{{ month_units }} unidad{{ 'es' if month_units != 1 }}</small></article>
+    <article class="surface sales-kpi"><span>Utilidad del mes</span><strong class="{{ 'text-success' if month_profit >= 0 else 'text-danger' }}">{{ money(month_profit) }}</strong><small>{{ '%.2f'|format(month_margin) }}% sobre ventas</small></article>
+    <article class="surface sales-kpi"><span>Hoy</span><strong>{{ money(today_revenue) }}</strong><small>{{ today_count }} venta{{ 's' if today_count != 1 }}</small></article>
+    <article class="surface sales-kpi sales-kpi-mode"><span>Tipo</span><strong>Venta directa</strong><small>No entra a Cobros</small></article>
+  </section>
+
+  <form class="sales-filter-bar surface" method="get">
+    <label class="sales-search">{{ icon('search', 18) }}<input type="search" name="q" value="{{ q }}" placeholder="Venta, cliente, placa, IMEI o artículo"></label>
+    <select name="period" aria-label="Período" onchange="this.form.submit()">
+      <option value="today" {{ 'selected' if period=='today' }}>Hoy</option><option value="7d" {{ 'selected' if period=='7d' }}>7 días</option><option value="month" {{ 'selected' if period=='month' }}>Mes</option><option value="all" {{ 'selected' if period=='all' }}>Todo</option>
+    </select>
+    <select name="method" aria-label="Método de pago" onchange="this.form.submit()"><option value="">Todos los pagos</option>{% for value,label in [('cash','Efectivo'),('transfer','Transferencia'),('deposit','Depósito'),('card','Tarjeta'),('other','Otro')] %}<option value="{{ value }}" {{ 'selected' if method==value }}>{{ label }}</option>{% endfor %}</select>
+    <select name="status" aria-label="Estado" onchange="this.form.submit()"><option value="completed" {{ 'selected' if status=='completed' }}>Completadas</option><option value="voided" {{ 'selected' if status=='voided' }}>Anuladas</option><option value="all" {{ 'selected' if status=='all' }}>Todas</option></select>
+    <button class="btn btn-secondary" type="submit">Filtrar</button>
+  </form>
+
+  <div class="sales-list">
+    {% for sale in sales %}
+    <a class="surface sale-row {{ 'is-voided' if sale.status=='voided' }}" href="{{ url_for('main.sale_detail', sale_id=sale.id) }}">
+      <div class="sale-thumb">
+        {% if sale.asset.image_mime %}<img src="{{ url_for('main.asset_image', asset_id=sale.asset.id, thumb=1, v=(sale.asset.image_updated_at.strftime('%Y%m%d%H%M%S') if sale.asset.image_updated_at else 'legacy')) }}" alt="" loading="lazy" decoding="async">{% else %}<span>{{ icon('home-inventory', 27) }}</span>{% endif %}
+      </div>
+      <div class="sale-row-main"><div class="sale-row-title"><strong>{{ sale.asset.name }}</strong><span class="sale-status {{ 'is-voided' if sale.status=='voided' }}">{{ sale_status_label(sale.status) }}</span></div><p>{{ sale.code }} · {{ sale.buyer_display }}</p><small>{{ sale.sale_date.strftime('%d/%m/%Y') }} · {{ payment_method_label(sale.payment_method) }} · {{ sale.quantity }} ud.</small></div>
+      <div class="sale-row-money"><span>Venta</span><strong>{{ money(sale.total_amount) }}</strong><small class="{{ 'text-success' if sale.profit_amount >= 0 else 'text-danger' }}">Utilidad {{ money(sale.profit_amount) }}</small></div>
+      <span class="sale-row-chevron">›</span>
+    </a>
+    {% else %}
+    <div class="surface empty-state sales-empty"><span class="module-context-icon accent-orange">{{ icon('home-sales', 30) }}</span><h2>No hay ventas aquí</h2><p>Una venta directa aparecerá aquí cuando se cierre y salga del inventario.</p>{% if can('sales.manage') %}<a class="btn btn-primary" href="{{ url_for('main.sale_new') }}">Registrar primera venta</a>{% endif %}</div>
+    {% endfor %}
+  </div>
+  {{ pagination_links(pagination, 'main.sales', q=q, period=period, method=method, status=status) if pagination.pages > 1 else '' }}
+</section>
+{% endblock %}

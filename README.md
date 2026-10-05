@@ -1,9 +1,21 @@
-# CuotaGo MOBILE PWA v1.24.8 · PostgreSQL + Railway
+# CuotaGo MOBILE PWA v1.25.0 · PostgreSQL + Railway
 
-Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con launcher compacto y acuerdos guiados paso a paso.
+Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA directa para inventario, ventas, acuerdos y cobros.
 
 > Para GitHub/Railway, `.env` sigue ignorado. Conserva tu `.env` local y configura los secretos desde Variables en Railway.
 
+
+## Cambios v1.25.0 — Ventas directas separadas de Acuerdos
+
+- **Nuevo módulo Ventas:** registra operaciones cerradas de contado/inmediatas sin crear cuotas, mora ni tareas de Cobros.
+- **Inventario conectado:** una venta descuenta existencias; en vehículos/motores reserva una sola unidad y una anulación devuelve automáticamente el artículo al stock.
+- **Rentabilidad histórica:** cada venta congela precio final, costo base, inversión asignada, costo real, utilidad y margen para que cambios posteriores del inventario no alteren el historial.
+- **Comprador flexible:** permite usar un cliente guardado o registrar nombre/teléfono de un comprador ocasional.
+- **Imágenes optimizadas:** listas y selector cargan thumbnails WebP de 360×240; el detalle conserva la imagen normalizada de 1169×780.
+- **PWA móvil:** flujo corto Artículo → Precio/Pago → Comprador, cards compactas y acciones táctiles sin copiar la UX de Acuerdos.
+- **Reportes integrados:** separa cobros de acuerdos y ventas directas, suma ambos al ingreso operativo y muestra utilidad de ventas directas.
+- **Integración transversal:** Ventas participa en búsqueda global, actividad del vehículo, permisos y respaldo CSV (`ventas.csv`).
+- Build de assets: `1.25.0-ui-v64`.
 
 ## Cambios v1.24.8 — Rail PWA estable + contador externo de notificaciones
 
@@ -12,6 +24,7 @@ Esta version mantiene PostgreSQL/Railway y prioriza una UX PWA mas directa, con 
 - El rail tiene una separación inicial segura mientras termina el primer render, evitando que Configuración choque con los KPIs.
 - El contador de la campana queda fuera del círculo y refleja pagos + promesas que aparecen en el centro de notificaciones.
 - Build de assets: `1.24.8-ui-v63`.
+
 
 ## Cambios v1.24.7 — PWA sin header + rail de utilidades + arranque continuo
 

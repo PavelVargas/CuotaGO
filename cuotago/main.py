@@ -18,7 +18,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from .extensions import db
 from .models import (
     Asset, AssetInvestment, Client, CollectionNote, Contract, ContractScheduleChange, Expense, Installment, Payment,
-    PaymentPromise, Purchase, PushNotificationLog, Supplier, TenantAuditLog, User,
+    PaymentPromise, Purchase, PushNotificationLog, Sale, Supplier, TenantAuditLog, User,
 )
 from .module_catalog import module_catalog
 from .permissions import ASSIGNABLE_ROLES, has_permission, permission_required, role_label, visible_modules
@@ -264,7 +264,7 @@ def sync_org_late_fees(commit=True):
 
 
 def refresh_asset_status(asset):
-    """Keep automatic sale states while respecting manual workshop states."""
+    """Keep automatic agreement/direct-sale states while respecting manual workshop states."""
     if asset.status in {"maintenance", "workshop"} and asset.committed_quantity == 0:
         return
     if asset.available_quantity > 0:
@@ -273,10 +273,9 @@ def refresh_asset_status(asset):
     if any(c.status == "active" for c in asset.contracts):
         asset.status = "on_loan"
         return
-    if any(c.status == "completed" and c.deal_type == "credit_sale" for c in asset.contracts):
-        asset.status = "sold"
-    else:
-        asset.status = "available"
+    has_credit_sale = any(c.status == "completed" and c.deal_type == "credit_sale" for c in asset.contracts)
+    has_direct_sale = any(sale.status == "completed" for sale in getattr(asset, "sales", []))
+    asset.status = "sold" if has_credit_sale or has_direct_sale else "available"
 
 
 def scoped_client(client_id):
@@ -291,6 +290,12 @@ def scoped_contract(contract_id):
     contract = Contract.query.filter_by(id=contract_id, organization_id=current_user.organization_id).first_or_404()
     sync_contract_late_fees(contract, commit=True)
     return contract
+
+
+def scoped_sale(sale_id):
+    return Sale.query.options(joinedload(Sale.client), joinedload(Sale.asset)).filter_by(
+        id=sale_id, organization_id=current_user.organization_id
+    ).first_or_404()
 
 
 def scoped_payment(payment_id):
@@ -329,6 +334,13 @@ def sync_payment_promises(commit=True):
     if changed and commit:
         db.session.commit()
     return int(changed or 0)
+
+
+def sale_status_label(value):
+    return {
+        "completed": "Completada",
+        "voided": "Anulada",
+    }.get(value, (value or "Venta").capitalize())
 
 
 def payment_method_label(value):
@@ -642,6 +654,7 @@ def inject_helpers():
         "frequency_label": frequency_label,
         "deal_type_label": deal_type_label,
         "payment_method_label": payment_method_label,
+        "sale_status_label": sale_status_label,
         "expense_category_label": expense_category_label,
         "wa_link": whatsapp_link,
         "statement_wa_link": statement_whatsapp_link,
@@ -697,11 +710,14 @@ def dashboard():
 
     notification_count = overdue_count + due_today_count
     modules = visible_modules(module_catalog(), current_user)
+    month_start = today_value.replace(day=1)
+    month_sales_count = Sale.query.filter_by(organization_id=org_id, status="completed").filter(Sale.sale_date >= month_start, Sale.sale_date <= today_value).count() if has_permission(current_user, "sales.view") else 0
     module_status = {
         "agreements": {
             "kind": "small",
             "text": f"Crear y gestionar · {active_count} activo{'s' if active_count != 1 else ''}",
         },
+        "sales": {"kind": "small", "text": f"{month_sales_count} venta{'s' if month_sales_count != 1 else ''} este mes"},
         "collections": (
             {"kind": "badge-danger", "text": f"{overdue_count} vencido{'s' if overdue_count != 1 else ''}"}
             if overdue_count
@@ -937,7 +953,17 @@ def client_detail(client_id):
     }
     actors = {user.id: user.name for user in User.query.filter(User.id.in_(actor_ids)).all()} if actor_ids else {}
 
+    direct_sales = Sale.query.options(joinedload(Sale.asset)).filter_by(
+        organization_id=current_user.organization_id, client_id=client.id
+    ).order_by(Sale.created_at.desc()).all()
+
     timeline = []
+    for sale in direct_sales:
+        timeline.append({
+            "kind": "sale", "title": f"Venta {sale.code}", "detail": sale.asset.name,
+            "amount": money_decimal(sale.total_amount), "date": sale.created_at,
+            "url": url_for("main.sale_detail", sale_id=sale.id),
+        })
     for contract in contracts:
         timeline.append({
             "kind": "agreement", "title": f"Acuerdo {contract.code}", "detail": contract.asset.name,
@@ -972,7 +998,7 @@ def client_detail(client_id):
     timeline.sort(key=lambda item: item["date"] or datetime.min, reverse=True)
 
     return render_template(
-        "clients/detail.html", client=client, contracts=contracts, payments=payments, promises=promises,
+        "clients/detail.html", client=client, contracts=contracts, direct_sales=direct_sales, payments=payments, promises=promises,
         notes=notes, timeline=timeline[:40], actors=actors, risk=client_risk_summary(client), balance=balance, paid=paid,
         overdue_count=len(overdue), active_count=len(active),
     )
@@ -1160,7 +1186,7 @@ def asset_image(asset_id):
 def assets():
     q = request.args.get("q", "").strip()
     status = request.args.get("status", "").strip()
-    query = Asset.query.options(selectinload(Asset.contracts)).filter_by(organization_id=current_user.organization_id)
+    query = Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales)).filter_by(organization_id=current_user.organization_id)
     if q:
         pattern = f"%{q}%"
         query = query.filter(
@@ -1188,7 +1214,7 @@ def assets():
     # Dealer dashboard summary is intentionally calculated outside the active
     # filters so the operator always sees the real inventory position.
     summary_assets = (
-        Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.investments))
+        Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales), selectinload(Asset.investments))
         .filter_by(organization_id=current_user.organization_id)
         .all()
     )
@@ -1240,6 +1266,7 @@ def asset_detail(asset_id):
             selectinload(Asset.investments).joinedload(AssetInvestment.expense),
             selectinload(Asset.purchases).joinedload(Purchase.supplier_record),
             selectinload(Asset.contracts).joinedload(Contract.client),
+            selectinload(Asset.sales).joinedload(Sale.client),
         )
         .filter_by(id=asset_id, organization_id=current_user.organization_id)
         .first_or_404()
@@ -1308,6 +1335,13 @@ def asset_detail(asset_id):
             "detail": f"{contract.client.full_name} · {format_money(contract.total_amount)} · {contract_status_label(contract.status)}",
             "url": url_for("main.contract_detail", contract_id=contract.id),
         })
+    for sale in asset.sales:
+        activity.append({
+            "at": sale.created_at,
+            "title": "Venta directa" if sale.status == "completed" else "Venta directa anulada",
+            "detail": f"{sale.buyer_display} · {format_money(sale.total_amount)} · {sale_status_label(sale.status)}",
+            "url": url_for("main.sale_detail", sale_id=sale.id),
+        })
     activity.sort(key=lambda item: item["at"] or datetime.min, reverse=True)
 
     return render_template(
@@ -1343,7 +1377,7 @@ def asset_status_update(asset_id):
     if asset.committed_quantity > 0:
         refresh_asset_status(asset)
         db.session.commit()
-        flash("El estado de una unidad entregada o vendida se administra automáticamente desde el acuerdo.", "error")
+        flash("El estado de una unidad entregada o vendida se administra automáticamente desde su operación.", "error")
         return redirect(url_for("main.asset_detail", asset_id=asset.id))
 
     previous_status = asset.status
@@ -1967,7 +2001,7 @@ def agreement_form_choices(selected_client=None, selected_asset=None):
         .all()
     )
     asset_candidates = (
-        Asset.query.options(selectinload(Asset.contracts))
+        Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales))
         .filter(Asset.organization_id == org_id, Asset.status.notin_(["maintenance", "workshop"]))
         .order_by(Asset.name.asc())
         .limit(120)
@@ -2004,7 +2038,7 @@ def client_lookup_api():
 @permission_required("inventory.view")
 def asset_lookup_api():
     q = (request.args.get("q") or "").strip()[:80]
-    query = Asset.query.options(selectinload(Asset.contracts)).filter(
+    query = Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales), selectinload(Asset.investments)).filter(
         Asset.organization_id == current_user.organization_id,
         Asset.status.notin_(["maintenance", "workshop"]),
     )
@@ -2023,13 +2057,223 @@ def asset_lookup_api():
             "label": item.name,
             "detail": f"{item.available_quantity} disp." + (f" · {item.identifier}" if item.identifier else ""),
             "available": item.available_quantity,
+            "stock_total": max(int(item.quantity_total or 1), 1),
             "price": str(money_decimal(item.estimated_value)),
             "sale_price": str(money_decimal(item.sale_price)),
             "name": item.name,
+            "kind": item.kind,
+            "brand": item.brand or "",
+            "model": item.model or "",
+            "has_image": bool(item.image_mime),
+            "image_url": (url_for("main.asset_image", asset_id=item.id, thumb=1, v=(item.image_updated_at.strftime("%Y%m%d%H%M%S") if item.image_updated_at else "legacy")) if item.image_mime else ""),
+            "investment_total": str(money_decimal(sum((money_decimal(inv.amount) for inv in item.investments), Decimal("0.00")))),
         })
         if len(rows) >= 20:
             break
     return jsonify({"ok": True, "items": rows})
+
+
+@main_bp.get("/sales")
+@login_required
+@permission_required("sales.view")
+def sales():
+    org_id = current_user.organization_id
+    q = (request.args.get("q") or "").strip()[:100]
+    period = (request.args.get("period") or "month").strip().lower()
+    method = (request.args.get("method") or "").strip().lower()
+    status = (request.args.get("status") or "completed").strip().lower()
+    if period not in {"today", "7d", "month", "all"}:
+        period = "month"
+    if method not in {"", "cash", "transfer", "deposit", "card", "other"}:
+        method = ""
+    if status not in {"completed", "voided", "all"}:
+        status = "completed"
+
+    today_value = local_today()
+    query = Sale.query.options(joinedload(Sale.client), joinedload(Sale.asset)).filter_by(organization_id=org_id)
+    if status != "all":
+        query = query.filter(Sale.status == status)
+    if period == "today":
+        query = query.filter(Sale.sale_date == today_value)
+    elif period == "7d":
+        query = query.filter(Sale.sale_date >= today_value - timedelta(days=6), Sale.sale_date <= today_value)
+    elif period == "month":
+        query = query.filter(Sale.sale_date >= today_value.replace(day=1), Sale.sale_date <= today_value)
+    if method:
+        query = query.filter(Sale.payment_method == method)
+    if q:
+        like = f"%{q}%"
+        query = query.outerjoin(Client, Sale.client_id == Client.id).join(Asset, Sale.asset_id == Asset.id).filter(or_(
+            Sale.code.ilike(like), Sale.buyer_name.ilike(like), Sale.buyer_phone.ilike(like),
+            Client.full_name.ilike(like), Client.phone.ilike(like),
+            Asset.name.ilike(like), Asset.identifier.ilike(like), Asset.serial_number.ilike(like),
+        ))
+
+    page = max(request.args.get("page", 1, type=int) or 1, 1)
+    pagination = query.order_by(Sale.sale_date.desc(), Sale.created_at.desc()).paginate(page=page, per_page=60, error_out=False)
+    items = pagination.items
+
+    month_start = today_value.replace(day=1)
+    month_sales = Sale.query.filter_by(organization_id=org_id, status="completed").filter(
+        Sale.sale_date >= month_start, Sale.sale_date <= today_value
+    ).all()
+    today_sales = [item for item in month_sales if item.sale_date == today_value]
+    month_revenue = money_decimal(sum((money_decimal(item.total_amount) for item in month_sales), Decimal("0.00")))
+    month_profit = money_decimal(sum((money_decimal(item.profit_amount) for item in month_sales), Decimal("0.00")))
+    month_units = sum((max(int(item.quantity or 1), 1) for item in month_sales), 0)
+    today_revenue = money_decimal(sum((money_decimal(item.total_amount) for item in today_sales), Decimal("0.00")))
+    margin = money_decimal((month_profit / month_revenue * Decimal("100")) if month_revenue > 0 else 0)
+
+    return render_template(
+        "sales/list.html", sales=items, pagination=pagination, q=q, period=period, method=method, status=status,
+        month_revenue=month_revenue, month_profit=month_profit, month_units=month_units,
+        today_count=len(today_sales), today_revenue=today_revenue, month_margin=margin,
+    )
+
+
+@main_bp.route("/sales/new", methods=["GET", "POST"])
+@login_required
+@permission_required("sales.manage")
+def sale_new():
+    org_id = current_user.organization_id
+    form = request.form if request.method == "POST" else {}
+    selected_asset_id = parse_int(form.get("asset_id")) if form else None
+    selected_client_id = parse_int(form.get("client_id")) if form else None
+
+    if request.method == "POST":
+        request_key = (request.form.get("request_key") or "").strip()[:64]
+        if request_key:
+            existing = Sale.query.filter_by(organization_id=org_id, request_key=request_key).first()
+            if existing:
+                flash("Esa venta ya había sido guardada.", "info")
+                return redirect(url_for("main.sale_detail", sale_id=existing.id))
+
+        asset_id = parse_int(request.form.get("asset_id"))
+        if not asset_id:
+            flash("Selecciona un artículo del inventario.", "error")
+        else:
+            asset = Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales), selectinload(Asset.investments)).filter_by(
+                id=asset_id, organization_id=org_id
+            ).with_for_update().first()
+            if asset is None:
+                flash("Ese artículo ya no está disponible.", "error")
+            else:
+                refresh_asset_status(asset)
+                quantity = parse_int(request.form.get("quantity"), 1, minimum=1) or 1
+                if asset.kind in {"car", "motorcycle"}:
+                    quantity = 1
+                unit_price = parse_money(request.form.get("unit_price"))
+                sale_date = parse_date(request.form.get("sale_date")) or local_today()
+                payment_method = (request.form.get("payment_method") or "cash").strip()
+                if payment_method not in {"cash", "transfer", "deposit", "card", "other"}:
+                    payment_method = "other"
+
+                client = None
+                client_invalid = False
+                client_id = parse_int(request.form.get("client_id"))
+                if client_id:
+                    client = Client.query.filter_by(id=client_id, organization_id=org_id).first()
+                    if client is None:
+                        client_invalid = True
+                        flash("El cliente seleccionado no existe.", "error")
+
+                if client_invalid:
+                    pass
+                elif asset.status in {"maintenance", "workshop"}:
+                    flash("Ese artículo está en mantenimiento o taller. Cambia su estado antes de venderlo.", "error")
+                elif quantity > asset.available_quantity:
+                    flash(f"Solo hay {asset.available_quantity} unidad(es) disponible(s).", "error")
+                elif unit_price is None or unit_price <= 0:
+                    flash("Escribe un precio final válido.", "error")
+                else:
+                    investment_total = money_decimal(sum((money_decimal(item.amount) for item in asset.investments), Decimal("0.00")))
+                    inventory_units = max(int(asset.quantity_total or 1), 1)
+                    investment_per_unit = money_decimal(investment_total / Decimal(inventory_units))
+                    unit_cost = money_decimal(asset.estimated_value)
+                    total_amount = money_decimal(unit_price * Decimal(quantity))
+                    investment_cost = money_decimal(investment_per_unit * Decimal(quantity))
+                    total_cost = money_decimal((unit_cost * Decimal(quantity)) + investment_cost)
+                    profit_amount = money_decimal(total_amount - total_cost)
+                    buyer_name = (client.full_name if client else (request.form.get("buyer_name") or "").strip())[:140] or None
+                    buyer_phone = (client.phone if client else (request.form.get("buyer_phone") or "").strip())[:40] or None
+
+                    sale = Sale(
+                        organization_id=org_id,
+                        client=client,
+                        asset=asset,
+                        request_key=request_key or uuid.uuid4().hex,
+                        quantity=quantity,
+                        sale_date=sale_date,
+                        unit_price=unit_price,
+                        total_amount=total_amount,
+                        unit_cost=unit_cost,
+                        investment_cost=investment_cost,
+                        total_cost=total_cost,
+                        profit_amount=profit_amount,
+                        payment_method=payment_method,
+                        reference=(request.form.get("reference") or "").strip()[:120] or None,
+                        buyer_name=buyer_name,
+                        buyer_phone=buyer_phone,
+                        notes=(request.form.get("notes") or "").strip()[:240] or None,
+                        status="completed",
+                        created_by_user_id=current_user.id,
+                    )
+                    db.session.add(sale)
+                    db.session.flush()
+                    sale.code = f"CGV-{org_id}-{sale.id:06d}"
+                    refresh_asset_status(asset)
+                    tenant_audit(
+                        "sale.created", "sale", sale.id,
+                        f"Venta {sale.code}: {asset.name} · {format_money(total_amount)} · utilidad {format_money(profit_amount)}.",
+                        json.dumps({"asset_id": asset.id, "client_id": client.id if client else None, "quantity": quantity,
+                                    "method": payment_method, "total_cost": str(total_cost)}, ensure_ascii=False),
+                    )
+                    db.session.commit()
+                    flash("Venta registrada. El inventario fue actualizado.", "success")
+                    return redirect(url_for("main.sale_detail", sale_id=sale.id))
+
+    clients = Client.query.filter_by(organization_id=org_id).order_by(Client.full_name.asc()).limit(80).all()
+    assets_query = Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales), selectinload(Asset.investments)).filter(
+        Asset.organization_id == org_id, Asset.status.notin_(["maintenance", "workshop"])
+    ).order_by(Asset.created_at.desc()).limit(160).all()
+    assets = [item for item in assets_query if item.available_quantity > 0][:100]
+    return render_template(
+        "sales/form.html", form=form, clients=clients, assets=assets,
+        request_key=(form.get("request_key") if form else None) or uuid.uuid4().hex,
+        default_date=local_today().isoformat(), selected_asset_id=selected_asset_id, selected_client_id=selected_client_id,
+    )
+
+
+@main_bp.get("/sales/<int:sale_id>")
+@login_required
+@permission_required("sales.view")
+def sale_detail(sale_id):
+    sale = scoped_sale(sale_id)
+    return render_template("sales/detail.html", sale=sale)
+
+
+@main_bp.post("/sales/<int:sale_id>/void")
+@login_required
+@permission_required("sales.manage")
+def sale_void(sale_id):
+    sale = Sale.query.options(joinedload(Sale.asset)).filter_by(id=sale_id, organization_id=current_user.organization_id).with_for_update().first_or_404()
+    if sale.status == "voided":
+        flash("La venta ya está anulada.", "info")
+        return redirect(url_for("main.sale_detail", sale_id=sale.id))
+    reason = (request.form.get("reason") or "").strip()[:240]
+    if len(reason) < 3:
+        flash("Indica por qué estás anulando la venta.", "error")
+        return redirect(url_for("main.sale_detail", sale_id=sale.id))
+    sale.status = "voided"
+    sale.voided_at = datetime.utcnow()
+    sale.voided_by_user_id = current_user.id
+    sale.void_reason = reason
+    refresh_asset_status(sale.asset)
+    tenant_audit("sale.voided", "sale", sale.id, f"Venta {sale.code} anulada. {reason}")
+    db.session.commit()
+    flash("Venta anulada. La unidad volvió al inventario disponible.", "success")
+    return redirect(url_for("main.sale_detail", sale_id=sale.id))
+
 
 
 @main_bp.get("/contracts")
@@ -2107,7 +2351,7 @@ def contract_new():
                 organization_id=current_user.organization_id,
             ).first()
         if asset_id:
-            asset = Asset.query.options(selectinload(Asset.contracts)).filter_by(
+            asset = Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales)).filter_by(
                 id=asset_id,
                 organization_id=current_user.organization_id,
             ).first()
@@ -2820,7 +3064,7 @@ def payment_calendar_events_api():
 def expenses():
     org_id = current_user.organization_id
     assets_list = (
-        Asset.query.options(selectinload(Asset.contracts))
+        Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales))
         .filter_by(organization_id=org_id)
         .order_by(Asset.created_at.desc())
         .limit(120)
@@ -3169,6 +3413,22 @@ def reports():
         Decimal("0.00"),
     )
 
+    direct_sales_query = Sale.query.options(joinedload(Sale.client), joinedload(Sale.asset)).filter_by(
+        organization_id=org_id, status="completed"
+    )
+    if selected_client_id:
+        direct_sales_query = direct_sales_query.filter(Sale.client_id == selected_client_id)
+    direct_sales_all = direct_sales_query.order_by(Sale.sale_date.desc()).all() if report_status in {"all", "completed"} else []
+    period_direct_sales = [sale for sale in direct_sales_all if date_in_period(sale.sale_date)]
+    direct_sales_period_total = money_decimal(sum((money_decimal(sale.total_amount) for sale in period_direct_sales), Decimal("0.00")))
+    direct_sales_period_profit = money_decimal(sum((money_decimal(sale.profit_amount) for sale in period_direct_sales), Decimal("0.00")))
+    direct_sales_period_count = len(period_direct_sales)
+    direct_sales_period_units = sum((max(int(sale.quantity or 1), 1) for sale in period_direct_sales), 0)
+    for sale in period_direct_sales:
+        key = sale.payment_method if sale.payment_method in payment_method_totals else "other"
+        payment_method_totals[key] += money_decimal(sale.total_amount)
+    business_income_total = money_decimal(period_collected + direct_sales_period_total)
+
     expense_query = Expense.query.filter_by(organization_id=org_id, voided_at=None)
     if period_start is not None:
         expense_query = expense_query.filter(Expense.expense_date >= period_start, Expense.expense_date <= today_value)
@@ -3179,9 +3439,9 @@ def reports():
     )
     expense_rows_for_analytics = expense_query.order_by(Expense.expense_date.asc(), Expense.created_at.asc()).all()
     period_expenses = list(reversed(expense_rows_for_analytics[-80:]))
-    cash_flow_net = period_collected - expenses_period_total
-    expense_ratio_percent = (expenses_period_total / period_collected * Decimal("100")) if period_collected > 0 else Decimal("0.00")
-    cash_flow_margin_percent = (cash_flow_net / period_collected * Decimal("100")) if period_collected > 0 else Decimal("0.00")
+    cash_flow_net = business_income_total - expenses_period_total
+    expense_ratio_percent = (expenses_period_total / business_income_total * Decimal("100")) if business_income_total > 0 else Decimal("0.00")
+    cash_flow_margin_percent = (cash_flow_net / business_income_total * Decimal("100")) if business_income_total > 0 else Decimal("0.00")
 
     expense_category_map = {}
     for expense in expense_rows_for_analytics:
@@ -3230,7 +3490,7 @@ def reports():
     late_fee_collected = sum((money_decimal(payment.late_fee_amount) for payment in all_payments), Decimal("0.00"))
 
     assets = (
-        Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.investments))
+        Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales), selectinload(Asset.investments))
         .filter_by(organization_id=org_id)
         .all()
     )
@@ -3307,6 +3567,9 @@ def reports():
         payment_day = payment.paid_at.date()
         if payment_day in daily_collected:
             daily_collected[payment_day] += money_decimal(payment.amount)
+    for sale in direct_sales_all:
+        if sale.sale_date in daily_collected:
+            daily_collected[sale.sale_date] += money_decimal(sale.total_amount)
 
     daily_expenses = {day: Decimal("0.00") for day in chart_days}
     for expense in expense_rows_for_analytics:
@@ -3343,10 +3606,10 @@ def reports():
     chart_first_label = chart_days[0].strftime("%d/%m")
     chart_last_label = chart_days[-1].strftime("%d/%m")
     chart_title = {
-        "today": "Cobros de hoy",
-        "7d": "Cobros de los últimos 7 días",
-        "month": "Cobros de este mes",
-        "all": "Cobros de los últimos 30 días",
+        "today": "Ingresos de hoy",
+        "7d": "Ingresos de los últimos 7 días",
+        "month": "Ingresos de este mes",
+        "all": "Ingresos de los últimos 30 días",
     }[report_period]
 
     recent_activity = []
@@ -3374,6 +3637,17 @@ def reports():
                 "amount": money_decimal(payment.amount),
                 "url": url_for("main.contract_detail", contract_id=contract.id, _anchor="pay"),
             })
+    for sale in period_direct_sales:
+        recent_activity.append({
+            "kind": "sale",
+            "label": "Venta directa",
+            "client": sale.buyer_display,
+            "detail": sale.asset.name,
+            "date": sale.sale_date.strftime("%d/%m/%Y"),
+            "timestamp": sale.created_at or datetime.combine(sale.sale_date, datetime.min.time()),
+            "amount": money_decimal(sale.total_amount),
+            "url": url_for("main.sale_detail", sale_id=sale.id),
+        })
     if not selected_client_id:
         for expense in period_expenses:
             recent_activity.append({
@@ -3407,6 +3681,11 @@ def reports():
         average_overdue_days=average_overdue_days,
         upcoming_total=upcoming_total,
         period_collected=period_collected,
+        direct_sales_period_total=direct_sales_period_total,
+        direct_sales_period_profit=direct_sales_period_profit,
+        direct_sales_period_count=direct_sales_period_count,
+        direct_sales_period_units=direct_sales_period_units,
+        business_income_total=business_income_total,
         period_payment_count=period_payment_count,
         average_payment=average_payment,
         period_agreement_count=period_agreement_count,
@@ -3466,7 +3745,7 @@ def reports():
 @login_required
 def global_search():
     query_text = (request.args.get("q") or "").strip()[:80]
-    results = {"clients": [], "contracts": [], "payments": [], "assets": []}
+    results = {"clients": [], "sales": [], "contracts": [], "payments": [], "assets": []}
     if len(query_text) >= 2:
         like = f"%{query_text}%"
         org_id = current_user.organization_id
@@ -3475,6 +3754,11 @@ def global_search():
                 Client.organization_id == org_id,
                 or_(Client.full_name.ilike(like), Client.phone.ilike(like), Client.document_id.ilike(like)),
             ).order_by(Client.full_name.asc()).limit(8).all()
+        if has_permission(current_user, "sales.view"):
+            results["sales"] = Sale.query.options(joinedload(Sale.client), joinedload(Sale.asset)).outerjoin(Client, Sale.client_id == Client.id).join(Asset, Sale.asset_id == Asset.id).filter(
+                Sale.organization_id == org_id,
+                or_(Sale.code.ilike(like), Sale.buyer_name.ilike(like), Client.full_name.ilike(like), Asset.name.ilike(like), Asset.identifier.ilike(like)),
+            ).order_by(Sale.created_at.desc()).limit(8).all()
         if has_permission(current_user, "contracts.view"):
             results["contracts"] = Contract.query.join(Client).filter(
                 Contract.organization_id == org_id,
@@ -3512,6 +3796,13 @@ def global_search_api():
             or_(Client.full_name.ilike(starts), Client.phone.ilike(starts), Client.document_id.ilike(starts), Client.full_name.ilike(like)),
         ).order_by(Client.full_name.asc()).limit(6).all()
         items.extend({"kind":"Cliente","title":row.full_name,"meta":row.phone or row.document_id or "","url":url_for("main.client_detail", client_id=row.id)} for row in rows)
+
+    if has_permission(current_user, "sales.view"):
+        rows = Sale.query.options(joinedload(Sale.client), joinedload(Sale.asset)).outerjoin(Client, Sale.client_id == Client.id).join(Asset, Sale.asset_id == Asset.id).filter(
+            Sale.organization_id == org_id,
+            or_(Sale.code.ilike(starts), Sale.buyer_name.ilike(like), Client.full_name.ilike(like), Asset.name.ilike(like)),
+        ).order_by(Sale.created_at.desc()).limit(6).all()
+        items.extend({"kind":"Venta","title":row.code or f"Venta #{row.id}","meta":f"{row.buyer_display} · {row.asset.name} · {format_money(row.total_amount)}","url":url_for("main.sale_detail", sale_id=row.id)} for row in rows)
 
     if has_permission(current_user, "contracts.view"):
         rows = Contract.query.options(joinedload(Contract.client), joinedload(Contract.asset)).join(Client).filter(
@@ -3562,6 +3853,7 @@ def export_business_data():
     notes_rows = CollectionNote.query.filter_by(organization_id=org_id).order_by(CollectionNote.id.asc()).all()
     expenses_rows = Expense.query.filter_by(organization_id=org_id, voided_at=None).order_by(Expense.id.asc()).all()
     purchases_rows = Purchase.query.filter_by(organization_id=org_id).order_by(Purchase.id.asc()).all()
+    sales_rows = Sale.query.filter_by(organization_id=org_id).order_by(Sale.id.asc()).all()
     investments_rows = AssetInvestment.query.filter_by(organization_id=org_id).order_by(AssetInvestment.id.asc()).all()
     audit_rows = TenantAuditLog.query.filter_by(organization_id=org_id).order_by(TenantAuditLog.id.asc()).all()
 
@@ -3592,6 +3884,9 @@ def export_business_data():
         ))
         write_csv(archive, "compras.csv", ["id","articulo_id","proveedor_id","fecha","cantidad","costo_unitario","precio_venta","referencia","notas"], (
             (x.id,x.asset_id,x.supplier_id,x.purchase_date,x.quantity,x.unit_cost,x.unit_sale_price,x.reference,x.notes) for x in purchases_rows
+        ))
+        write_csv(archive, "ventas.csv", ["id","codigo","cliente_id","articulo_id","fecha","cantidad","precio_unitario","total","costo_unitario","inversion_asignada","costo_total","utilidad","metodo","referencia","comprador","telefono","estado","motivo_anulacion","usuario_id","creado"], (
+            (x.id,x.code,x.client_id,x.asset_id,x.sale_date,x.quantity,x.unit_price,x.total_amount,x.unit_cost,x.investment_cost,x.total_cost,x.profit_amount,x.payment_method,x.reference,x.buyer_name,x.buyer_phone,x.status,x.void_reason,x.created_by_user_id,x.created_at.isoformat() if x.created_at else "") for x in sales_rows
         ))
         write_csv(archive, "inversiones_vehiculos.csv", ["id","articulo_id","gasto_id","fecha","categoria","descripcion","monto","nota","usuario_id","creado"], (
             (x.id,x.asset_id,x.expense_id,x.investment_date,x.category,x.description,x.amount,x.notes,x.created_by_user_id,x.created_at.isoformat() if x.created_at else "") for x in investments_rows

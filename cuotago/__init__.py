@@ -278,6 +278,43 @@ def _ensure_feature_schema(app):
         "CREATE UNIQUE INDEX IF NOT EXISTS ux_asset_investments_expense_id ON asset_investments (expense_id) WHERE expense_id IS NOT NULL",
     ]
 
+    sales_statements = [
+        """CREATE TABLE IF NOT EXISTS sales (
+            id SERIAL PRIMARY KEY,
+            organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+            asset_id INTEGER NOT NULL REFERENCES assets(id),
+            code VARCHAR(40) UNIQUE,
+            request_key VARCHAR(64) UNIQUE,
+            quantity INTEGER NOT NULL DEFAULT 1,
+            sale_date DATE NOT NULL DEFAULT CURRENT_DATE,
+            unit_price NUMERIC(12,2) NOT NULL DEFAULT 0,
+            total_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+            unit_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
+            investment_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
+            total_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
+            profit_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+            payment_method VARCHAR(30) NOT NULL DEFAULT 'cash',
+            reference VARCHAR(120),
+            buyer_name VARCHAR(140),
+            buyer_phone VARCHAR(40),
+            notes VARCHAR(240),
+            status VARCHAR(20) NOT NULL DEFAULT 'completed',
+            created_by_user_id INTEGER,
+            voided_at TIMESTAMP NULL,
+            voided_by_user_id INTEGER,
+            void_reason VARCHAR(240),
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )""",
+        "CREATE INDEX IF NOT EXISTS ix_sales_organization_id ON sales (organization_id)",
+        "CREATE INDEX IF NOT EXISTS ix_sales_client_id ON sales (client_id)",
+        "CREATE INDEX IF NOT EXISTS ix_sales_asset_id ON sales (asset_id)",
+        "CREATE INDEX IF NOT EXISTS ix_sales_sale_date ON sales (sale_date DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_sales_status ON sales (status)",
+        "CREATE INDEX IF NOT EXISTS ix_sales_org_date ON sales (organization_id, sale_date DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_sales_created_by_user_id ON sales (created_by_user_id)",
+    ]
+
     with db.engine.begin() as connection:
         # Use a CuotaGo-owned ledger instead of the generic ``schema_migrations``
         # name. Existing installations may already have a table with that name
@@ -344,6 +381,10 @@ def _ensure_feature_schema(app):
             for statement in dealer_expense_statements:
                 connection.execute(text(statement))
             connection.execute(text("INSERT INTO cuotago_schema_migrations(version) VALUES ('2026-10-v119-dealer-expenses') ON CONFLICT DO NOTHING"))
+        if "2026-10-v125-sales" not in applied:
+            for statement in sales_statements:
+                connection.execute(text(statement))
+            connection.execute(text("INSERT INTO cuotago_schema_migrations(version) VALUES ('2026-10-v125-sales') ON CONFLICT DO NOTHING"))
 
 
 def _ensure_superadmin(app):
