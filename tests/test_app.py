@@ -1277,7 +1277,7 @@ def test_expense_enters_cash_flow_report(client, app):
     assert b'1,250.00' in response.data
     report = client.get('/reports?period=today')
     assert report.status_code == 200
-    assert b'Flujo neto' in report.data
+    assert b'Ingresos menos gastos' in report.data
     with app.app_context():
         assert Expense.query.count() == 1
         assert TenantAuditLog.query.filter_by(action='expense.created').count() == 1

@@ -1,0 +1,33 @@
+{% from 'macros/icons.html' import icon %}
+{% macro header(title, eyebrow, glyph, back, subtitle='') %}
+<header class="dlr-header">
+  <a class="icon-btn dlr-back" href="{{ back }}" aria-label="Volver">{{ icon('back',22) }}</a>
+  <span class="dlr-heading-icon" aria-hidden="true">{{ icon(glyph,24) }}</span>
+  <div class="dlr-heading-copy"><span class="eyebrow">{{ eyebrow }}</span><h1>{{ title }}</h1>{% if subtitle %}<p>{{ subtitle }}</p>{% endif %}</div>
+  <div class="dlr-header-actions">{% if caller is defined %}{{ caller() }}{% endif %}
+    <details class="dlr-more"><summary class="icon-btn" aria-label="Opciones de la ficha">{{ icon('sales-more',20) }}</summary><div class="dlr-more-menu">
+      <button type="button" data-global-search-open>{{ icon('search',18) }} Buscar</button>
+      {% if can('collections.view') %}<a href="{{ url_for('main.notifications') }}">{{ icon('bell',18) }} Notificaciones</a>{% endif %}
+      <a href="{{ url_for('main.settings') }}">{{ icon('settings',18) }} Configuraci&oacute;n</a>
+      <a href="{{ url_for('main.dashboard') }}">{{ icon('home',18) }} Inicio</a>
+    </div></details></div>
+</header>
+{% endmacro %}
+{% macro photo(asset, large=false) %}
+<span class="dlr-photo {{ 'is-large' if large }}">
+  {% if asset.image_mime and can('inventory.view') %}<img src="{{ url_for('main.asset_image',asset_id=asset.id,thumb=0 if large else 1,v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}" loading="{{ 'eager' if large else 'lazy' }}" decoding="async" width="{{ 1169 if large else 360 }}" height="{{ 780 if large else 240 }}">
+  {% else %}{{ icon('car' if asset.kind in ['car','motorcycle'] else 'phone' if asset.kind=='phone' else 'inventory',40) }}{% if large %}<small>Sin foto registrada</small>{% endif %}{% endif %}
+</span>
+{% endmacro %}
+{% macro section_heading(title, glyph, subtitle='') %}
+<div class="dlr-section-heading"><span class="dlr-section-glyph">{{ icon(glyph,19) }}</span><div><h2>{{ title }}</h2>{% if subtitle %}<p>{{ subtitle }}</p>{% endif %}</div>{% if caller is defined %}<div class="dlr-section-action">{{ caller() }}</div>{% endif %}</div>
+{% endmacro %}
+{% macro empty(title, body, glyph='inventory') %}
+<div class="dlr-empty"><span>{{ icon(glyph,25) }}</span><div><strong>{{ title }}</strong><p>{{ body }}</p></div></div>
+{% endmacro %}
+{% macro origin_fields() %}
+{% if dealer_context is defined and dealer_context %}<input type="hidden" name="origin" value="{{ dealer_context.kind }}"><input type="hidden" name="origin_id" value="{{ dealer_context.id }}">{% endif %}
+{% endmacro %}
+{% macro origin_strip() %}
+{% if dealer_context is defined and dealer_context %}<a class="dlr-context-strip no-print" href="{{ dealer_context.url }}">{{ icon(dealer_context.icon,17) }}<span>Volver a la ficha <strong>{{ dealer_context.label }}</strong></span>{{ icon('sales-arrow',17) }}</a>{% endif %}
+{% endmacro %}

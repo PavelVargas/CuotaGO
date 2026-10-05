@@ -5,6 +5,7 @@ import json
 import re
 import uuid
 import zipfile
+import tempfile
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from urllib.parse import quote
@@ -20,6 +21,9 @@ from .models import (
     Asset, AssetInvestment, Client, CollectionNote, Contract, ContractScheduleChange, Expense, Installment, Payment,
     PaymentPromise, Purchase, PushNotificationLog, Sale, Supplier, TenantAuditLog, User,
 )
+from .dealer_summary import asset_summary, client_summary, operational_status
+from .transactions import lock_asset, lock_contract, lock_sale
+from .workflow import origin_context, contextual_url, safe_local_path
 from .module_catalog import module_catalog
 from .permissions import ASSIGNABLE_ROLES, has_permission, permission_required, role_label, visible_modules
 
@@ -111,7 +115,10 @@ def parse_money(value, default=None):
     if not raw:
         return default
     try:
-        return Decimal(raw).quantize(CENT, rounding=ROUND_HALF_UP)
+        parsed = Decimal(raw)
+        if not parsed.is_finite():
+            return default
+        return parsed.quantize(CENT, rounding=ROUND_HALF_UP)
     except (InvalidOperation, ValueError):
         return default
 
@@ -205,7 +212,7 @@ def installment_remaining_sql():
     return principal + late_fee
 
 
-def sync_contract_late_fees(contract, today_value=None, commit=False):
+def sync_contract_late_fees(contract, today_value=None, commit=False, already_locked=False):
     """Persist daily mora without retroactively charging a later activation.
 
     Agreements created with mora keep the original behavior: each installment
@@ -216,6 +223,11 @@ def sync_contract_late_fees(contract, today_value=None, commit=False):
     rate = money_decimal(getattr(contract, "daily_late_interest", 0))
     if rate <= 0 or contract.status != "active":
         return False
+    if not already_locked:
+        contract = lock_contract(contract.id)
+        rate = money_decimal(getattr(contract, "daily_late_interest", 0))
+        if rate <= 0 or contract.status != "active":
+            return False
     today_value = today_value or local_today()
     activation_day = getattr(contract, "late_fee_started_on", None) or contract.start_date
     changed = False
@@ -253,6 +265,7 @@ def sync_org_late_fees(commit=True):
             remaining > 0,
         )
         .distinct()
+        .order_by(Contract.asset_id.asc(), Contract.id.asc())
         .all()
     )
     changed = False
@@ -287,10 +300,13 @@ def scoped_asset(asset_id):
 
 
 def scoped_contract(contract_id):
-    contract = Contract.query.filter_by(id=contract_id, organization_id=current_user.organization_id).first_or_404()
-    sync_contract_late_fees(contract, commit=True)
+    if request.method == "POST":
+        contract = lock_contract(contract_id)
+        sync_contract_late_fees(contract, commit=False, already_locked=True)
+    else:
+        contract = Contract.query.filter_by(id=contract_id, organization_id=current_user.organization_id).first_or_404()
+        sync_contract_late_fees(contract, commit=True)
     return contract
-
 
 def scoped_sale(sale_id):
     return Sale.query.options(joinedload(Sale.client), joinedload(Sale.asset)).filter_by(
@@ -664,6 +680,8 @@ def inject_helpers():
         "notification_count": urgent_payment_alert_count() if current_user.is_authenticated and has_permission(current_user, "collections.view") else 0,
         "can": lambda permission: has_permission(current_user, permission),
         "role_label": role_label,
+        "dealer_context": origin_context(),
+        "operational_status": operational_status,
     }
 
 
@@ -744,6 +762,91 @@ def dashboard():
 @main_bp.get("/documents")
 @login_required
 def documents():
+    """Generated customer documents only; costs and internal notes stay out.
+
+    This is an index of existing receipts/statements, not a pretend upload
+    repository. The previous module manual remains available at /help.
+    """
+    org_id = current_user.organization_id
+    tabs = []
+    for key, label, glyph, permission in [
+        ("sales", "Ventas", "home-sales", "sales.view"),
+        ("payments", "Pagos", "wallet", "payments.view"),
+        ("statements", "Estados de cuenta", "users", "payments.view"),
+    ]:
+        if has_permission(current_user, permission):
+            tabs.append({"key": key, "label": label, "icon": glyph})
+    allowed = {item["key"] for item in tabs}
+    tab = (request.args.get("tab") or "").strip()
+    if tab not in allowed:
+        tab = tabs[0]["key"] if tabs else ""
+    q = (request.args.get("q") or "").strip()[:100]
+    asset_id = request.args.get("asset_id", type=int)
+    client_id = request.args.get("client_id", type=int)
+    asset = None
+    client = None
+    if asset_id:
+        if not has_permission(current_user, "inventory.view"):
+            abort(403)
+        asset = scoped_asset(asset_id)
+    if client_id:
+        if not has_permission(current_user, "clients.view"):
+            abort(403)
+        client = scoped_client(client_id)
+    page = max(1, request.args.get("page", 1, type=int))
+    pagination = None
+    rows = []
+    if tab == "sales":
+        query = Sale.query.options(joinedload(Sale.asset), joinedload(Sale.client)).join(Asset).outerjoin(Client, Sale.client_id == Client.id).filter(Sale.organization_id == org_id)
+        if asset: query = query.filter(Sale.asset_id == asset.id)
+        if client: query = query.filter(Sale.client_id == client.id)
+        if q:
+            like = f"%{q}%"
+            query = query.filter(or_(Sale.code.ilike(like), Sale.buyer_name.ilike(like), Client.full_name.ilike(like), Asset.name.ilike(like), Asset.identifier.ilike(like)))
+        pagination = query.order_by(Sale.sale_date.desc(), Sale.id.desc()).paginate(page=page, per_page=15, error_out=False)
+        for item in pagination.items:
+            rows.append({"icon": "home-sales", "title": item.code, "detail": item.asset.name,
+                "person": item.buyer_display, "date": item.sale_date, "amount": item.total_amount,
+                "voided": item.status == "voided", "pdf": url_for("main.sale_receipt_pdf", sale_id=item.id),
+                "url": url_for("main.sale_receipt", sale_id=item.id), "label": "Comprobante de venta"})
+    elif tab == "payments":
+        query = Payment.query.options(joinedload(Payment.contract).joinedload(Contract.asset), joinedload(Payment.contract).joinedload(Contract.client)).join(Contract).join(Client).join(Asset, Contract.asset_id == Asset.id).filter(Contract.organization_id == org_id)
+        if asset: query = query.filter(Contract.asset_id == asset.id)
+        if client: query = query.filter(Contract.client_id == client.id)
+        if q:
+            like = f"%{q}%"
+            query = query.filter(or_(Payment.receipt_code.ilike(like), Contract.code.ilike(like), Client.full_name.ilike(like), Asset.name.ilike(like)))
+        pagination = query.order_by(Payment.paid_at.desc(), Payment.id.desc()).paginate(page=page, per_page=15, error_out=False)
+        for item in pagination.items:
+            rows.append({"icon": "wallet", "title": item.receipt_code or f"CGP-{org_id}-{item.id:06d}",
+                "detail": item.contract.asset.name, "person": item.contract.client.full_name,
+                "date": item.paid_at, "amount": item.amount, "voided": False,
+                "pdf": url_for("main.payment_receipt_pdf", payment_id=item.id),
+                "url": url_for("main.payment_receipt", payment_id=item.id), "label": "Recibo de pago"})
+    elif tab == "statements":
+        query = Client.query.filter(Client.organization_id == org_id)
+        if client: query = query.filter(Client.id == client.id)
+        if asset: query = query.join(Contract).filter(Contract.asset_id == asset.id).distinct()
+        if q:
+            like = f"%{q}%"
+            query = query.filter(or_(Client.full_name.ilike(like), Client.phone.ilike(like), Client.document_id.ilike(like)))
+        pagination = query.order_by(Client.full_name.asc(), Client.id.asc()).paginate(page=page, per_page=15, error_out=False)
+        for item in pagination.items:
+            rows.append({"icon": "users", "title": item.full_name, "detail": "Saldo y pagos de sus acuerdos",
+                "person": item.phone or "Sin teléfono", "date": None, "amount": None, "voided": False,
+                "pdf": url_for("main.client_statement_pdf", client_id=item.id),
+                "url": url_for("main.client_statement", client_id=item.id), "label": "Estado de acuerdos"})
+    query_args = {"tab": tab, "q": q, "asset_id": asset.id if asset else None, "client_id": client.id if client else None}
+    if pagination:
+        pagination.prev_url = contextual_url("main.documents", page=pagination.prev_num, **query_args) if pagination.has_prev else None
+        pagination.next_url = contextual_url("main.documents", page=pagination.next_num, **query_args) if pagination.has_next else None
+    return render_template("documents/center.html", tabs=tabs, tab=tab, q=q, rows=rows,
+        pagination=pagination, filter_asset=asset, filter_client=client)
+
+
+@main_bp.get("/help")
+@login_required
+def help():
     modules = visible_modules(module_catalog(), current_user)
     return render_template(
         "documents/index.html",
@@ -905,7 +1008,7 @@ def client_edit(client_id):
         )
         db.session.commit()
         flash("Cliente actualizado.", "success")
-        return redirect(url_for("main.clients"))
+        return redirect(url_for("main.client_detail", client_id=client.id))
     return render_template("clients/form.html", client=client)
 
 
@@ -913,10 +1016,15 @@ def client_edit(client_id):
 @login_required
 @permission_required("clients.view")
 def client_detail(client_id):
-    client = scoped_client(client_id)
+    client = Client.query.options(
+        selectinload(Client.contracts).selectinload(Contract.installments),
+        selectinload(Client.contracts).selectinload(Contract.payments),
+        selectinload(Client.contracts).selectinload(Contract.schedule_changes),
+        selectinload(Client.contracts).joinedload(Contract.asset),
+    ).filter_by(id=client_id, organization_id=current_user.organization_id).first_or_404()
     sync_payment_promises(commit=True)
     changed = False
-    for contract in client.contracts:
+    for contract in sorted(client.contracts, key=lambda item: (item.asset_id, item.id)):
         changed = sync_contract_late_fees(contract, commit=False) or changed
     if changed:
         db.session.commit()
@@ -951,38 +1059,43 @@ def client_detail(client_id):
         )
         if actor_id
     }
-    actors = {user.id: user.name for user in User.query.filter(User.id.in_(actor_ids)).all()} if actor_ids else {}
+    actors = {user.id: user.name for user in User.query.filter(User.id.in_(actor_ids), User.organization_id == current_user.organization_id).all()} if actor_ids else {}
 
     direct_sales = Sale.query.options(joinedload(Sale.asset)).filter_by(
         organization_id=current_user.organization_id, client_id=client.id
-    ).order_by(Sale.created_at.desc()).all()
+    ).order_by(Sale.created_at.desc()).all() if has_permission(current_user, "sales.view") else []
+
+    finance = client_summary(contracts, direct_sales)
+    related_assets = {}
+    for operation in [*contracts, *direct_sales]:
+        related_assets.setdefault(operation.asset_id, operation.asset)
 
     timeline = []
     for sale in direct_sales:
         timeline.append({
-            "kind": "sale", "title": f"Venta {sale.code}", "detail": sale.asset.name,
+            "kind": "sale", "title": f"Venta {sale.code}" + (" (anulada)" if sale.status == "voided" else ""), "detail": sale.asset.name,
             "amount": money_decimal(sale.total_amount), "date": sale.created_at,
-            "url": url_for("main.sale_detail", sale_id=sale.id),
+            "url": url_for("main.sale_detail", sale_id=sale.id, origin='client', origin_id=client.id),
         })
     for contract in contracts:
         timeline.append({
             "kind": "agreement", "title": f"Acuerdo {contract.code}", "detail": contract.asset.name,
             "amount": money_decimal(contract.total_amount), "date": contract.created_at,
-            "url": url_for("main.contract_detail", contract_id=contract.id),
+            "url": url_for("main.contract_detail", contract_id=contract.id, origin='client', origin_id=client.id),
         })
         for payment in contract.payments:
             timeline.append({
                 "kind": "payment", "title": "Abono" if payment.payment_kind == "advance" else "Pago",
                 "detail": f"{contract.code} · {payment_method_label(payment.method)}",
                 "amount": money_decimal(payment.amount), "date": payment.paid_at,
-                "url": url_for("main.payment_receipt", payment_id=payment.id),
+                "url": url_for("main.payment_receipt", payment_id=payment.id, origin='client', origin_id=client.id),
             })
         for change in contract.schedule_changes:
             timeline.append({
                 "kind": "schedule", "title": "Cuotas reprogramadas",
                 "detail": f"{contract.code} · {change.new_open_count} cuota(s) · {change.reason or 'Sin nota'}",
                 "amount": None, "date": change.created_at,
-                "url": url_for("main.contract_detail", contract_id=contract.id),
+                "url": url_for("main.contract_detail", contract_id=contract.id, origin='client', origin_id=client.id),
             })
     for promise in promises:
         timeline.append({
@@ -992,7 +1105,7 @@ def client_detail(client_id):
         })
     for note in notes:
         timeline.append({
-            "kind": "note", "title": "Nota de cobranza", "detail": note.body,
+            "kind": "note", "title": "Nota de seguimiento", "detail": note.body,
             "amount": None, "date": note.created_at, "url": None,
         })
     timeline.sort(key=lambda item: item["date"] or datetime.min, reverse=True)
@@ -1001,17 +1114,19 @@ def client_detail(client_id):
         "clients/detail.html", client=client, contracts=contracts, direct_sales=direct_sales, payments=payments, promises=promises,
         notes=notes, timeline=timeline[:40], actors=actors, risk=client_risk_summary(client), balance=balance, paid=paid,
         overdue_count=len(overdue), active_count=len(active),
+        dealer_finance=finance, related_assets=list(related_assets.values()),
     )
 
 
 @main_bp.post("/clients/<int:client_id>/notes")
 @login_required
-@permission_required("collections.manage")
 def client_note_add(client_id):
+    if not (has_permission(current_user, "clients.manage") or has_permission(current_user, "collections.manage")):
+        abort(403)
     client = scoped_client(client_id)
     body = (request.form.get("body") or "").strip()
     if len(body) < 2:
-        flash("Escribe una nota de cobranza.", "error")
+        flash("Escribe una nota de seguimiento.", "error")
         return redirect(url_for("main.client_detail", client_id=client.id, _anchor="notes"))
     contract_id = parse_int(request.form.get("contract_id"))
     contract = None
@@ -1028,7 +1143,7 @@ def client_note_add(client_id):
     )
     db.session.add(note)
     db.session.flush()
-    tenant_audit("client.note_added", "client", client.id, f"Nota de cobranza agregada a {client.full_name}.", body[:500])
+    tenant_audit("client.note_added", "client", client.id, f"Nota de seguimiento agregada a {client.full_name}.", body[:500])
     db.session.commit()
     flash("Nota guardada.", "success")
     return redirect(url_for("main.client_detail", client_id=client.id, _anchor="notes"))
@@ -1093,7 +1208,7 @@ def promise_status(promise_id):
 
 def _client_statement_data(client):
     sync_payment_promises(commit=True)
-    for contract in client.contracts:
+    for contract in sorted(client.contracts, key=lambda item: (item.asset_id, item.id)):
         sync_contract_late_fees(contract, commit=False)
     db.session.commit()
     contracts = sorted(client.contracts, key=lambda item: item.created_at or datetime.min, reverse=True)
@@ -1203,14 +1318,6 @@ def assets():
     page = max(request.args.get("page", 1, type=int) or 1, 1)
     pagination = query.order_by(Asset.created_at.desc()).paginate(page=page, per_page=80, error_out=False)
     items = pagination.items
-    changed = False
-    for item in items:
-        before = item.status
-        refresh_asset_status(item)
-        changed = changed or before != item.status
-    if changed:
-        db.session.commit()
-
     # Dealer dashboard summary is intentionally calculated outside the active
     # filters so the operator always sees the real inventory position.
     summary_assets = (
@@ -1218,22 +1325,14 @@ def assets():
         .filter_by(organization_id=current_user.organization_id)
         .all()
     )
-    summary_changed = False
-    for summary_asset in summary_assets:
-        before = summary_asset.status
-        refresh_asset_status(summary_asset)
-        summary_changed = summary_changed or before != summary_asset.status
-    if summary_changed:
-        db.session.commit()
-
-    available_units = sum((asset.available_quantity for asset in summary_assets if asset.status == "available"), 0)
-    maintenance_units = sum((max(int(asset.quantity_total or 1), 1) for asset in summary_assets if asset.status == "maintenance"), 0)
-    workshop_units = sum((max(int(asset.quantity_total or 1), 1) for asset in summary_assets if asset.status == "workshop"), 0)
+    available_units = sum((asset.available_quantity for asset in summary_assets if operational_status(asset) == "available"), 0)
+    maintenance_units = sum((max(int(asset.quantity_total or 1), 1) for asset in summary_assets if operational_status(asset) == "maintenance"), 0)
+    workshop_units = sum((max(int(asset.quantity_total or 1), 1) for asset in summary_assets if operational_status(asset) == "workshop"), 0)
     inventory_cost_value = sum(
         (
             (money_decimal(asset.estimated_value) * Decimal(asset.available_quantity))
             + sum((money_decimal(item.amount) for item in asset.investments), Decimal("0.00"))
-            for asset in summary_assets if asset.status == "available" and asset.available_quantity > 0
+            for asset in summary_assets if operational_status(asset) == "available" and asset.available_quantity > 0
         ),
         Decimal("0.00"),
     )
@@ -1241,7 +1340,7 @@ def assets():
         (
             (money_decimal(asset.sale_price) if money_decimal(asset.sale_price) > 0 else money_decimal(asset.estimated_value))
             * Decimal(asset.available_quantity)
-            for asset in summary_assets if asset.status == "available" and asset.available_quantity > 0
+            for asset in summary_assets if operational_status(asset) == "available" and asset.available_quantity > 0
         ),
         Decimal("0.00"),
     )
@@ -1266,33 +1365,41 @@ def asset_detail(asset_id):
             selectinload(Asset.investments).joinedload(AssetInvestment.expense),
             selectinload(Asset.purchases).joinedload(Purchase.supplier_record),
             selectinload(Asset.contracts).joinedload(Contract.client),
+            selectinload(Asset.contracts).selectinload(Contract.installments),
+            selectinload(Asset.contracts).selectinload(Contract.payments),
             selectinload(Asset.sales).joinedload(Sale.client),
         )
         .filter_by(id=asset_id, organization_id=current_user.organization_id)
         .first_or_404()
     )
 
-    previous_status = asset.status
-    refresh_asset_status(asset)
-    if previous_status != asset.status:
-        db.session.commit()
-
+    summary = asset_summary(asset)
     investments = list(asset.investments)
-    expenses_total = sum((money_decimal(item.amount) for item in investments), Decimal("0.00"))
-    purchase_price = money_decimal(asset.estimated_value)
-    total_investment = purchase_price + expenses_total
-
-    sale_contracts = [
-        contract for contract in asset.contracts
-        if contract.deal_type == "credit_sale" and contract.status in {"active", "completed"}
-    ]
-    contracted_revenue = sum((money_decimal(contract.total_amount) for contract in sale_contracts), Decimal("0.00"))
-    target_revenue = contracted_revenue if contracted_revenue > 0 else money_decimal(asset.sale_price)
-    profit_loss = (target_revenue - total_investment) if target_revenue > 0 else None
-    target_sale_price = money_decimal(asset.sale_price)
-    target_profit = (target_sale_price - total_investment) if target_sale_price > 0 else None
-    target_margin_percent = (target_profit / total_investment * Decimal("100")) if target_profit is not None and total_investment > 0 else Decimal("0.00")
-    revenue_basis = "Acuerdo de venta" if contracted_revenue > 0 else ("Precio de venta" if target_revenue > 0 else "Sin precio definido")
+    purchase_price = summary['purchase_unit']
+    expenses_total = summary['work_total']
+    total_investment = summary['lot_cost']
+    target_profit = summary['target_profit']
+    target_margin_percent = summary['target_margin']
+    profit_loss = summary['direct_profit'] if summary['direct_count'] else None
+    revenue_basis = 'Utilidad registrada en ventas directas' if summary['direct_count'] else 'Sin ventas directas completadas'
+    operations = []
+    if has_permission(current_user, 'sales.view'):
+        for sale in asset.sales:
+            operations.append({'kind': 'sale', 'icon': 'home-sales', 'title': sale.code,
+                'person': sale.buyer_display, 'person_id': sale.client_id, 'date': sale.created_at,
+                'status': sale_status_label(sale.status), 'voided': sale.status == 'voided',
+                'amount': sale.total_amount, 'balance': None,
+                'url': url_for('main.sale_detail', sale_id=sale.id, origin='asset', origin_id=asset.id)})
+    if has_permission(current_user, 'contracts.view'):
+        for contract in asset.contracts:
+            operations.append({'kind': 'agreement', 'icon': 'home-agreements', 'title': contract.code,
+                'person': contract.client.full_name, 'person_id': contract.client_id, 'date': contract.created_at,
+                'status': contract_status_label(contract.status), 'voided': contract.status in {'cancelled', 'voided'},
+                'amount': contract.total_amount, 'balance': contract.balance if contract.status == 'active' else None,
+                'url': url_for('main.contract_detail', contract_id=contract.id, origin='asset', origin_id=asset.id),
+                'pay_url': url_for('main.contract_detail', contract_id=contract.id, origin='asset', origin_id=asset.id, _anchor='pay') if contract.status == 'active' else None})
+    operations.sort(key=lambda row: row['date'] or datetime.min, reverse=True)
+    operable = asset.available_quantity > 0 and asset.status not in {'maintenance', 'workshop'}
 
     latest_purchase = asset.purchases[0] if asset.purchases else None
     acquisition_origin = asset.acquisition_origin or (
@@ -1327,6 +1434,8 @@ def asset_detail(asset_id):
             "url": None,
         })
     for contract in asset.contracts:
+        if not has_permission(current_user, "contracts.view"):
+            continue
         if contract.status in {"cancelled", "voided"}:
             continue
         activity.append({
@@ -1336,6 +1445,8 @@ def asset_detail(asset_id):
             "url": url_for("main.contract_detail", contract_id=contract.id),
         })
     for sale in asset.sales:
+        if not has_permission(current_user, "sales.view"):
+            continue
         activity.append({
             "at": sale.created_at,
             "title": "Venta directa" if sale.status == "completed" else "Venta directa anulada",
@@ -1351,6 +1462,7 @@ def asset_detail(asset_id):
         purchase_price=purchase_price,
         expenses_total=money_decimal(expenses_total),
         total_investment=money_decimal(total_investment),
+        dealer_finance=summary, operations=operations, operable=operable,
         profit_loss=(money_decimal(profit_loss) if profit_loss is not None else None),
         target_profit=(money_decimal(target_profit) if target_profit is not None else None),
         target_margin_percent=money_decimal(target_margin_percent),
@@ -1367,7 +1479,7 @@ def asset_detail(asset_id):
 @login_required
 @permission_required("inventory.manage")
 def asset_status_update(asset_id):
-    asset = scoped_asset(asset_id)
+    asset = lock_asset(asset_id)
     requested_status = (request.form.get("status") or "").strip()
     allowed_statuses = {"available", "maintenance", "workshop"}
     if requested_status not in allowed_statuses:
@@ -1399,7 +1511,7 @@ def asset_status_update(asset_id):
 @login_required
 @permission_required("inventory.manage")
 def asset_investment_add(asset_id):
-    asset = scoped_asset(asset_id)
+    asset = lock_asset(asset_id)
     description = (request.form.get("description") or "").strip()
     category = (request.form.get("category") or "other").strip()
     amount = parse_money(request.form.get("amount"))
@@ -1466,7 +1578,7 @@ def asset_investment_add(asset_id):
 @login_required
 @permission_required("inventory.manage")
 def asset_investment_delete(asset_id, investment_id):
-    asset = scoped_asset(asset_id)
+    asset = lock_asset(asset_id)
     investment = AssetInvestment.query.filter_by(
         id=investment_id, asset_id=asset.id, organization_id=current_user.organization_id
     ).first_or_404()
@@ -1570,7 +1682,7 @@ def asset_new():
 @login_required
 @permission_required("inventory.manage")
 def asset_edit(asset_id):
-    asset = scoped_asset(asset_id)
+    asset = lock_asset(asset_id) if request.method == "POST" else scoped_asset(asset_id)
     if request.method == "POST":
         before = {
             "name": asset.name, "kind": asset.kind, "brand": asset.brand, "model": asset.model,
@@ -1902,6 +2014,13 @@ def purchase_new():
                 rows=rows or [{"mode": "existing" if assets_list else "new", "quantity": "1", "asset_kind": "other"}],
                 default_date=local_today().isoformat(),
             )
+
+        locked = {identifier: lock_asset(identifier) for identifier in sorted({
+            item["asset"].id for item in prepared if item["asset"] is not None
+        })}
+        for item in prepared:
+            if item["asset"] is not None:
+                item["asset"] = locked[item["asset"].id]
 
         if create_supplier:
             supplier_record = Supplier(
@@ -2255,7 +2374,7 @@ def sale_new():
     org_id = current_user.organization_id
     form = request.form if request.method == "POST" else {}
     selected_asset_id = parse_int(form.get("asset_id") if form else request.args.get("asset_id"))
-    selected_client_id = parse_int(form.get("client_id")) if form else None
+    selected_client_id = parse_int(form.get("client_id") if request.method == "POST" else request.args.get("client_id"))
 
     if request.method == "POST":
         request_key = (request.form.get("request_key") or "").strip()[:64]
@@ -2263,15 +2382,17 @@ def sale_new():
             existing = Sale.query.filter_by(organization_id=org_id, request_key=request_key).first()
             if existing:
                 flash("Esa venta ya había sido guardada.", "info")
-                return redirect(url_for("main.sale_detail", sale_id=existing.id))
+                return redirect(contextual_url("main.sale_detail", sale_id=existing.id))
 
         asset_id = parse_int(request.form.get("asset_id"))
         if not asset_id:
             flash("Selecciona un artículo del inventario.", "error")
         else:
-            asset = Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales), selectinload(Asset.investments)).filter_by(
-                id=asset_id, organization_id=org_id
-            ).with_for_update().first()
+            asset = lock_asset(asset_id, required=False)
+            # A second submission may have waited for the first one's lock.
+            duplicate = Sale.query.filter_by(organization_id=org_id, request_key=request_key).first() if request_key else None
+            if duplicate:
+                return redirect(contextual_url("main.sale_detail", sale_id=duplicate.id))
             if asset is None:
                 flash("Ese artículo ya no está disponible.", "error")
             else:
@@ -2347,13 +2468,15 @@ def sale_new():
                     )
                     db.session.commit()
                     flash("Venta registrada. El inventario fue actualizado.", "success")
-                    return redirect(url_for("main.sale_detail", sale_id=sale.id))
+                    return redirect(contextual_url("main.sale_detail", sale_id=sale.id))
 
     clients = Client.query.filter_by(organization_id=org_id).order_by(Client.full_name.asc()).limit(80).all()
     if selected_client_id and all(x.id != selected_client_id for x in clients):
         selected_client = Client.query.filter_by(id=selected_client_id, organization_id=org_id).first()
         if selected_client:
             clients.append(selected_client)
+    if not any(x.id == selected_client_id for x in clients):
+        selected_client_id = None
     inventory_page = _sale_inventory_query().paginate(page=1, per_page=12, error_out=False)
     selected_asset = _sale_inventory_query().filter(Asset.id == selected_asset_id).first() if selected_asset_id else None
     return render_template(
@@ -2421,14 +2544,14 @@ def sale_receipt_pdf(sale_id):
 @login_required
 @permission_required("sales.manage")
 def sale_void(sale_id):
-    sale = Sale.query.options(joinedload(Sale.asset)).filter_by(id=sale_id, organization_id=current_user.organization_id).with_for_update().first_or_404()
+    sale = lock_sale(sale_id)
     if sale.status == "voided":
         flash("La venta ya está anulada.", "info")
-        return redirect(url_for("main.sale_detail", sale_id=sale.id))
+        return redirect(contextual_url("main.sale_detail", sale_id=sale.id))
     reason = (request.form.get("reason") or "").strip()[:240]
     if len(reason) < 3:
         flash("Indica por qué estás anulando la venta.", "error")
-        return redirect(url_for("main.sale_detail", sale_id=sale.id))
+        return redirect(contextual_url("main.sale_detail", sale_id=sale.id))
     sale.status = "voided"
     sale.voided_at = datetime.utcnow()
     sale.voided_by_user_id = current_user.id
@@ -2437,7 +2560,7 @@ def sale_void(sale_id):
     tenant_audit("sale.voided", "sale", sale.id, f"Venta {sale.code} anulada. {reason}")
     db.session.commit()
     flash("Venta anulada. La unidad volvió al inventario disponible.", "success")
-    return redirect(url_for("main.sale_detail", sale_id=sale.id))
+    return redirect(contextual_url("main.sale_detail", sale_id=sale.id))
 
 
 
@@ -2484,13 +2607,19 @@ def contract_new():
     still accepted for backwards compatibility and faster repeat business.
     """
     preselected_client = None
+    preselected_asset = None
     if request.method == "GET":
         preselected_client_id = request.args.get("client_id", type=int)
         if preselected_client_id:
             preselected_client = Client.query.filter_by(
                 id=preselected_client_id, organization_id=current_user.organization_id
             ).first()
-    clients_list, assets_list = agreement_form_choices(selected_client=preselected_client)
+        preselected_asset_id = request.args.get("asset_id", type=int)
+        if preselected_asset_id:
+            preselected_asset = _sale_inventory_query().filter(Asset.id == preselected_asset_id).first()
+            if preselected_asset is None:
+                flash("Esa unidad no está disponible para un acuerdo.", "error")
+    clients_list, assets_list = agreement_form_choices(selected_client=preselected_client, selected_asset=preselected_asset)
 
     today_value = local_today()
     default_start = today_value.isoformat()
@@ -2504,7 +2633,7 @@ def contract_new():
             ).first()
             if existing_contract is not None:
                 flash("Ese acuerdo ya había sido guardado.", "info")
-                return redirect(url_for("main.contract_detail", contract_id=existing_contract.id))
+                return redirect(contextual_url("main.contract_detail", contract_id=existing_contract.id))
         client_id = request.form.get("client_id", type=int)
         asset_id = request.form.get("asset_id", type=int)
         client = None
@@ -2516,10 +2645,10 @@ def contract_new():
                 organization_id=current_user.organization_id,
             ).first()
         if asset_id:
-            asset = Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales)).filter_by(
-                id=asset_id,
-                organization_id=current_user.organization_id,
-            ).first()
+            asset = lock_asset(asset_id, required=False)
+            duplicate = Contract.query.filter_by(organization_id=current_user.organization_id, request_key=request_key).first() if request_key else None
+            if duplicate:
+                return redirect(contextual_url("main.contract_detail", contract_id=duplicate.id))
         clients_list, assets_list = agreement_form_choices(client, asset)
 
         client_name = request.form.get("client_name", "").strip()
@@ -2570,6 +2699,10 @@ def contract_new():
         first_due = parse_date(request.form.get("first_due_date")) or advance_due(start, frequency)
 
         errors = []
+        if client_id and client is None:
+            errors.append("El cliente seleccionado no existe en tu negocio.")
+        if asset_id and asset is None:
+            errors.append("El artículo seleccionado no existe en tu inventario.")
         if not client and len(client_name) < 2:
             errors.append("Escribe el nombre del cliente o selecciona uno guardado.")
         if not asset and not has_permission(current_user, "inventory.manage"):
@@ -2723,9 +2856,11 @@ def contract_new():
         )
         db.session.commit()
         flash("Listo. Acuerdo creado, ganancia y cuotas calculadas.", "success")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
     initial_form = {"request_key": uuid.uuid4().hex}
+    if preselected_asset is not None:
+        initial_form["asset_id"] = str(preselected_asset.id)
     if preselected_client is not None:
         initial_form["client_id"] = str(preselected_client.id)
 
@@ -2734,7 +2869,7 @@ def contract_new():
         clients=clients_list,
         assets=assets_list,
         form=initial_form,
-        agreement_inventory=_agreement_inventory_bootstrap(assets_list),
+        agreement_inventory=_agreement_inventory_bootstrap(assets_list, initial_form.get("asset_id")),
         default_start=default_start,
         default_due=default_due,
     )
@@ -2756,16 +2891,16 @@ def contract_enable_late_fee(contract_id):
     contract = scoped_contract(contract_id)
     if contract.status != "active":
         flash("Solo puedes agregar mora a un acuerdo activo.", "error")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
     if money_decimal(contract.daily_late_interest) > Decimal("0.009"):
         flash("La mora ya está activa en este acuerdo.", "error")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
     daily_amount = parse_money(request.form.get("daily_late_interest"))
     if daily_amount is None or daily_amount <= 0:
         flash("Escribe un monto de mora diario mayor que cero.", "error")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
     contract.daily_late_interest = daily_amount
     contract.late_fee_started_on = local_today()
@@ -2778,7 +2913,7 @@ def contract_enable_late_fee(contract_id):
         f"Mora de {format_money(daily_amount)} por día activada desde hoy. No se cobraron días anteriores.",
         "success",
     )
-    return redirect(url_for("main.contract_detail", contract_id=contract.id))
+    return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
 
 @main_bp.post("/contracts/<int:contract_id>/reschedule")
@@ -2788,7 +2923,7 @@ def contract_reschedule(contract_id):
     contract = scoped_contract(contract_id)
     if contract.status != "active":
         flash("Solo puedes reprogramar un acuerdo activo.", "error")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
     new_first_due = parse_date(request.form.get("first_due_date"))
     frequency = (request.form.get("frequency") or contract.frequency).strip()
@@ -2798,15 +2933,15 @@ def contract_reschedule(contract_id):
         frequency = contract.frequency
     if new_first_due is None or new_first_due < local_today():
         flash("La nueva primera fecha debe ser hoy o una fecha futura.", "error")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id, _anchor="manage"))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id, _anchor="manage"))
     if count is None or count > 120:
         flash("Selecciona entre 1 y 120 cuotas pendientes.", "error")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id, _anchor="manage"))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id, _anchor="manage"))
 
     open_items = [item for item in contract.installments if not item.is_paid]
     if not open_items:
         flash("Este acuerdo no tiene cuotas pendientes para reprogramar.", "error")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
     pending_principal = money_decimal(contract.principal_balance)
     pending_late_fee = sum((item.late_fee_remaining for item in open_items), Decimal("0.00"))
@@ -2884,7 +3019,7 @@ def contract_reschedule(contract_id):
     )
     db.session.commit()
     flash(f"Cuotas reprogramadas. El saldo quedó distribuido en {len(new_items)} cuota(s).", "success")
-    return redirect(url_for("main.contract_detail", contract_id=contract.id))
+    return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
 
 @main_bp.post("/contracts/<int:contract_id>/delete")
@@ -2902,21 +3037,17 @@ def contract_delete(contract_id):
 
     if contract.status in {"cancelled", "voided"}:
         flash("Este acuerdo ya está anulado.", "info")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
-
-    if contract.status in {"cancelled", "voided"}:
-        flash("Este acuerdo ya está anulado.", "info")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
     if contract.status == "completed":
         flash("Un acuerdo completado no se elimina. Conserva el historial y corrígelo desde auditoría si hubo un error.", "error")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
     has_money_history = bool(contract.payments)
     if has_money_history:
         if len(reason) < 3:
             flash("Escribe un motivo breve para anular el acuerdo.", "error")
-            return redirect(url_for("main.contract_detail", contract_id=contract.id))
+            return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
         contract.status = "cancelled"
         contract.cancelled_at = datetime.utcnow()
         contract.cancelled_by_user_id = current_user.id
@@ -2932,7 +3063,7 @@ def contract_delete(contract_id):
         refresh_asset_status(asset)
         db.session.commit()
         flash("Acuerdo anulado. Los pagos y recibos quedaron conservados en el historial.", "success")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
     installment_ids = [item.id for item in contract.installments if item.id is not None]
     try:
@@ -2953,10 +3084,10 @@ def contract_delete(contract_id):
         db.session.rollback()
         current_app.logger.exception("No se pudo eliminar el acuerdo %s", contract_id)
         flash("No se pudo eliminar el acuerdo. Intenta nuevamente.", "error")
-        return redirect(url_for("main.contract_detail", contract_id=contract_id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract_id))
 
     flash("Acuerdo sin pagos eliminado. El producto volvió a estar disponible.", "success")
-    return redirect(url_for("main.contracts"))
+    return redirect(origin_context()["url"] if origin_context() else url_for("main.contracts"))
 
 
 @main_bp.post("/contracts/<int:contract_id>/pay")
@@ -2969,19 +3100,19 @@ def contract_pay(contract_id):
         previous = Payment.query.filter_by(contract_id=contract.id, request_key=request_key).first()
         if previous is not None:
             flash("Ese pago ya había sido registrado. No se duplicó.", "info")
-            return redirect(url_for("main.payment_receipt", payment_id=previous.id))
+            return redirect(contextual_url("main.payment_receipt", payment_id=previous.id))
     if contract.status != "active":
         flash("Ese acuerdo no está activo.", "error")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
     balance_before = contract.balance
     amount = parse_money(request.form.get("amount"))
     if amount is None or amount <= 0:
         flash("Escribe un monto válido.", "error")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
     if amount > balance_before + Decimal("0.009"):
         flash("El pago no puede superar el saldo pendiente.", "error")
-        return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
     method = request.form.get("method", "cash")
     if method not in {"cash", "transfer", "deposit", "card", "other"}:
@@ -3073,11 +3204,11 @@ def contract_pay(contract_id):
     action_label = "Abono" if payment_kind == "advance" else "Pago"
     flash(f"{action_label} de {format_money(amount)} registrado.", "success")
     next_url = request.form.get("next", "").strip()
-    if next_url.startswith("/") and not next_url.startswith("//"):
+    if safe_local_path(next_url):
         return redirect(next_url)
     if request.form.get("show_receipt") == "1":
-        return redirect(url_for("main.payment_receipt", payment_id=payment.id))
-    return redirect(url_for("main.contract_detail", contract_id=contract.id))
+        return redirect(contextual_url("main.payment_receipt", payment_id=payment.id))
+    return redirect(contextual_url("main.contract_detail", contract_id=contract.id))
 
 
 @main_bp.get("/payments/<int:payment_id>/receipt")
@@ -3248,8 +3379,6 @@ def expenses():
         .limit(120)
         .all()
     )
-    for item in assets_list:
-        refresh_asset_status(item)
 
     if request.method == "POST" and not has_permission(current_user, "expenses.manage"):
         abort(403)
@@ -3273,7 +3402,7 @@ def expenses():
         asset = None
         asset_id = parse_int(request.form.get("asset_id"), None, minimum=1)
         if asset_id:
-            asset = Asset.query.filter_by(id=asset_id, organization_id=org_id).first()
+            asset = lock_asset(asset_id, required=False)
             if asset is None:
                 flash("El producto seleccionado no pertenece a tu inventario.", "error")
                 return redirect(url_for("main.expenses"))
@@ -3398,6 +3527,11 @@ def expense_delete(expense_id):
     expense = Expense.query.filter_by(
         id=expense_id, organization_id=current_user.organization_id, voided_at=None
     ).first_or_404()
+    if expense.asset_id:
+        lock_asset(expense.asset_id)
+    expense = Expense.query.filter_by(
+        id=expense_id, organization_id=current_user.organization_id, voided_at=None
+    ).populate_existing().with_for_update(of=Expense).first_or_404()
     linked_investment = AssetInvestment.query.filter_by(
         expense_id=expense.id, organization_id=current_user.organization_id
     ).first()
@@ -3672,21 +3806,13 @@ def reports():
         .filter_by(organization_id=org_id)
         .all()
     )
-    asset_status_changed = False
-    for asset in assets:
-        before = asset.status
-        refresh_asset_status(asset)
-        asset_status_changed = asset_status_changed or before != asset.status
-    if asset_status_changed:
-        db.session.commit()
-
-    inventory_available_units = sum((asset.available_quantity for asset in assets if asset.status == "available"), 0)
+    inventory_available_units = sum((asset.available_quantity for asset in assets if operational_status(asset) == "available"), 0)
     inventory_committed_units = sum((asset.committed_quantity for asset in assets), 0)
     inventory_available_value = sum(
         (
             (money_decimal(asset.estimated_value) * Decimal(asset.available_quantity))
             + sum((money_decimal(item.amount) for item in asset.investments), Decimal("0.00"))
-            for asset in assets if asset.status == "available" and asset.available_quantity > 0
+            for asset in assets if operational_status(asset) == "available" and asset.available_quantity > 0
         ),
         Decimal("0.00"),
     )
@@ -3694,7 +3820,7 @@ def reports():
         (
             (money_decimal(asset.sale_price) if money_decimal(asset.sale_price) > 0 else money_decimal(asset.estimated_value))
             * Decimal(asset.available_quantity)
-            for asset in assets if asset.status == "available" and asset.available_quantity > 0
+            for asset in assets if operational_status(asset) == "available" and asset.available_quantity > 0
         ),
         Decimal("0.00"),
     )
@@ -4009,76 +4135,105 @@ def global_search_api():
 @login_required
 @permission_required("data.export")
 def export_business_data():
-    """Download a tenant-only ZIP backup in plain CSV files."""
+    """Export tenant data and photos; this is not an automatic-restoration backup."""
+    from .business_export import ExportWriter, image_export_path
     org_id = current_user.organization_id
-    buffer = io.BytesIO()
+    buffer = tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024, mode="w+b")
 
-    def write_csv(archive, filename, headers, rows):
-        text_buffer = io.StringIO(newline="")
-        writer = csv.writer(text_buffer)
-        writer.writerow(headers)
-        for row in rows:
-            writer.writerow(["" if value is None else value for value in row])
-        archive.writestr(filename, text_buffer.getvalue().encode("utf-8-sig"))
+    try:
+        def write_csv(archive, filename, headers, rows):
+            exporter.write_csv(filename, headers, rows)
 
-    clients_rows = Client.query.filter_by(organization_id=org_id).order_by(Client.id.asc()).all()
-    assets_rows = Asset.query.filter_by(organization_id=org_id).order_by(Asset.id.asc()).all()
-    contracts_rows = Contract.query.filter_by(organization_id=org_id).order_by(Contract.id.asc()).all()
-    contract_ids = [item.id for item in contracts_rows]
-    installments_rows = Installment.query.filter(Installment.contract_id.in_(contract_ids)).order_by(Installment.id.asc()).all() if contract_ids else []
-    payments_rows = Payment.query.filter(Payment.contract_id.in_(contract_ids)).order_by(Payment.id.asc()).all() if contract_ids else []
-    promises_rows = PaymentPromise.query.filter_by(organization_id=org_id).order_by(PaymentPromise.id.asc()).all()
-    notes_rows = CollectionNote.query.filter_by(organization_id=org_id).order_by(CollectionNote.id.asc()).all()
-    expenses_rows = Expense.query.filter_by(organization_id=org_id, voided_at=None).order_by(Expense.id.asc()).all()
-    purchases_rows = Purchase.query.filter_by(organization_id=org_id).order_by(Purchase.id.asc()).all()
-    sales_rows = Sale.query.filter_by(organization_id=org_id).order_by(Sale.id.asc()).all()
-    investments_rows = AssetInvestment.query.filter_by(organization_id=org_id).order_by(AssetInvestment.id.asc()).all()
-    audit_rows = TenantAuditLog.query.filter_by(organization_id=org_id).order_by(TenantAuditLog.id.asc()).all()
+        clients_rows = Client.query.filter_by(organization_id=org_id).order_by(Client.id.asc()).all()
+        suppliers_rows = Supplier.query.filter_by(organization_id=org_id).order_by(Supplier.id.asc()).all()
+        assets_rows = Asset.query.filter_by(organization_id=org_id).order_by(Asset.id.asc()).all()
+        contracts_rows = Contract.query.filter_by(organization_id=org_id).order_by(Contract.id.asc()).all()
+        contract_ids = [item.id for item in contracts_rows]
+        installments_rows = Installment.query.filter(Installment.contract_id.in_(contract_ids)).order_by(Installment.id.asc()).all() if contract_ids else []
+        payments_rows = Payment.query.filter(Payment.contract_id.in_(contract_ids)).order_by(Payment.id.asc()).all() if contract_ids else []
+        promises_rows = PaymentPromise.query.filter_by(organization_id=org_id).order_by(PaymentPromise.id.asc()).all()
+        notes_rows = CollectionNote.query.filter_by(organization_id=org_id).order_by(CollectionNote.id.asc()).all()
+        expenses_rows = Expense.query.filter_by(organization_id=org_id).order_by(Expense.id.asc()).all()
+        purchases_rows = Purchase.query.filter_by(organization_id=org_id).order_by(Purchase.id.asc()).all()
+        sales_rows = Sale.query.filter_by(organization_id=org_id).order_by(Sale.id.asc()).all()
+        investments_rows = AssetInvestment.query.filter_by(organization_id=org_id).order_by(AssetInvestment.id.asc()).all()
+        audit_rows = TenantAuditLog.query.filter_by(organization_id=org_id).order_by(TenantAuditLog.id.asc()).all()
 
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
-        write_csv(archive, "clientes.csv", ["id","nombre","telefono","correo","documento","direccion","notas","creado"], (
-            (x.id,x.full_name,x.phone,x.email,x.document_id,x.address,x.notes,x.created_at.isoformat() if x.created_at else "") for x in clients_rows
-        ))
-        write_csv(archive, "inventario.csv", ["id","tipo","nombre","marca","modelo","identificador","serial","ano","kilometraje","tipo_adquisicion","origen_adquisicion","fecha_adquisicion","costo","precio_venta","cantidad","estado","creado"], (
-            (x.id,x.kind,x.name,x.brand,x.model,x.identifier,x.serial_number,x.vehicle_year,x.mileage,x.acquisition_type,x.acquisition_origin,x.acquisition_date,x.estimated_value,x.sale_price,x.quantity_total,x.status,x.created_at.isoformat() if x.created_at else "") for x in assets_rows
-        ))
-        write_csv(archive, "acuerdos.csv", ["id","codigo","cliente_id","articulo_id","estado","tipo","total","base","inicial","cuota","cantidad","mora_dia","frecuencia","inicio","primer_pago","anulado","motivo"], (
-            (x.id,x.code,x.client_id,x.asset_id,x.status,x.deal_type,x.total_amount,x.base_amount,x.down_payment,x.installment_amount,x.quantity,x.daily_late_interest,x.frequency,x.start_date,x.first_due_date,x.cancelled_at.isoformat() if x.cancelled_at else "",x.cancel_reason) for x in contracts_rows
-        ))
-        write_csv(archive, "cuotas.csv", ["id","acuerdo_id","numero","vence","monto","principal_pagado","mora","mora_pagada","pagada"], (
-            (x.id,x.contract_id,x.sequence,x.due_date,x.amount,x.paid_amount,x.late_fee_amount,x.late_fee_paid,x.paid_at.isoformat() if x.paid_at else "") for x in installments_rows
-        ))
-        write_csv(archive, "pagos.csv", ["id","acuerdo_id","recibo","tipo","monto","mora","metodo","referencia","nota","usuario_id","fecha"], (
-            (x.id,x.contract_id,x.receipt_code,x.payment_kind,x.amount,x.late_fee_amount,x.method,x.reference,x.note,x.created_by_user_id,x.paid_at.isoformat() if x.paid_at else "") for x in payments_rows
-        ))
-        write_csv(archive, "promesas.csv", ["id","cliente_id","acuerdo_id","fecha","monto","estado","nota","usuario_id"], (
-            (x.id,x.client_id,x.contract_id,x.promised_date,x.amount,x.status,x.note,x.created_by_user_id) for x in promises_rows
-        ))
-        write_csv(archive, "notas_cobranza.csv", ["id","cliente_id","acuerdo_id","nota","usuario_id","fecha"], (
-            (x.id,x.client_id,x.contract_id,x.body,x.created_by_user_id,x.created_at.isoformat() if x.created_at else "") for x in notes_rows
-        ))
-        write_csv(archive, "gastos.csv", ["id","articulo_id","fecha","categoria","monto","metodo","referencia","nota","usuario_id"], (
-            (x.id,x.asset_id,x.expense_date,x.category,x.amount,x.method,x.reference,x.note,x.created_by_user_id) for x in expenses_rows
-        ))
-        write_csv(archive, "compras.csv", ["id","articulo_id","proveedor_id","fecha","cantidad","costo_unitario","precio_venta","referencia","notas"], (
-            (x.id,x.asset_id,x.supplier_id,x.purchase_date,x.quantity,x.unit_cost,x.unit_sale_price,x.reference,x.notes) for x in purchases_rows
-        ))
-        write_csv(archive, "ventas.csv", ["id","codigo","cliente_id","articulo_id","fecha","cantidad","precio_unitario","total","costo_unitario","inversion_asignada","costo_total","utilidad","metodo","referencia","comprador","telefono","estado","motivo_anulacion","usuario_id","creado"], (
-            (x.id,x.code,x.client_id,x.asset_id,x.sale_date,x.quantity,x.unit_price,x.total_amount,x.unit_cost,x.investment_cost,x.total_cost,x.profit_amount,x.payment_method,x.reference,x.buyer_name,x.buyer_phone,x.status,x.void_reason,x.created_by_user_id,x.created_at.isoformat() if x.created_at else "") for x in sales_rows
-        ))
-        write_csv(archive, "inversiones_vehiculos.csv", ["id","articulo_id","gasto_id","fecha","categoria","descripcion","monto","nota","usuario_id","creado"], (
-            (x.id,x.asset_id,x.expense_id,x.investment_date,x.category,x.description,x.amount,x.notes,x.created_by_user_id,x.created_at.isoformat() if x.created_at else "") for x in investments_rows
-        ))
-        write_csv(archive, "auditoria.csv", ["id","usuario_id","accion","tipo","entidad_id","resumen","detalle","fecha"], (
-            (x.id,x.actor_user_id,x.action,x.entity_type,x.entity_id,x.summary,x.detail,x.created_at.isoformat() if x.created_at else "") for x in audit_rows
-        ))
-        archive.writestr("LEEME.txt", f"Respaldo CuotaGo · {current_user.organization.name}\nGenerado: {datetime.utcnow().isoformat()}Z\nFormato: CSV UTF-8\n")
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+            exporter = ExportWriter(archive)
+            write_csv(archive, "proveedores.csv", ["id", "nombre", "telefono", "notas", "creado"], (
+                (x.id, x.name, x.phone, x.notes, x.created_at) for x in suppliers_rows
+            ))
+            write_csv(archive, "clientes.csv", ["id","nombre","telefono","correo","documento","direccion","notas","creado"], (
+                (x.id,x.full_name,x.phone,x.email,x.document_id,x.address,x.notes,x.created_at.isoformat() if x.created_at else "") for x in clients_rows
+            ))
+            write_csv(archive, "inventario.csv", ["id","tipo","nombre","marca","modelo","identificador","serial","ano","kilometraje","tipo_adquisicion","origen_adquisicion","fecha_adquisicion","costo","precio_venta","cantidad","estado","creado","notas","imagen"], (
+                (x.id,x.kind,x.name,x.brand,x.model,x.identifier,x.serial_number,x.vehicle_year,x.mileage,x.acquisition_type,x.acquisition_origin,x.acquisition_date,x.estimated_value,x.sale_price,x.quantity_total,x.status,x.created_at.isoformat() if x.created_at else "",x.notes,image_export_path(x)) for x in assets_rows
+            ))
+            write_csv(archive, "acuerdos.csv", ["id","codigo","cliente_id","articulo_id","estado","tipo","total","base","inicial","cuota","cantidad","mora_dia","frecuencia","inicio","primer_pago","anulado","motivo"], (
+                (x.id,x.code,x.client_id,x.asset_id,x.status,x.deal_type,x.total_amount,x.base_amount,x.down_payment,x.installment_amount,x.quantity,x.daily_late_interest,x.frequency,x.start_date,x.first_due_date,x.cancelled_at.isoformat() if x.cancelled_at else "",x.cancel_reason) for x in contracts_rows
+            ))
+            write_csv(archive, "cuotas.csv", ["id","acuerdo_id","numero","vence","monto","principal_pagado","mora","mora_pagada","pagada"], (
+                (x.id,x.contract_id,x.sequence,x.due_date,x.amount,x.paid_amount,x.late_fee_amount,x.late_fee_paid,x.paid_at.isoformat() if x.paid_at else "") for x in installments_rows
+            ))
+            write_csv(archive, "pagos.csv", ["id","acuerdo_id","recibo","tipo","monto","mora","metodo","referencia","nota","usuario_id","fecha"], (
+                (x.id,x.contract_id,x.receipt_code,x.payment_kind,x.amount,x.late_fee_amount,x.method,x.reference,x.note,x.created_by_user_id,x.paid_at.isoformat() if x.paid_at else "") for x in payments_rows
+            ))
+            write_csv(archive, "promesas.csv", ["id","cliente_id","acuerdo_id","fecha","monto","estado","nota","usuario_id"], (
+                (x.id,x.client_id,x.contract_id,x.promised_date,x.amount,x.status,x.note,x.created_by_user_id) for x in promises_rows
+            ))
+            write_csv(archive, "notas_cobranza.csv", ["id","cliente_id","acuerdo_id","nota","usuario_id","fecha"], (
+                (x.id,x.client_id,x.contract_id,x.body,x.created_by_user_id,x.created_at.isoformat() if x.created_at else "") for x in notes_rows
+            ))
+            write_csv(archive, "gastos.csv", ["id","articulo_id","fecha","categoria","monto","metodo","referencia","nota","usuario_id","anulado","motivo_anulacion"], (
+                (x.id,x.asset_id,x.expense_date,x.category,x.amount,x.method,x.reference,x.note,x.created_by_user_id,x.voided_at,x.void_reason) for x in expenses_rows
+            ))
+            write_csv(archive, "compras.csv", ["id","articulo_id","proveedor_id","fecha","cantidad","costo_unitario","precio_venta","referencia","notas"], (
+                (x.id,x.asset_id,x.supplier_id,x.purchase_date,x.quantity,x.unit_cost,x.unit_sale_price,x.reference,x.notes) for x in purchases_rows
+            ))
+            write_csv(archive, "ventas.csv", ["id","codigo","cliente_id","articulo_id","fecha","cantidad","precio_unitario","total","costo_unitario","inversion_asignada","costo_total","utilidad","metodo","referencia","comprador","telefono","estado","motivo_anulacion","usuario_id","creado"], (
+                (x.id,x.code,x.client_id,x.asset_id,x.sale_date,x.quantity,x.unit_price,x.total_amount,x.unit_cost,x.investment_cost,x.total_cost,x.profit_amount,x.payment_method,x.reference,x.buyer_name,x.buyer_phone,x.status,x.void_reason,x.created_by_user_id,x.created_at.isoformat() if x.created_at else "") for x in sales_rows
+            ))
+            write_csv(archive, "inversiones_vehiculos.csv", ["id","articulo_id","gasto_id","fecha","categoria","descripcion","monto","nota","usuario_id","creado"], (
+                (x.id,x.asset_id,x.expense_id,x.investment_date,x.category,x.description,x.amount,x.notes,x.created_by_user_id,x.created_at.isoformat() if x.created_at else "") for x in investments_rows
+            ))
+            write_csv(archive, "auditoria.csv", ["id","usuario_id","accion","tipo","entidad_id","resumen","detalle","fecha"], (
+                (x.id,x.actor_user_id,x.action,x.entity_type,x.entity_id,x.summary,x.detail,x.created_at.isoformat() if x.created_at else "") for x in audit_rows
+            ))
+            for asset in assets_rows:
+                name = image_export_path(asset)
+                if name and asset.image_data:
+                    exporter.write_bytes(name, bytes(asset.image_data))
+                    if asset.image_thumb_data:
+                        exporter.write_bytes(f"imagenes/miniatura-{asset.id}.webp", bytes(asset.image_thumb_data))
+                    db.session.expire(asset, ["image_data", "image_thumb_data"])
+            generated = datetime.utcnow().isoformat() + "Z"
+            exporter.write_bytes("LEEME.txt", (
+                f"Exportacion de datos CuotaGo - {current_user.organization.name}\n"
+                f"Generado: {generated}\n\n"
+                "Incluye CSV UTF-8, proveedores, gastos anulados e imagenes disponibles del inventario.\n"
+                "manifest.json enumera los archivos y sus SHA-256 para comprobar integridad.\n"
+                "Contiene informacion privada, costos internos y datos de clientes. No entregar a compradores.\n\n"
+                "NO es una copia completa de PostgreSQL ni dispone de restauracion automatica.\n"
+                "No contiene usuarios, credenciales, secretos, configuracion ni todos los metadatos del sistema.\n"
+                "Las filas CSV con texto que podria ejecutarse como formula llevan un apostrofo protector.\n"
+                "No usar la exportacion como sustituto de un backup probado de la base de datos.\n"
+                "Configura el respaldo PostgreSQL con tu proveedor y prueba su recuperacion en un entorno aislado.\n"
+            ))
+            exporter.manifest(org_id, generated)
 
-    tenant_audit("data.exported", "organization", org_id, "Se exportó un respaldo de los datos del negocio.")
-    db.session.commit()
-    buffer.seek(0)
-    filename = f"cuotago-respaldo-{local_today().isoformat()}.zip"
-    return send_file(buffer, mimetype="application/zip", as_attachment=True, download_name=filename, max_age=0)
+        tenant_audit("data.exported", "organization", org_id, "Se exportaron datos e imagenes del negocio (no backup restaurable).")
+        db.session.commit()
+        buffer.seek(0)
+        filename = f"cuotago-exportacion-{local_today().isoformat()}.zip"
+        response = send_file(buffer, mimetype="application/zip", as_attachment=True, download_name=filename, max_age=0)
+        response.headers['Cache-Control'] = 'private, no-store'
+        response.call_on_close(buffer.close)
+        return response
+
+    except Exception:
+        buffer.close()
+        raise
 
 
 @main_bp.get("/settings/team")

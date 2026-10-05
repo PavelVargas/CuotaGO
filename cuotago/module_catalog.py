@@ -157,12 +157,12 @@ MODULE_CATALOG = [
         "endpoint": "main.expenses",
         "icon": "home-expenses",
         "accent": "accent-rose",
-        "home_description": "Salidas y flujo de caja",
-        "guide_summary": "Registra gastos del negocio y úsalos para calcular el flujo neto real en Reportes.",
+        "home_description": "Salidas y control de gastos",
+        "guide_summary": "Registra gastos del negocio y úsalos para calcular los ingresos menos gastos en Reportes.",
         "guide_steps": [
             "Abre Gastos y registra monto, fecha, categoría y método de pago.",
             "Agrega una referencia o concepto cuando necesites identificar el movimiento.",
-            "Revisa Reportes para comparar cobros, gastos y flujo neto.",
+            "Revisa Reportes para comparar cobros, ventas directas y gastos.",
         ],
         "guide_tips": [
             "Los gastos no modifican los acuerdos ni el inventario; se usan para controlar las salidas de dinero del negocio.",
@@ -174,12 +174,12 @@ MODULE_CATALOG = [
         "endpoint": "main.documents",
         "icon": "home-documents",
         "accent": "accent-indigo",
-        "home_description": "Guía y documentos",
-        "guide_summary": "Consulta la guía de uso de CuotaGo, generada a partir de los módulos activos del sistema.",
+        "home_description": "Comprobantes y ayuda",
+        "guide_summary": "Encuentra comprobantes de venta, recibos de pago y estados de cuenta. La guía sigue disponible en Ayuda.",
         "guide_steps": [
-            "Abre Documentos desde Inicio.",
-            "Usa el buscador o el índice para encontrar el módulo que necesitas.",
-            "Lee los pasos rápidos, recomendaciones y comportamiento de cada función.",
+            "Abre Documentos desde Inicio o desde la ficha del cliente o vehículo.",
+            "Busca por cliente, unidad o código y elige el tipo de comprobante.",
+            "Abre o descarga el comprobante. Para instrucciones, entra a Ayuda.",
         ],
         "guide_tips": [
             "La guía y el Inicio usan el mismo catálogo de módulos, por lo que permanecen sincronizados al ampliar CuotaGo.",

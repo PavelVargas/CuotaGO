@@ -1,17 +1,20 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
+{% from 'macros/dealer.html' import origin_fields, origin_strip with context %}
 {% block title %}{{ contract.client.full_name }} · {{ app_name }}{% endblock %}
 {% block content %}
 <section class="content-page narrow-page contract-simple-detail contract-detail-v20 agreement-detail-v23">
   <div class="page-head simple-page-head agreement-detail-head-v23">
     <div class="page-head-left">
-      <a class="icon-btn" href="{{ url_for('main.contracts') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <a class="icon-btn" href="{{ dealer_context.url if dealer_context is defined and dealer_context else url_for('main.contracts') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
       <span class="module-context-icon accent-blue" aria-hidden="true">{{ icon('home-agreements', 24) }}</span>
       <div><span class="eyebrow">ACUERDO {{ contract.code }}</span><h1>{{ contract.client.full_name }}</h1><p>{{ contract.asset.name }}{% if contract.quantity > 1 %} · {{ contract.quantity }} unidades{% endif %}</p></div>
     </div>
     <span class="status-pill agreement-status-v23 status-{{ contract.status }}">{{ contract_status_label(contract.status) }}</span>
   </div>
 
+  {{ origin_strip() }}
+  <nav class="dlr-connected-links no-print" aria-label="Fichas relacionadas">{% if can('inventory.view') %}<a href="{{ url_for('main.asset_detail',asset_id=contract.asset.id) }}">{{ icon('inventory',17) }}Ver veh&iacute;culo / art&iacute;culo</a>{% endif %}{% if can('clients.view') %}<a href="{{ url_for('main.client_detail',client_id=contract.client.id) }}">{{ icon('users',17) }}Ficha del cliente</a>{% endif %}{% if can('payments.view') %}<a href="{{ url_for('main.documents',client_id=contract.client.id,tab='payments') }}">{{ icon('home-documents',17) }}Comprobantes</a>{% endif %}</nav>
   {% set suggested_payment = contract.next_installment.remaining if contract.next_installment else contract.balance %}
   <section class="surface balance-card simple-balance-card agreement-balance-v23">
     <div class="balance-top"><div><span>{{ 'Saldo registrado' if contract.status == 'cancelled' else 'Saldo pendiente' }}</span><strong>{{ money(contract.balance) }}</strong></div><div class="progress-number">{{ '%.0f'|format(contract.progress_percent) }}%</div></div>
@@ -52,7 +55,7 @@
       </div>
 
       <form method="post" action="{{ url_for('main.contract_pay', contract_id=contract.id) }}" class="form-stack quick-payment-form payment-dialog-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{{ origin_fields() }}
         <input type="hidden" name="payment_kind" value="payment" data-payment-kind-input>
         <input type="hidden" name="request_key" value="{{ payment_request_key }}" data-payment-request-key>
         <input type="hidden" name="show_receipt" value="1">
@@ -186,7 +189,7 @@
       <div class="payment-dialog-handle" aria-hidden="true"></div>
       <div class="payment-dialog-head"><div><span class="eyebrow">REPROGRAMAR</span><h2 id="rescheduleDialogTitle">Nuevas cuotas</h2><p>Se conserva todo lo pagado y cualquier mora pendiente.</p></div><button class="payment-dialog-close" type="button" data-contract-dialog-close aria-label="Cerrar">×</button></div>
       <form method="post" action="{{ url_for('main.contract_reschedule', contract_id=contract.id) }}" class="form-stack">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{{ origin_fields() }}
         <div class="reschedule-grid-v15">
           <label class="field"><span>Próxima fecha</span><input type="date" name="first_due_date" min="{{ today.isoformat() }}" value="{{ contract.next_installment.due_date.isoformat() if contract.next_installment.due_date >= today else today.isoformat() }}" required></label>
           <label class="field"><span>Frecuencia</span><select name="frequency"><option value="weekly" {{ 'selected' if contract.frequency=='weekly' }}>Semanal</option><option value="biweekly" {{ 'selected' if contract.frequency=='biweekly' }}>Quincenal</option><option value="monthly" {{ 'selected' if contract.frequency=='monthly' }}>Mensual</option></select></label>
@@ -208,7 +211,7 @@
         <button class="payment-dialog-close" type="button" data-contract-dialog-close aria-label="Cerrar">×</button>
       </div>
       <form method="post" action="{{ url_for('main.contract_enable_late_fee', contract_id=contract.id) }}" class="form-stack">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{{ origin_fields() }}
         <label class="field"><span>Mora por día</span><input type="number" name="daily_late_interest" step="0.01" min="0.01" required inputmode="decimal" placeholder="Ej. 100.00"><small>Monto fijo que se suma por cada día de atraso a partir de la activación.</small></label>
         <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>{{ icon('back',16) }} Cancelar</button><button class="btn btn-primary" type="submit">Activar mora</button></div>
       </form>
@@ -229,7 +232,7 @@
         <button class="payment-dialog-close" type="button" data-contract-dialog-close aria-label="Cerrar">×</button>
       </div>
       <form method="post" action="{{ url_for('main.contract_delete', contract_id=contract.id) }}" class="form-stack">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{{ origin_fields() }}
         <div class="delete-contract-note"><strong>{{ contract.client.full_name }}</strong><span>{{ contract.asset.name }} · {{ contract.code }}</span></div>
         {% if contract.payments %}<label class="field"><span>Motivo de la anulación</span><input name="reason" maxlength="240" required placeholder="Ej. cliente devolvió el artículo"></label>{% endif %}
         <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>{{ icon('back',16) }} Volver</button><button class="btn btn-danger" type="submit">{{ 'Anular acuerdo' if contract.payments else 'Eliminar acuerdo' }}</button></div>

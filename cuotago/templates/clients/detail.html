@@ -1,95 +1,63 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
-{% block title %}{{ client.full_name }} · {{ app_name }}{% endblock %}
+{% from 'macros/dealer.html' import header, photo, section_heading, empty with context %}
+{% block title %}{{ client.full_name }} &middot; {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page client-profile-v23">
-  <section class="surface client-profile-hero-v23">
-    <a class="icon-btn client-profile-back-v23" href="{{ url_for('main.clients') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-    <span class="client-profile-avatar-v23">{{ client.full_name[:1]|upper }}</span>
-    <div class="client-profile-identity-v23">
-      <div class="client-profile-heading-v60">
-        <span class="module-context-icon accent-cyan" aria-hidden="true">{{ icon('home-clients', 24) }}</span>
-        <span><span class="eyebrow">CLIENTE</span><h1>{{ client.full_name }}</h1></span>
-      </div>
-      <div class="client-profile-contact-v23">
-        <span>{{ client.phone or 'Sin teléfono' }}</span>
-        {% if client.document_id %}<span>{{ client.document_id }}</span>{% endif %}
-        {% if client.email %}<span>{{ client.email }}</span>{% endif %}
-      </div>
-    </div>
-    <div class="client-profile-risk-v23 risk-{{ risk.level }}"><span></span><div><small>Perfil de pago</small><strong>{{ risk.label }}</strong><em>{{ risk.reason }}</em></div></div>
-    <div class="client-profile-actions-v23">
-      <a class="btn btn-secondary" href="{{ url_for('main.client_statement', client_id=client.id) }}">{{ icon('contract',16) }} Estado de cuenta</a>
-      {% if can('clients.manage') %}<a class="btn btn-secondary" href="{{ url_for('main.client_edit', client_id=client.id) }}">{{ icon('edit',16) }} Editar</a>{% endif %}
-      {% if can('contracts.create') %}<a class="btn btn-primary" href="{{ url_for('main.contract_new', client_id=client.id) }}">{{ icon('plus',16) }} Nuevo acuerdo</a>{% endif %}
+<section class="content-page dealer-page dlr-client-page">
+  {% call header(client.full_name,'CLIENTES / FICHA','home-clients',url_for('main.clients')) %}{% if can('clients.manage') %}<a class="btn btn-secondary" aria-label="Editar cliente" href="{{ url_for('main.client_edit',client_id=client.id) }}">{{ icon('edit',17) }} <span>Editar</span></a>{% endif %}{% endcall %}
+  <article class="dlr-panel dlr-client-hero">
+    <div class="dlr-client-identity"><span class="dlr-avatar">{{ client.full_name[:1]|upper }}</span><div><span class="eyebrow">CONTACTO</span><h2>{{ client.full_name }}</h2><div class="dlr-contact-line"><span>{{ icon('phone-call',16) }} {{ client.phone or 'Sin tel&eacute;fono'|safe }}</span>{% if client.document_id %}<span>{{ icon('dealer-id',16) }} {{ client.document_id }}</span>{% endif %}{% if client.email %}<span>{{ client.email }}</span>{% endif %}</div></div><div class="dlr-risk risk-{{ risk.level }}"><small>Perfil de pago</small><strong>{{ risk.label }}</strong><span>{{ risk.reason }}</span></div></div>
+    <div class="dlr-action-row dlr-client-actions">
+      {% if can('sales.manage') %}<a class="btn btn-primary" href="{{ url_for('main.sale_new',client_id=client.id,origin='client',origin_id=client.id) }}">{{ icon('home-sales',18) }} Nueva venta</a>{% endif %}
+      {% if can('contracts.create') %}<a class="btn btn-secondary" href="{{ url_for('main.contract_new',client_id=client.id,origin='client',origin_id=client.id) }}">{{ icon('home-agreements',18) }} Nuevo acuerdo</a>{% endif %}
+      {% if can('payments.view') %}<a class="btn btn-secondary" href="{{ url_for('main.client_statement',client_id=client.id) }}">{{ icon('contract',17) }} Estado de cuenta</a>{% endif %}
       {% if statement_wa_link(client) %}<a class="btn btn-whatsapp" target="_blank" rel="noopener" href="{{ statement_wa_link(client) }}">{{ icon('whatsapp',17) }} WhatsApp</a>{% endif %}
+      {% if can('clients.manage') or can('collections.manage') %}<a class="dlr-inline-link" href="#notes">{{ icon('edit',17) }} Seguimiento</a>{% endif %}
     </div>
-  </section>
+    {% if client.address or client.notes %}<details class="dlr-client-more"><summary>{{ icon('person-card',17) }} Datos adicionales</summary>{% if client.address %}<p><strong>Direcci&oacute;n:</strong> {{ client.address }}</p>{% endif %}{% if client.notes %}<p class="dlr-preserve-lines"><strong>Nota del cliente:</strong> {{ client.notes }}</p>{% endif %}</details>{% endif %}
+  </article>
 
-  <div class="client-kpi-grid-v23">
-    <article class="surface"><span>Saldo pendiente</span><strong>{{ money(balance) }}</strong><small>{{ active_count }} acuerdo{{ 's' if active_count != 1 }} activo{{ 's' if active_count != 1 }}</small></article>
-    <article class="surface is-success"><span>Total pagado</span><strong>{{ money(paid) }}</strong><small>Histórico recibido</small></article>
-    <article class="surface {% if overdue_count %}is-danger{% endif %}"><span>Cuotas vencidas</span><strong>{{ overdue_count }}</strong><small>{{ 'Necesita seguimiento' if overdue_count else 'Sin atraso' }}</small></article>
-    <article class="surface"><span>Promesas pendientes</span><strong>{{ promises|selectattr('status','equalto','pending')|list|length }}</strong><small>Compromisos abiertos</small></article>
+  <div class="dlr-kpi-grid">
+    {% if can('sales.view') %}<article class="dlr-panel dlr-kpi"><span>{{ icon('home-sales',18) }} Compras de contado</span><strong>{{ money(dealer_finance.cash_received) }}</strong><small>{{ dealer_finance.cash_count }} venta{{ 's' if dealer_finance.cash_count != 1 }} completada{{ 's' if dealer_finance.cash_count != 1 }}; sin anuladas</small></article>{% endif %}
+    <article class="dlr-panel dlr-kpi"><span>{{ icon('wallet',18) }} Pagado en acuerdos</span><strong>{{ money(dealer_finance.agreement_received) }}</strong><small>Pagos e iniciales conservados</small></article>
+    <article class="dlr-panel dlr-kpi"><span>{{ icon('home-agreements',18) }} Saldo de acuerdos</span><strong>{{ money(balance) }}</strong><small>{{ active_count }} acuerdo{{ 's' if active_count != 1 }} activo{{ 's' if active_count != 1 }}</small></article>
+    <article class="dlr-panel dlr-kpi {{ 'has-alert' if overdue_count }}"><span>{{ icon('calendar',18) }} Cuotas vencidas</span><strong>{{ overdue_count }}</strong><small>{{ promises|selectattr('status','equalto','pending')|list|length }} promesas pendientes</small></article>
   </div>
+  {% if can('sales.view') %}<div class="dlr-combined-total"><span>{{ icon('cash-stack',17) }} Total recibido del cliente <small>Contado + pagos de acuerdos</small></span><strong>{{ money(dealer_finance.received_total) }}</strong></div>{% endif %}
+  <nav class="dlr-section-nav" aria-label="Secciones del cliente"><a href="#client-operations">{{ icon('home-sales',17) }} Operaciones</a>{% if can('inventory.view') %}<a href="#client-assets">{{ icon('car',17) }} Veh&iacute;culos y productos</a>{% endif %}<a href="#client-activity">{{ icon('history',17) }} Actividad</a><a href="#promises">{{ icon('calendar',17) }} Promesas</a>{% if can('sales.view') or can('payments.view') %}<a href="{{ url_for('main.documents',client_id=client.id,origin='client',origin_id=client.id) }}">{{ icon('home-documents',17) }} Comprobantes</a>{% endif %}</nav>
 
-  <div class="client-profile-layout-v23">
-    <main class="client-profile-main-v23">
-      <section class="surface client-panel-v23">
-        <div class="client-panel-head-v23"><div><span class="eyebrow">ACUERDOS</span><h2>Acuerdos del cliente</h2></div><span class="client-panel-count-v23">{{ contracts|length }}</span></div>
-        <div class="client-agreements-v23">
-          {% for contract in contracts %}
-          <a href="{{ url_for('main.contract_detail', contract_id=contract.id) }}" class="client-agreement-row-v23">
-            <span class="client-agreement-icon-v23">{{ icon('contract',18) }}</span>
-            <span><strong>{{ contract.asset.name }}</strong><small>{{ contract.code }} · {{ contract_status_label(contract.status) }}</small></span>
-            <span class="client-agreement-balance-v23"><small>Saldo</small><strong>{{ money(contract.balance) }}</strong></span>
-            <b>›</b>
-          </a>
-          {% else %}<div class="empty-inline">Este cliente todavía no tiene acuerdos.</div>{% endfor %}
+  <div class="dlr-client-layout">
+    <div class="dlr-client-main">
+      <section class="dlr-panel" id="client-operations">
+        {% call section_heading('Acuerdos del cliente','home-agreements') %}<span class="dlr-count">{{ contracts|length }}</span>{% endcall %}
+        <div class="dlr-operation-list">
+          {% for contract in contracts %}<article class="dlr-operation dlr-operation-photo {{ 'is-voided' if contract.status in ['cancelled','voided'] }}">{{ photo(contract.asset) }}<div class="dlr-operation-copy"><a class="dlr-title-link" href="{{ url_for('main.contract_detail',contract_id=contract.id,origin='client',origin_id=client.id) }}">{{ contract.asset.name }}</a><small>{{ contract.code }} &middot; {{ contract_status_label(contract.status) }}</small><small>{{ deal_type_label(contract.deal_type) }}</small></div><div class="dlr-operation-money"><small>{{ 'Saldo registrado' if contract.status=='cancelled' else 'Saldo' }}</small><strong>{{ money(contract.balance) }}</strong>{% if contract.status=='active' and can('payments.record') %}<a class="dlr-inline-link" href="{{ url_for('main.contract_detail',contract_id=contract.id,origin='client',origin_id=client.id,_anchor='pay') }}">{{ icon('wallet',15) }} Cobrar</a>{% endif %}</div></article>
+          {% else %}{{ empty('Sin acuerdos registrados','Las operaciones financiadas aparecer&aacute;n aqu&iacute;.'|safe,'home-agreements') }}{% endfor %}
         </div>
       </section>
-
-      <section class="surface client-panel-v23">
-        <div class="client-panel-head-v23"><div><span class="eyebrow">HISTORIAL</span><h2>Actividad reciente</h2></div></div>
-        <div class="client-timeline-v23">
-          {% for item in timeline %}
-            {% if item.url %}<a href="{{ item.url }}" class="client-timeline-row-v23">{% else %}<div class="client-timeline-row-v23">{% endif %}
-              <span class="client-timeline-dot-v23 kind-{{ item.kind }}"></span>
-              <span><strong>{{ item.title }}</strong><small>{{ item.detail }}</small></span>
-              {% if item.amount is not none %}<b>{{ money(item.amount) }}</b>{% endif %}
-              <time>{{ item.date.strftime('%d/%m/%Y') if item.date else '—' }}</time>
-            {% if item.url %}</a>{% else %}</div>{% endif %}
-          {% else %}<div class="empty-inline">Todavía no hay actividad.</div>{% endfor %}
-        </div>
+      {% if can('sales.view') %}<section class="dlr-panel">
+        {% call section_heading('Compras de contado','home-sales') %}<span class="dlr-count">{{ direct_sales|length }}</span>{% endcall %}
+        <div class="dlr-operation-list">{% for sale in direct_sales %}<article class="dlr-operation dlr-operation-photo {{ 'is-voided' if sale.status=='voided' }}">{{ photo(sale.asset) }}<div class="dlr-operation-copy"><a class="dlr-title-link" href="{{ url_for('main.sale_detail',sale_id=sale.id,origin='client',origin_id=client.id) }}">{{ sale.asset.name }}</a><small>{{ sale.code }} &middot; {{ sale.sale_date.strftime('%d/%m/%Y') }}</small><span class="dlr-status-label">{{ sale_status_label(sale.status) }}</span></div><div class="dlr-operation-money"><small>Total de venta</small><strong>{{ money(sale.total_amount) }}</strong><a class="dlr-inline-link" href="{{ url_for('main.sale_receipt_pdf',sale_id=sale.id) }}">{{ icon('download',15) }} PDF cliente</a></div></article>{% else %}{{ empty('Sin ventas de contado','Inicia una venta desde esta ficha para conservar al comprador seleccionado.','home-sales') }}{% endfor %}</div>
+      </section>{% endif %}
+      {% if can('inventory.view') %}<section class="dlr-panel" id="client-assets">
+        {{ section_heading('Veh&iacute;culos y productos relacionados'|safe,'car') }}
+        <div class="dlr-related-grid">{% for asset in related_assets %}<a class="dlr-related-card" href="{{ url_for('main.asset_detail',asset_id=asset.id) }}">{{ photo(asset) }}<span><strong>{{ asset.name }}</strong><small>{{ asset.identifier or asset.serial_number or asset_kind_label(asset.kind) }}</small></span>{{ icon('sales-arrow',16) }}</a>{% else %}{{ empty('Sin unidades relacionadas','Aparecer&aacute;n cuando registres una venta o un acuerdo.'|safe,'inventory') }}{% endfor %}</div>
+      </section>{% endif %}
+      <section class="dlr-panel" id="client-activity">
+        {{ section_heading('Actividad reciente','history') }}
+        <div class="dlr-timeline">{% for item in timeline %}{% if item.url %}<a href="{{ item.url }}" class="dlr-timeline-row">{% else %}<div class="dlr-timeline-row">{% endif %}<span class="dlr-timeline-mark">{{ icon('home-sales' if item.kind=='sale' else 'wallet' if item.kind=='payment' else 'home-agreements' if item.kind=='agreement' else 'calendar' if item.kind in ['promise','schedule'] else 'edit',16) }}</span><span><strong>{{ item.title }}</strong><small>{{ item.detail }}</small></span><span class="dlr-timeline-value">{% if item.amount is not none %}<b>{{ money(item.amount) }}</b>{% endif %}<time>{{ item.date.strftime('%d/%m/%Y') if item.date else '' }}</time></span>{% if item.url %}</a>{% else %}</div>{% endif %}{% else %}{{ empty('Sin actividad','Los movimientos se muestran aqu&iacute; autom&aacute;ticamente.'|safe,'history') }}{% endfor %}</div>
       </section>
-    </main>
-
-    <aside class="client-profile-side-v23">
-      <section class="surface client-panel-v23" id="promises">
-        <div class="client-panel-head-v23"><div><span class="eyebrow">COBRANZA</span><h2>Promesas de pago</h2></div><span class="client-panel-count-v23">{{ promises|length }}</span></div>
-        {% if can('collections.manage') %}
-        <form method="post" action="{{ url_for('main.client_promise_add', client_id=client.id) }}" class="client-promise-form-v23">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <div class="form-grid two">
-            <label class="field"><span>Fecha</span><input type="date" name="promised_date" min="{{ today.isoformat() }}" required></label>
-            <label class="field"><span>Monto</span><input type="number" name="amount" min="0.01" step="0.01" inputmode="decimal" required></label>
-            <label class="field field-span-2"><span>Acuerdo</span><select name="contract_id"><option value="">General</option>{% for contract in contracts if contract.status == 'active' %}<option value="{{ contract.id }}">{{ contract.code }} · {{ contract.asset.name }}</option>{% endfor %}</select></label>
-            <label class="field field-span-2"><span>Nota</span><input name="note" maxlength="240" placeholder="Ej. pagará el viernes"></label>
-          </div>
-          <button class="btn btn-primary btn-block" type="submit">{{ icon('sales-check',16) }} Guardar promesa</button>
-        </form>
-        {% endif %}
-        <div class="client-promise-list-v23">
-          {% for promise in promises[:8] %}
-          <div class="client-promise-row-v23 status-{{ promise.status }}"><span><strong>{{ money(promise.amount) }}</strong><small>{{ promise.promised_date.strftime('%d/%m/%Y') }}{% if promise.contract %} · {{ promise.contract.code }}{% endif %}{% if promise.note %} · {{ promise.note }}{% endif %}</small></span><b>{% if promise.status == 'fulfilled' %}Cumplida{% elif promise.status == 'broken' %}Incumplida{% elif promise.status == 'cancelled' %}Cancelada{% else %}Pendiente{% endif %}</b>{% if promise.status != 'fulfilled' and can('collections.manage') %}<form method="post" action="{{ url_for('main.promise_status', promise_id=promise.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="fulfilled"><button type="submit" aria-label="Marcar cumplida">✓</button></form>{% endif %}</div>
-          {% else %}<div class="empty-inline">No hay promesas registradas.</div>{% endfor %}
-        </div>
+    </div>
+    <aside class="dlr-client-side">
+      <section class="dlr-panel" id="promises">
+        {% call section_heading('Promesas de pago','calendar') %}<span class="dlr-count">{{ promises|length }}</span>{% endcall %}
+        {% if can('collections.manage') %}<details class="dlr-compose"><summary>{{ icon('plus',17) }} Nueva promesa</summary><form method="post" action="{{ url_for('main.client_promise_add',client_id=client.id) }}" class="form-stack"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-grid two"><label class="field"><span>Fecha</span><input type="date" name="promised_date" min="{{ today.isoformat() }}" required></label><label class="field"><span>Monto</span><input type="number" name="amount" min="0.01" step="0.01" inputmode="decimal" required></label><label class="field field-span-2"><span>Acuerdo</span><select name="contract_id"><option value="">General</option>{% for contract in contracts if contract.status=='active' %}<option value="{{ contract.id }}">{{ contract.code }} &middot; {{ contract.asset.name }}</option>{% endfor %}</select></label><label class="field field-span-2"><span>Nota</span><input name="note" maxlength="240" placeholder="Ej. pagar&aacute; el viernes"></label></div><button class="btn btn-primary" type="submit">{{ icon('sales-check',16) }} Guardar promesa</button></form></details>{% endif %}
+        <div class="dlr-promises">{% for promise in promises[:8] %}<article><div><strong>{{ money(promise.amount) }}</strong><span class="dlr-status-label">{{ 'Cumplida' if promise.status=='fulfilled' else 'Incumplida' if promise.status=='broken' else 'Cancelada' if promise.status=='cancelled' else 'Pendiente' }}</span></div><small>{{ promise.promised_date.strftime('%d/%m/%Y') }}{% if promise.contract %} &middot; {{ promise.contract.code }}{% endif %}</small>{% if promise.note %}<p>{{ promise.note }}</p>{% endif %}{% if promise.status not in ['fulfilled','cancelled'] and can('collections.manage') %}<form method="post" action="{{ url_for('main.promise_status',promise_id=promise.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="fulfilled"><button class="dlr-text-button" type="submit">{{ icon('sales-check',16) }} Marcar cumplida</button></form>{% endif %}</article>{% else %}{{ empty('Sin promesas','Registra compromisos de pago para darles seguimiento.','calendar') }}{% endfor %}</div>
       </section>
-
-      <section class="surface client-panel-v23" id="notes">
-        <div class="client-panel-head-v23"><div><span class="eyebrow">SEGUIMIENTO</span><h2>Notas</h2></div></div>
-        {% if can('collections.manage') %}<form method="post" action="{{ url_for('main.client_note_add', client_id=client.id) }}" class="client-note-compose-v23"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><textarea name="body" rows="3" maxlength="2000" placeholder="Escribe una nota de seguimiento..." required></textarea><button class="btn btn-primary btn-sm" type="submit">{{ icon('sales-check',16) }} Guardar</button></form>{% endif %}
-        <div class="client-note-list-v23">{% for note in notes[:8] %}<div><p>{{ note.body }}</p><small>{{ note.created_at.strftime('%d/%m/%Y %H:%M') }}{% if note.created_by_user_id and actors.get(note.created_by_user_id) %} · {{ actors.get(note.created_by_user_id) }}{% endif %}</small></div>{% else %}<div class="empty-inline">Sin notas todavía.</div>{% endfor %}</div>
+      <section class="dlr-panel" id="notes">
+        {{ section_heading('Notas de seguimiento','edit') }}
+        {% if can('clients.manage') or can('collections.manage') %}<form method="post" action="{{ url_for('main.client_note_add',client_id=client.id) }}" class="dlr-note-compose"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="field"><span class="sr-only">Nota de seguimiento</span><textarea name="body" rows="3" maxlength="2000" placeholder="Escribe una nota interna..." required></textarea></label><button class="btn btn-primary btn-sm" type="submit">{{ icon('sales-check',16) }} Guardar nota</button></form>{% endif %}
+        <div class="dlr-notes-list">{% for note in notes[:8] %}<article><p>{{ note.body }}</p><small>{{ note.created_at.strftime('%d/%m/%Y %H:%M') }}{% if note.created_by_user_id and actors.get(note.created_by_user_id) %} &middot; {{ actors.get(note.created_by_user_id) }}{% endif %}</small></article>{% else %}<p class="dlr-caption">Sin notas todav&iacute;a.</p>{% endfor %}</div>
       </section>
     </aside>
   </div>

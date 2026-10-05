@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
+{% from 'macros/dealer.html' import origin_fields, origin_strip with context %}
 {% block title %}Recibo {{ receipt_code }} · {{ app_name }}{% endblock %}
 {% block content %}
 <section class="content-page receipt-page-v15">
@@ -12,6 +13,7 @@
       <button class="btn btn-ghost" onclick="window.print()" type="button">{{ icon('sales-print',16) }} Imprimir</button>
     </div>
   </div>
+  {{ origin_strip() }}
   <article class="surface printable-document-v15 receipt-document-v15">
     <header class="receipt-brand-v15"><span class="receipt-check-v15">✓</span><div><span class="eyebrow">RECIBO DE {{ 'INICIAL' if payment.payment_kind == 'down_payment' else 'ABONO' if payment.payment_kind == 'advance' else 'PAGO' }}</span><h1>{{ money(payment.amount) }}</h1><small>{{ receipt_code }}</small></div></header>
     <dl class="receipt-details-v15">

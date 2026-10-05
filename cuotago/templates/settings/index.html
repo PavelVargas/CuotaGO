@@ -74,7 +74,7 @@
   <section class="settings-business-tools-v16">
     {% if can('team.manage') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.team_settings') }}"><span class="settings-row-icon">{{ icon('users',20) }}</span><span><strong>Equipo</strong><small>Roles simples para que cada persona vea solo lo necesario.</small></span><b>›</b></a>{% endif %}
     {% if can('audit.view') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.audit_log') }}"><span class="settings-row-icon">{{ icon('shield',20) }}</span><span><strong>Auditoría</strong><small>Pagos, acuerdos, reprogramaciones, gastos y cambios sensibles.</small></span><b>›</b></a>{% endif %}
-    {% if can('data.export') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.export_business_data') }}"><span class="settings-row-icon">{{ icon('download',20) }}</span><span><strong>Descargar respaldo</strong><small>ZIP con clientes, acuerdos, pagos, inventario, gastos y auditoría.</small></span><b>↓</b></a>{% endif %}
+    {% if can('data.export') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.export_business_data') }}"><span class="settings-row-icon">{{ icon('download',20) }}</span><span><strong>Exportar datos e im&aacute;genes</strong><small>CSV, proveedores y fotos. Contiene costos internos; no es una copia restaurable de PostgreSQL.</small></span><b>↓</b></a>{% endif %}
   </section>
   {% endif %}
 

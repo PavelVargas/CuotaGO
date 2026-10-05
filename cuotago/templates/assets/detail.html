@@ -1,185 +1,107 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
+{% from 'macros/dealer.html' import header, photo, section_heading, empty with context %}
 {% set is_vehicle = asset.kind in ['car', 'motorcycle'] %}
-{% block title %}{{ asset.name }} · Inventario · {{ app_name }}{% endblock %}
+{% block title %}{{ asset.name }} &middot; Inventario &middot; {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page vehicle-detail-page vehicle-detail-v19 vehicle-detail-v20 vehicle-detail-v22">
-  <div class="page-head vehicle-detail-head">
-    <div class="page-head-left">
-      <a class="icon-btn" href="{{ url_for('main.assets') }}" aria-label="Volver al inventario">{{ icon('back', 22) }}</a>
-      <span class="module-context-icon accent-teal" aria-hidden="true">{{ icon('home-inventory', 24) }}</span>
-      <div><span class="eyebrow">{{ 'VEHÍCULO' if is_vehicle else 'INVENTARIO' }}</span><h1>{{ asset.name }}</h1></div>
-    </div>
-    {% if can('inventory.manage') %}<a class="btn btn-secondary vehicle-edit-button" href="{{ url_for('main.asset_edit', asset_id=asset.id) }}">{{ icon('edit', 17) }} <span>Editar</span></a>{% endif %}
-  </div>
+<section class="content-page dealer-page dlr-asset-page">
+  {% call header(asset.name, 'INVENTARIO / FICHA', 'home-inventory', url_for('main.assets')) %}
+    {% if can('inventory.manage') %}<a class="btn btn-secondary" aria-label="Editar unidad" href="{{ url_for('main.asset_edit',asset_id=asset.id) }}">{{ icon('edit',17) }} <span>Editar</span></a>{% endif %}
+  {% endcall %}
+  <nav class="dlr-section-nav" aria-label="Secciones de la ficha">
+    <a href="#unit">{{ icon('car' if is_vehicle else 'inventory',17) }} Resumen</a>
+    <a href="#operations">{{ icon('home-sales',17) }} Operaciones <b>{{ operations|length }}</b></a>
+    <a href="#investments">{{ icon('wrench',17) }} Gastos <b>{{ investments|length }}</b></a>
+    <a href="#activity">{{ icon('history',17) }} Actividad</a>
+    {% if can('sales.view') or can('payments.view') %}<a href="{{ url_for('main.documents',asset_id=asset.id,origin='asset',origin_id=asset.id) }}">{{ icon('home-documents',17) }} Comprobantes</a>{% endif %}
+  </nav>
 
-  <article class="surface vehicle-hero-card vehicle-hero-v19">
-    <div class="vehicle-hero-media vehicle-hero-media-v19">
-      {% if asset.image_mime %}
-      <img src="{{ url_for('main.asset_image', asset_id=asset.id, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}" decoding="async" fetchpriority="high">
-      {% else %}
-      <div class="vehicle-hero-placeholder">{{ icon('car' if is_vehicle else 'inventory', 54) }}<span>Agrega una foto desde Editar</span></div>
-      {% endif %}
-    </div>
-    <div class="vehicle-hero-copy vehicle-hero-copy-v19">
-      <div class="vehicle-title-row">
-        <div>
-          <span class="vehicle-kind-label">{{ asset_kind_label(asset.kind) }}</span>
-          <h2>{{ asset.name }}</h2>
-          {% if asset.brand or asset.model %}<p>{{ [asset.brand, asset.model]|select|join(' · ') }}</p>{% endif %}
-        </div>
-      </div>
-
-      <div class="vehicle-state-banner-v19 vehicle-state-{{ asset.status }} vehicle-state-banner-v22">
-        <span class="vehicle-state-dot-v19"></span>
-        <div class="vehicle-state-copy-v21"><small>Estado actual</small><strong>{{ asset_status_label(asset.status) }}</strong></div>
-        <span class="vehicle-state-help-v19">{% if asset.status == 'available' %}Listo para vender o financiar{% elif asset.status == 'maintenance' %}Mantenimiento interno en proceso{% elif asset.status == 'workshop' %}Unidad actualmente en taller{% elif asset.status == 'on_loan' %}Entregado en un acuerdo activo{% elif asset.status == 'sold' %}Venta completada{% endif %}</span>
-      </div>
-
-      {% if is_vehicle %}
-      <div class="vehicle-status-workflow-v22" aria-label="Estado operativo del vehículo">
-        <div class="vehicle-status-workflow-copy-v22"><span>Estado operativo</span><small>{% if asset.committed_quantity == 0 %}Cámbialo según dónde se encuentre el vehículo.{% else %}Administrado automáticamente por el acuerdo activo.{% endif %}</small></div>
-        {% if can('inventory.manage') and asset.committed_quantity == 0 %}
-        <div class="vehicle-status-actions-v22">
-          {% for value, label in [('available','Disponible'),('maintenance','Mantenimiento'),('workshop','En taller')] %}
-          <form method="post" action="{{ url_for('main.asset_status_update', asset_id=asset.id) }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="status" value="{{ value }}">
-            <button class="vehicle-status-choice-v22 is-{{ value }} {{ 'is-active' if asset.status == value }}" type="submit" {% if asset.status == value %}disabled{% endif %}>
-              <i aria-hidden="true"></i><span>{{ label }}</span>{% if asset.status == value %}<b>Actual</b>{% endif %}
-            </button>
-          </form>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="vehicle-status-locked-v22 vehicle-status-{{ asset.status }}">{{ asset_status_label(asset.status) }}</div>
-        {% endif %}
-      </div>
-      {% endif %}
-
-      {% if is_vehicle %}
-      <div class="vehicle-primary-facts vehicle-primary-facts-v19">
-        <div><span>Año</span><strong>{{ asset.vehicle_year or '—' }}</strong></div>
-        <div><span>Kilometraje</span><strong>{{ '{:,.0f}'.format(asset.mileage) ~ ' km' if asset.mileage is not none else '—' }}</strong></div>
-        <div><span>Tipo de adquisición</span><strong>{{ acquisition_type_label(acquisition_type) }}</strong></div>
-        <div><span>Fecha de adquisición</span><strong>{{ acquisition_date.strftime('%d/%m/%Y') if acquisition_date else '—' }}</strong></div>
-        <div><span>Chasis / código</span><strong>{{ asset.serial_number or asset.identifier or '—' }}</strong></div>
-      </div>
-      {% else %}
-      <div class="vehicle-primary-facts">
-        <div><span>Disponible</span><strong>{{ asset.available_quantity }} / {{ asset.quantity_total }}</strong></div>
-        <div><span>Marca / modelo</span><strong>{{ [asset.brand, asset.model]|select|join(' · ') or '—' }}</strong></div>
-        <div><span>Serial / código</span><strong>{{ asset.serial_number or asset.identifier or '—' }}</strong></div>
-      </div>
-      {% endif %}
+  <article class="dlr-panel dlr-unit-hero" id="unit">
+    <div class="dlr-hero-media">{{ photo(asset,large=true) }}<span class="dlr-badge dlr-state-{{ asset.status }}">{{ icon('sales-check' if operable else 'wrench' if asset.status in ['maintenance','workshop'] else 'shield',15) }} {{ asset_status_label(asset.status) }}</span></div>
+    <div class="dlr-unit-copy">
+      <span class="eyebrow">{{ asset_kind_label(asset.kind) }}</span><h2>{{ [asset.brand,asset.model]|select|join(' ') or asset.name }}</h2>
+      <div class="dlr-price-line"><span>Precio objetivo <small>por unidad</small></span><strong>{{ money(asset.sale_price) if asset.sale_price else 'Por definir' }}</strong></div>
+      <dl class="dlr-facts">
+        <div><dt>{{ icon('dealer-id',16) }} {{ 'Placa' if is_vehicle else 'Identificador' }}</dt><dd>{{ asset.identifier or '&mdash;'|safe }}</dd></div>
+        <div><dt>{{ icon('dealer-id',16) }} {{ 'Chasis / VIN' if is_vehicle else 'Serial' }}</dt><dd>{{ asset.serial_number or '&mdash;'|safe }}</dd></div>
+        {% if is_vehicle %}<div><dt>{{ icon('calendar',16) }} A&ntilde;o</dt><dd>{{ asset.vehicle_year or '&mdash;'|safe }}</dd></div><div><dt>{{ icon('dealer-mileage',16) }} Kilometraje</dt><dd>{{ '{:,.0f}'.format(asset.mileage) ~ ' km' if asset.mileage is not none else '&mdash;'|safe }}</dd></div>{% endif %}
+        <div><dt>{{ icon('inventory',16) }} Disponibles</dt><dd>{{ asset.available_quantity }} <small>de {{ asset.quantity_total }} unidad{{ 'es' if asset.quantity_total != 1 }}</small></dd></div>
+        <div><dt>{{ icon('home-purchases',16) }} Adquisici&oacute;n</dt><dd>{{ acquisition_type_label(acquisition_type) }}</dd></div>
+      </dl>
+      {% if operable %}
+      <div class="dlr-next-action"><span>{{ icon('sales-check',16) }} Disponible para una nueva operaci&oacute;n</span><div class="dlr-action-row">
+        {% if can('sales.manage') %}<a class="btn btn-primary" href="{{ url_for('main.sale_new',asset_id=asset.id,origin='asset',origin_id=asset.id) }}">{{ icon('home-sales',18) }} Vender de contado</a>{% endif %}
+        {% if can('contracts.create') %}<a class="btn btn-secondary" href="{{ url_for('main.contract_new',asset_id=asset.id,origin='asset',origin_id=asset.id) }}">{{ icon('home-agreements',18) }} Crear acuerdo</a>{% endif %}
+      </div></div>
+      {% elif asset.status in ['maintenance','workshop'] %}<div class="dlr-status-help">{{ icon('wrench',18) }} Termina la preparaci&oacute;n y cambia a Disponible para vender o financiar.</div>
+      {% else %}<div class="dlr-status-help">{{ icon('shield',18) }} La disponibilidad depende de sus operaciones. <a href="#operations">Ver operaciones</a></div>{% endif %}
+      {% if can('inventory.manage') %}<button class="dlr-text-button" type="button" data-investment-open>{{ icon('plus',17) }} Registrar trabajo o gasto</button>{% endif %}
     </div>
   </article>
 
-  <section class="vehicle-section finance-section finance-section-v22">
-    <div class="vehicle-section-heading"><div><span class="eyebrow">NÚMEROS</span><h2>Resumen financiero</h2></div><small>Vista rápida del dinero colocado en esta unidad.</small></div>
-    <div class="vehicle-finance-grid-v22">
-      <article class="surface finance-kpi-v22 finance-target-v22">
-        <span class="finance-kpi-icon-v22">{{ icon('cash-stack', 19) }}</span>
-        <div><span>Venta objetivo</span><strong>{{ money(asset.sale_price) if asset.sale_price else 'No definida' }}</strong><small>{% if target_profit is not none %}Utilidad objetivo {{ money(target_profit) }} · {{ '%.2f'|format(target_margin_percent) }}% sobre inversión{% else %}Define el precio de venta para medir utilidad{% endif %}</small></div>
-      </article>
-      <article class="surface finance-kpi-v22"><span>Precio de compra</span><strong>{{ money(purchase_price) }}</strong><small>Costo base del vehículo</small></article>
-      <article class="surface finance-kpi-v22"><span>Inversión total</span><strong>{{ money(total_investment) }}</strong><small>Compra + trabajos y gastos</small></article>
-      <article class="surface finance-kpi-v22"><span>Gastos totales</span><strong>{{ money(expenses_total) }}</strong><small>Mejoras, taller y mantenimiento</small></article>
-      <article class="surface finance-kpi-v22 finance-result {{ 'is-positive' if profit_loss is not none and profit_loss >= 0 else 'is-negative' if profit_loss is not none else '' }}"><span>Ganancia / pérdida</span><strong>{{ money(profit_loss) if profit_loss is not none else '—' }}</strong><small>{{ revenue_basis }}</small></article>
-    </div>
-  </section>
-
-  {% if is_vehicle %}
-  <section class="vehicle-info-layout vehicle-info-layout-v19">
-    <article class="surface acquisition-panel">
-      <div class="vehicle-section-heading compact"><div><span class="eyebrow">ADQUISICIÓN</span><h2>Información de adquisición</h2></div></div>
-      <dl class="vehicle-info-list">
-        <div><dt>Origen / vendedor</dt><dd>{{ acquisition_origin or 'No registrado' }}</dd></div>
-        <div><dt>Precio de compra</dt><dd>{{ money(purchase_price) }}</dd></div>
-        {% if latest_purchase and latest_purchase.reference %}<div><dt>Referencia</dt><dd>{{ latest_purchase.reference }}</dd></div>{% endif %}
+  <div class="dlr-grid-two dlr-summary-grid">
+    <section class="dlr-panel">
+      {{ section_heading('Referencia de inventario','chart','Valores actuales; no reemplazan una venta ya registrada.') }}
+      <dl class="dlr-money-list">
+        <div><dt>Costo de compra <small>por unidad</small></dt><dd>{{ money(dealer_finance.purchase_unit) }}</dd></div>
+        <div><dt>Trabajos asignados <small>por unidad</small></dt><dd>{{ money(dealer_finance.investment_unit) }}</dd></div>
+        <div><dt>Costo estimado <small>por unidad</small></dt><dd>{{ money(dealer_finance.cost_unit) }}</dd></div>
+        <div class="dlr-money-total"><dt>Utilidad objetivo <small>por unidad</small></dt><dd class="{{ 'text-danger' if dealer_finance.target_profit is not none and dealer_finance.target_profit < 0 else 'text-success' }}">{{ money(dealer_finance.target_profit) if dealer_finance.target_profit is not none else '&mdash;'|safe }}</dd></div>
       </dl>
-    </article>
-
-    <article class="surface investment-panel investment-panel-v19" id="investments">
-      <div class="vehicle-section-heading compact investment-heading">
-        <div><span class="eyebrow">TRABAJOS Y GASTOS</span><h2>Historial de inversiones</h2><p>Cada gasto aquí afecta la inversión total del vehículo.</p></div>
-        {% if can('inventory.manage') %}<button class="investment-add-button investment-add-button-v19" type="button" data-investment-open aria-label="Agregar inversión" title="Agregar inversión">{{ icon('plus', 20) }}</button>{% endif %}
-      </div>
-
-      <div class="investment-list">
-        {% for item in investments %}
-        <div class="investment-row">
-          <span class="investment-icon">{{ icon('wrench', 18) }}</span>
-          <div class="investment-main">
-            <div class="investment-title"><strong>{{ item.description }}</strong><span>{{ money(item.amount) }}</span></div>
-            <div class="investment-meta">
-              <span>{{ investment_category_label(item.category) }}</span><span>{{ item.investment_date.strftime('%d/%m/%Y') }}</span>
-              {% if item.expense %}<span>{{ payment_method_label(item.expense.method) }}{% if item.expense.reference %} · {{ item.expense.reference }}{% endif %}</span>{% endif %}
-            </div>
-            {% if item.notes %}<p>{{ item.notes }}</p>{% endif %}
-          </div>
-          {% if can('inventory.manage') %}<form method="post" action="{{ url_for('main.asset_investment_delete', asset_id=asset.id, investment_id=item.id) }}" class="investment-delete-form" onsubmit="return confirm('¿Eliminar esta inversión? El gasto asociado también se anulará.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" aria-label="Eliminar inversión">{{ icon('trash', 15) }}</button></form>{% endif %}
-        </div>
-        {% else %}
-        <div class="investment-empty"><span>{{ icon('wrench', 23) }}</span><div><strong>Este vehículo todavía no tiene inversiones</strong><small>Usa el botón + para registrar aceite, piezas, reparación, interior, pintura u otro trabajo.</small></div></div>
-        {% endfor %}
-      </div>
-      <div class="investment-total"><span>Total invertido después de la compra</span><strong>{{ money(expenses_total) }}</strong></div>
-    </article>
-  </section>
-  {% else %}
-  <section class="vehicle-info-layout single-column"><article class="surface acquisition-panel"><div class="vehicle-section-heading compact"><div><span class="eyebrow">DATOS</span><h2>Información del producto</h2></div></div><dl class="vehicle-info-list"><div><dt>Tipo</dt><dd>{{ asset_kind_label(asset.kind) }}</dd></div><div><dt>Existencia</dt><dd>{{ asset.available_quantity }} de {{ asset.quantity_total }}</dd></div><div><dt>Costo por unidad</dt><dd>{{ money(asset.estimated_value) }}</dd></div><div><dt>Precio de venta</dt><dd>{{ money(asset.sale_price) if asset.sale_price else 'No definido' }}</dd></div></dl></article></section>
+      <p class="dlr-caption">{% if dealer_finance.target_profit is not none %}{{ '%.2f'|format(dealer_finance.target_margin) }}% sobre costo estimado.{% else %}Define el precio objetivo desde Editar.{% endif %} {% if dealer_finance.units > 1 %}Costo del lote: {{ money(dealer_finance.lot_cost) }} para {{ dealer_finance.units }} unidades.{% endif %}</p>
+    </section>
+    <section class="dlr-panel dlr-real-result">
+      {{ section_heading('Resultado de ventas directas','home-sales','Importes y costos conservados al cerrar cada venta.') }}
+      {% if dealer_finance.direct_count and can('sales.view') %}
+      <dl class="dlr-money-list"><div><dt>Total vendido</dt><dd>{{ money(dealer_finance.direct_revenue) }}</dd></div><div><dt>Costo registrado</dt><dd>{{ money(dealer_finance.direct_cost) }}</dd></div><div><dt>Unidades vendidas</dt><dd>{{ dealer_finance.direct_units }}</dd></div><div class="dlr-money-total"><dt>Utilidad registrada</dt><dd class="{{ 'text-success' if dealer_finance.direct_profit >= 0 else 'text-danger' }}">{{ money(dealer_finance.direct_profit) }}</dd></div></dl>
+      <p class="dlr-caption">{{ dealer_finance.direct_count }} venta{{ 's' if dealer_finance.direct_count != 1 }} completada{{ 's' if dealer_finance.direct_count != 1 }}. No incluye anuladas ni recalcula costos con cambios posteriores.</p>
+      {% else %}{{ empty('Sin ventas directas en este resumen','La utilidad real de la venta aparecer&aacute; al registrar una operaci&oacute;n de contado.'|safe,'home-sales') }}{% endif %}
+    </section>
+  </div>
+  {% if dealer_finance.agreement_count and can('contracts.view') %}
+  <section class="dlr-panel dlr-agreement-summary">{{ section_heading('Ventas a cr&eacute;dito'|safe,'home-agreements','El saldo de los acuerdos se gestiona en Cobros; no se suma a las ventas de contado.') }}<div class="dlr-inline-metrics"><div><span>Total acordado</span><strong>{{ money(dealer_finance.agreement_revenue) }}</strong></div><div><span>Pagos recibidos <small>incluye mora cobrada</small></span><strong>{{ money(dealer_finance.agreement_received) }}</strong></div><div><span>Saldo activo <small>incluye mora registrada</small></span><strong>{{ money(dealer_finance.agreement_balance) }}</strong></div></div></section>
   {% endif %}
 
-  <section class="vehicle-section activity-section">
-    <div class="vehicle-section-heading"><div><span class="eyebrow">MOVIMIENTOS</span><h2>Historial de actividad</h2></div></div>
-    <div class="surface vehicle-activity-list">
-      {% for item in activity %}
-      <{% if item.url %}a href="{{ item.url }}"{% else %}div{% endif %} class="vehicle-activity-row"><span class="activity-marker">{{ icon('history', 16) }}</span><span class="activity-copy"><strong>{{ item.title }}</strong><small>{{ item.detail }}</small></span><time>{{ item.at.strftime('%d/%m/%Y') if item.at else '—' }}</time>{% if item.url %}<span class="activity-chevron">›</span>{% endif %}</{% if item.url %}a{% else %}div{% endif %}>
-      {% else %}<div class="investment-empty"><span>{{ icon('history', 20) }}</span><div><strong>Sin actividad</strong><small>Los cambios y acuerdos aparecerán aquí.</small></div></div>{% endfor %}
+  <section class="dlr-panel" id="operations">
+    {{ section_heading('Operaciones de esta unidad','home-sales','Venta directa, acuerdo y acceso al comprador en una misma ficha.') }}
+    <div class="dlr-operation-list">
+      {% for op in operations %}<article class="dlr-operation {{ 'is-voided' if op.voided }}">
+        <span class="dlr-item-icon">{{ icon(op.icon,22) }}</span>
+        <div class="dlr-operation-copy"><a class="dlr-title-link" href="{{ op.url }}">{{ op.title }} {{ icon('sales-arrow',15) }}</a><span>{% if op.person_id and can('clients.view') %}<a href="{{ url_for('main.client_detail',client_id=op.person_id) }}">{{ op.person }}</a>{% else %}{{ op.person }}{% endif %}</span><small>{{ 'Venta directa' if op.kind=='sale' else 'Acuerdo' }} &middot; {{ op.date.strftime('%d/%m/%Y') if op.date else '' }} &middot; {{ op.status }}</small></div>
+        <div class="dlr-operation-money"><small>{{ 'Saldo pendiente' if op.balance is not none else 'Total de la operaci&oacute;n'|safe }}</small><strong>{{ money(op.balance if op.balance is not none else op.amount) }}</strong>{% if op.kind=='agreement' and op.pay_url and can('payments.record') %}<a class="dlr-inline-link" href="{{ op.pay_url }}">{{ icon('wallet',15) }} Registrar pago</a>{% endif %}</div>
+      </article>{% else %}{{ empty('Todav&iacute;a no hay operaciones'|safe,'Puedes iniciar una venta directa o un acuerdo desde los botones de esta ficha.','home-sales') }}{% endfor %}
     </div>
   </section>
 
-  {% if asset.notes %}<section class="vehicle-notes"><span>Notas</span><p>{{ asset.notes }}</p></section>{% endif %}
+  <div class="dlr-grid-two dlr-acquisition-grid">
+    <section class="dlr-panel">
+      {{ section_heading('Adquisici&oacute;n y estado'|safe,'home-purchases') }}
+      <dl class="dlr-money-list"><div><dt>Origen / vendedor</dt><dd>{{ acquisition_origin or 'No registrado' }}</dd></div><div><dt>Fecha de adquisici&oacute;n</dt><dd>{{ acquisition_date.strftime('%d/%m/%Y') if acquisition_date else '&mdash;'|safe }}</dd></div>{% if latest_purchase and latest_purchase.reference %}<div><dt>Referencia de compra</dt><dd>{{ latest_purchase.reference }}</dd></div>{% endif %}</dl>
+      {% if can('inventory.manage') and asset.committed_quantity == 0 %}
+      <div class="dlr-status-controls"><span class="dlr-field-label">Estado operativo</span><div class="dlr-status-options">{% for value,label,glyph in [('available','Disponible','sales-check'),('maintenance','Mantenimiento','wrench'),('workshop','En taller','wrench')] %}<form method="post" action="{{ url_for('main.asset_status_update',asset_id=asset.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="{{ value }}"><button type="submit" class="dlr-status-option {{ 'is-active' if asset.status==value }}" {% if asset.status==value %}disabled aria-current="true"{% endif %}>{{ icon(glyph,16) }} {{ label }}</button></form>{% endfor %}</div></div>
+      {% else %}<p class="dlr-caption">{{ icon('shield',15) }} La disponibilidad se actualiza desde ventas y acuerdos.</p>{% endif %}
+      {% if asset.notes %}<div class="dlr-notes"><span class="dlr-field-label">{{ icon('contract',16) }} Notas internas</span><p>{{ asset.notes }}</p></div>{% endif %}
+    </section>
+    <section class="dlr-panel" id="investments">
+      {% call section_heading('Trabajos y gastos','wrench','Cada registro tambi&eacute;n aparece en Gastos.'|safe) %}{% if can('inventory.manage') %}<button class="icon-btn" type="button" data-investment-open aria-label="Agregar gasto">{{ icon('plus',20) }}</button>{% endif %}{% endcall %}
+      <div class="dlr-investment-list">{% for item in investments %}<article class="dlr-investment-row"><span class="dlr-item-icon">{{ icon('wrench',18) }}</span><div><strong>{{ item.description }}</strong><small>{{ investment_category_label(item.category) }} &middot; {{ item.investment_date.strftime('%d/%m/%Y') }}</small>{% if item.expense %}<small>{{ payment_method_label(item.expense.method) }}{% if item.expense.reference %} &middot; {{ item.expense.reference }}{% endif %}</small>{% endif %}{% if item.notes %}<p>{{ item.notes }}</p>{% endif %}</div><strong>{{ money(item.amount) }}</strong>{% if can('inventory.manage') %}<form method="post" action="{{ url_for('main.asset_investment_delete',asset_id=asset.id,investment_id=item.id) }}" onsubmit="return confirm('Eliminar esta inversion tambien anula el gasto vinculado. Continuar?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="dlr-text-button dlr-danger" type="submit" aria-label="Eliminar gasto {{ item.description }}">{{ icon('trash',17) }}</button></form>{% endif %}</article>{% else %}{{ empty('Sin trabajos registrados','Agrega reparaciones, documentos, piezas u otros gastos de esta unidad.','wrench') }}{% endfor %}</div>
+      <div class="dlr-subtotal"><span>Total de trabajos y gastos</span><strong>{{ money(expenses_total) }}</strong></div>
+    </section>
+  </div>
+  <section class="dlr-panel" id="activity">
+    {{ section_heading('Actividad de la unidad','history') }}
+    <div class="dlr-timeline">{% for item in activity %}{% if item.url %}<a href="{{ item.url }}" class="dlr-timeline-row">{% else %}<div class="dlr-timeline-row">{% endif %}<span class="dlr-timeline-mark">{{ icon('history',16) }}</span><span><strong>{{ item.title }}</strong><small>{{ item.detail }}</small></span><time>{{ item.at.strftime('%d/%m/%Y') if item.at else '' }}</time>{% if item.url %}</a>{% else %}</div>{% endif %}{% endfor %}</div>
+  </section>
 </section>
-
-{% if is_vehicle and can('inventory.manage') %}
-<dialog class="payment-dialog compact-contract-dialog asset-investment-dialog" id="assetInvestmentDialog" aria-labelledby="assetInvestmentTitle">
-  <div class="payment-dialog-sheet asset-investment-sheet">
-    <div class="payment-dialog-handle" aria-hidden="true"></div>
-    <div class="payment-dialog-head"><div><span class="eyebrow">NUEVA INVERSIÓN</span><h2 id="assetInvestmentTitle">Registrar trabajo o gasto</h2><p>{{ asset.name }}</p></div><button class="payment-dialog-close" type="button" data-investment-close aria-label="Cerrar">×</button></div>
-    <form method="post" action="{{ url_for('main.asset_investment_add', asset_id=asset.id) }}" class="form-stack asset-investment-form">
+{% if can('inventory.manage') %}
+<dialog class="dlr-dialog" id="assetInvestmentDialog" aria-labelledby="assetInvestmentTitle">
+  <div class="dlr-dialog-inner"><header><div><span class="eyebrow">{{ asset.name }}</span><h2 id="assetInvestmentTitle">Registrar trabajo o gasto</h2></div><button class="icon-btn" type="button" data-investment-close aria-label="Cerrar">{{ icon('sales-close',20) }}</button></header>
+    <form method="post" action="{{ url_for('main.asset_investment_add',asset_id=asset.id) }}" class="form-stack">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="form-grid two compact-grid">
-        <label class="field"><span>Fecha</span><input type="date" name="investment_date" value="{{ today.isoformat() }}" required></label>
-        <label class="field"><span>Tipo</span><select name="category" required><option value="maintenance">Mantenimiento</option><option value="repair">Reparación</option><option value="oil">Aceite / fluidos</option><option value="interior">Interior</option><option value="bodywork">Pintura / carrocería</option><option value="parts">Piezas</option><option value="tires">Gomas</option><option value="documents">Documentos</option><option value="fuel">Combustible</option><option value="transport">Transporte</option><option value="services">Servicios</option><option value="other">Otro</option></select></label>
-        <label class="field field-span-2"><span>¿Qué se hizo? *</span><input name="description" maxlength="180" required placeholder="Ej. Cambio de aceite y filtro"></label>
-        <label class="field"><span>Monto *</span><input type="number" name="amount" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
-        <label class="field"><span>Método</span><select name="method"><option value="cash">Efectivo</option><option value="transfer">Transferencia</option><option value="deposit">Depósito</option><option value="card">Tarjeta</option><option value="other">Otro</option></select></label>
-        <label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="Factura, transferencia..."></label>
-        <label class="field"><span>Nota</span><input name="notes" maxlength="240" placeholder="Taller, pieza, detalle..."></label>
-      </div>
-      <p class="investment-dialog-note-v19">También quedará registrado automáticamente en el módulo de Gastos.</p>
-      <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-investment-close>{{ icon('back',16) }} Cancelar</button><button class="btn btn-primary" type="submit">{{ icon('sales-check',16) }} Guardar inversión</button></div>
+      <div class="form-grid two"><label class="field"><span>Fecha</span><input type="date" name="investment_date" value="{{ today.isoformat() }}" required></label><label class="field"><span>Tipo</span><select name="category" required><option value="maintenance">Mantenimiento</option><option value="repair">Reparaci&oacute;n</option><option value="oil">Aceite / fluidos</option><option value="interior">Interior</option><option value="bodywork">Pintura / carrocer&iacute;a</option><option value="parts">Piezas</option><option value="tires">Gomas</option><option value="documents">Documentos</option><option value="fuel">Combustible</option><option value="transport">Transporte</option><option value="services">Servicios</option><option value="supplies">Suministros</option><option value="other">Otro</option></select></label><label class="field field-span-2"><span>&iquest;Qu&eacute; se hizo? *</span><input name="description" maxlength="180" required placeholder="Ej. Cambio de aceite y filtro"></label><label class="field"><span>Monto *</span><input type="number" name="amount" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></label><label class="field"><span>M&eacute;todo</span><select name="method"><option value="cash">Efectivo</option><option value="transfer">Transferencia</option><option value="deposit">Dep&oacute;sito</option><option value="card">Tarjeta</option><option value="other">Otro</option></select></label><label class="field"><span>Referencia</span><input name="reference" maxlength="120" placeholder="Factura, transferencia..."></label><label class="field"><span>Nota</span><input name="notes" maxlength="240" placeholder="Taller, pieza, detalle..."></label></div>
+      <p class="dlr-caption">Se registra una sola vez y se vincula autom&aacute;ticamente al gasto. Las ventas cerradas conservan su costo hist&oacute;rico.</p><div class="dlr-dialog-actions"><button class="btn btn-secondary" type="button" data-investment-close>Cancelar</button><button class="btn btn-primary" type="submit">{{ icon('sales-check',17) }} Guardar gasto</button></div>
     </form>
   </div>
 </dialog>
-{% endif %}
-{% endblock %}
-
-{% block scripts %}
-{% if is_vehicle and can('inventory.manage') %}
-<script>
-(() => {
-  const dialog = document.getElementById('assetInvestmentDialog');
-  const openButton = document.querySelector('[data-investment-open]');
-  if (!dialog || !openButton) return;
-  const open = () => typeof dialog.showModal === 'function' ? dialog.showModal() : dialog.setAttribute('open', '');
-  const close = () => typeof dialog.close === 'function' ? dialog.close() : dialog.removeAttribute('open');
-  openButton.addEventListener('click', open);
-  dialog.querySelectorAll('[data-investment-close]').forEach((button) => button.addEventListener('click', close));
-  dialog.addEventListener('click', (event) => { if (event.target === dialog) close(); });
-})();
-</script>
 {% endif %}
 {% endblock %}

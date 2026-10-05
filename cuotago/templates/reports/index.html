@@ -31,7 +31,7 @@
     <article class="report-executive-card-v22 is-danger"><span>Vencido</span><strong>{{ money(overdue_total) }}</strong><small>{{ overdue_clients_count }} cliente{% if overdue_clients_count != 1 %}s{% endif %} con atraso</small></article>
     <article class="report-executive-card-v22 is-success"><span>Cobrado · crédito</span><strong>{{ money(period_collected) }}</strong><small>{{ period_payment_count }} movimiento{% if period_payment_count != 1 %}s{% endif %}</small></article>
     <article class="report-executive-card-v22 is-primary"><span>Ventas directas</span><strong>{{ money(direct_sales_period_total) }}</strong><small>{{ direct_sales_period_count }} venta{% if direct_sales_period_count != 1 %}s{% endif %} · {{ direct_sales_period_units }} unidad{% if direct_sales_period_units != 1 %}es{% endif %}</small></article>
-    <article class="report-executive-card-v22 {{ 'is-success' if cash_flow_net >= 0 else 'is-danger' }}"><span>Flujo neto</span><strong>{{ money(cash_flow_net) }}</strong><small>{{ money(business_income_total) }} ingresados menos gastos</small></article>
+    <article class="report-executive-card-v22 {{ 'is-success' if cash_flow_net >= 0 else 'is-danger' }}"><span>Ingresos menos gastos</span><strong>{{ money(cash_flow_net) }}</strong><small>{{ money(business_income_total) }} ingresados, menos gastos registrados</small></article>
     <article class="report-executive-card-v22 is-primary"><span>Cartera cobrada</span><strong>{{ '%.1f'|format(collection_rate_percent) }}%</strong><small>Principal recibido / total acordado</small></article>
     <article class="report-executive-card-v22 is-profit"><span>Ganancia esperada</span><strong>{{ money(profit_expected) }}</strong><small>Margen de ganancia {{ '%.1f'|format(profit_margin_percent) }}% sobre capital registrado</small></article>
   </section>
@@ -100,8 +100,9 @@
 
   {% if not selected_client_id %}
   <section class="surface report-cashflow-v15 report-cashflow-v22">
-    <div class="report-section-head-v19"><div><span class="eyebrow">FLUJO DE CAJA · {{ period_label|upper }}</span><h2>Entradas y salidas reales</h2></div><a class="report-inline-link-v20" href="{{ url_for('main.expenses') }}">Ver gastos</a></div>
-    <div class="cashflow-kpis-v15 cashflow-kpis-v22"><div class="success"><span>Entradas</span><strong>{{ money(business_income_total) }}</strong><small>Cobros + ventas directas</small></div><div class="danger"><span>Gastos</span><strong>{{ money(expenses_period_total) }}</strong></div><div class="{{ 'success' if cash_flow_net >= 0 else 'danger' }}"><span>Neto</span><strong>{{ money(cash_flow_net) }}</strong></div></div>
+    <div class="report-section-head-v19"><div><span class="eyebrow">COBROS Y GASTOS · {{ period_label|upper }}</span><h2>Ingresos y gastos registrados</h2></div><a class="report-inline-link-v20" href="{{ url_for('main.expenses') }}">Ver gastos</a></div>
+    <p class="dlr-scope-note">Este resumen compara cobros y ventas directas con gastos registrados. No es el saldo de caja o bancos y no descuenta pagos de compras de inventario.</p>
+  <div class="cashflow-kpis-v15 cashflow-kpis-v22"><div class="success"><span>Entradas</span><strong>{{ money(business_income_total) }}</strong><small>Cobros + ventas directas</small></div><div class="danger"><span>Gastos</span><strong>{{ money(expenses_period_total) }}</strong></div><div class="{{ 'success' if cash_flow_net >= 0 else 'danger' }}"><span>Diferencia</span><strong>{{ money(cash_flow_net) }}</strong></div></div>
     <div class="payment-method-breakdown-v15 payment-method-breakdown-v22"><div><span>Efectivo</span><b>{{ money(payment_method_totals.cash) }}</b></div><div><span>Transferencia</span><b>{{ money(payment_method_totals.transfer) }}</b></div><div><span>Depósito</span><b>{{ money(payment_method_totals.deposit) }}</b></div><div><span>Tarjeta</span><b>{{ money(payment_method_totals.card) }}</b></div><div><span>Otro</span><b>{{ money(payment_method_totals.other) }}</b></div><div><span>Iniciales</span><b>{{ money(down_payment_total) }}</b></div></div>
   </section>
   {% endif %}

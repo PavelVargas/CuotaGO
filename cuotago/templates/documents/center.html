@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% from 'macros/icons.html' import icon %}
+{% from 'macros/dealer.html' import header, section_heading, empty, origin_strip, origin_fields with context %}
+{% from 'macros/pagination.html' import pager %}
+{% block title %}Documentos &middot; {{ app_name }}{% endblock %}
+{% block content %}
+<section class="content-page dealer-page dlr-documents">
+  {% call header('Documentos','COMPROBANTES DEL NEGOCIO','home-documents',dealer_context.url if dealer_context else url_for('main.dashboard'),'Ventas, recibos de pago y estados de cuenta.') %}<a class="btn btn-secondary" href="{{ url_for('main.help') }}">{{ icon('contract',17) }} Ayuda y manual</a>{% endcall %}
+  {{ origin_strip() }}
+  <div class="dlr-doc-notice">{{ icon('shield',19) }}<span><strong>Documentos para tu cliente</strong><small>Los PDF de venta no incluyen costo de compra, inversiones, utilidad ni notas internas.</small></span></div>
+  <nav class="dlr-section-nav dlr-document-tabs" aria-label="Tipo de documento">{% for item in tabs %}<a class="{{ 'is-current' if tab==item.key }}" href="{{ url_for('main.documents',tab=item.key,q=q,asset_id=filter_asset.id if filter_asset else None,client_id=filter_client.id if filter_client else None,origin=dealer_context.kind if dealer_context else None,origin_id=dealer_context.id if dealer_context else None) }}" {% if tab==item.key %}aria-current="page"{% endif %}>{{ icon(item.icon,17) }} {{ item.label }}</a>{% endfor %}</nav>
+  <form method="get" class="dlr-search-form"><input type="hidden" name="tab" value="{{ tab }}">{{ origin_fields() }}{% if filter_asset %}<input type="hidden" name="asset_id" value="{{ filter_asset.id }}">{% endif %}{% if filter_client %}<input type="hidden" name="client_id" value="{{ filter_client.id }}">{% endif %}<label class="dlr-search">{{ icon('search',18) }}<input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre o c&oacute;digo" aria-label="Buscar comprobantes"></label><button class="btn btn-secondary" type="submit">Buscar</button></form>
+  {% if filter_asset or filter_client %}<div class="dlr-context-label">Mostrando documentos de <strong>{{ filter_asset.name if filter_asset else filter_client.full_name }}</strong><a href="{{ url_for('main.documents',tab=tab) }}">Ver todos</a></div>{% endif %}
+  <section class="dlr-panel">
+    {% call section_heading('Comprobantes disponibles','home-documents') %}<span class="dlr-count">{{ pagination.total if pagination else 0 }}</span>{% endcall %}
+    <div class="dlr-document-list">{% for item in rows %}<article class="dlr-document-row"><span class="dlr-item-icon">{{ icon(item.icon,22) }}</span><div class="dlr-document-copy"><span class="dlr-field-label">{{ item.label }}{% if item.voided %} &middot; Anulada{% endif %}</span><a class="dlr-title-link" href="{{ item.url }}">{{ item.title }}</a><small>{{ item.detail }} &middot; {{ item.person }}</small></div><div class="dlr-document-value">{% if item.amount is not none %}<strong>{{ money(item.amount) }}</strong>{% endif %}{% if item.date %}<small>{{ item.date.strftime('%d/%m/%Y') }}</small>{% endif %}</div><a class="btn btn-secondary" href="{{ item.pdf }}" aria-label="PDF {{ item.title }}">{{ icon('download',17) }} PDF</a></article>{% else %}{{ empty('No hay comprobantes en esta vista','Se generan al registrar ventas y pagos. Prueba otra pesta&ntilde;a o cambia la b&uacute;squeda.'|safe,'home-documents') }}{% endfor %}</div>
+  </section>
+  {{ pager(pagination) }}
+  <p class="dlr-caption">Los documentos se generan con los registros del sistema. Esta vista no almacena archivos adjuntos externos.</p>
+</section>
+{% endblock %}

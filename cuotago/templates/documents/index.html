@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
-{% block title %}Documentos · {{ app_name }}{% endblock %}
+{% block title %}Ayuda · {{ app_name }}{% endblock %}
 {% block content %}
 <section class="content-page documents-page documents-page-v20">
   <div class="page-head documents-page-head">
     <div class="page-head-left">
-      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
+      <a class="icon-btn" href="{{ url_for('main.documents') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
       <span class="module-context-icon accent-indigo" aria-hidden="true">{{ icon('home-documents', 24) }}</span>
       <div>
-        <span class="eyebrow">DOCUMENTOS</span>
-        <h1>Documentos</h1>
+        <span class="eyebrow">AYUDA</span>
+        <h1>Ayuda y manual</h1>
         <p>Manual práctico del sistema, sincronizado con los módulos activos.</p>
       </div>
     </div>
