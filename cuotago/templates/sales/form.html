@@ -1,145 +1,64 @@
-{% extends 'base.html' %}
+{% extends 'sales/base.html' %}
 {% from 'macros/icons.html' import icon %}
+{% from 'sales/_components.html' import heading, picker_card with context %}
 {% block title %}Nueva venta · {{ app_name }}{% endblock %}
+{% block body_class %}sales-module sales-create{% endblock %}
 {% block content %}
-<section class="content-page sales-page sale-create-page">
-  <div class="page-head sales-page-head">
-    <div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.sales') }}" aria-label="Volver">{{ icon('back', 22) }}</a><span class="module-context-icon accent-orange" aria-hidden="true">{{ icon('home-sales', 24) }}</span><div><span class="eyebrow">VENTAS</span><h1>Nueva venta</h1><p>Cierra una operación de contado sin crear un acuerdo.</p></div></div>
-  </div>
-
-  <form method="post" class="sale-create-grid" id="saleForm">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="request_key" value="{{ request_key }}">
-    <section class="surface sale-product-panel">
-      <div class="sale-panel-head"><span class="sale-step">1</span><div><h2>Vehículo o artículo</h2><p>Selecciona una unidad disponible y con su foto de inventario lista para vender.</p></div></div>
-      <div class="sale-showroom-tip">{{ icon('car', 16) }} <span>Prioriza artículos con imagen para que la venta se vea como un verdadero showroom.</span></div>
-      <label class="field"><span>Buscar en Inventario</span><input type="search" id="saleAssetSearch" autocomplete="off" enterkeyhint="search" placeholder="Nombre, placa, IMEI o serial"></label>
-      <input type="hidden" name="asset_id" id="saleAssetId" value="{{ form.get('asset_id','') }}" required>
-      <div class="sale-asset-results" id="saleAssetResults" role="listbox"></div>
-      <article class="sale-selected-asset" id="saleSelectedAsset" hidden>
-        <div class="sale-selected-media"><img id="saleSelectedImage" alt="" hidden><span id="saleSelectedPlaceholder">{{ icon('car', 38) }}</span></div>
-        <div><span id="saleSelectedKind">Inventario</span><strong id="saleSelectedName">Artículo</strong><small id="saleSelectedMeta"></small><div class="sale-selected-note">La imagen de Inventario será la misma que verás en esta venta.</div></div>
-        <button type="button" id="saleAssetClear" aria-label="Cambiar artículo">Cambiar</button>
-      </article>
-      {% if not assets %}<p class="sale-inline-warning">No hay artículos disponibles. Registra Inventario o cambia una unidad de mantenimiento/taller a Disponible.</p>{% endif %}
-    </section>
-
-    <section class="surface sale-payment-panel">
-      <div class="sale-panel-head"><span class="sale-step">2</span><div><h2>Precio y pago</h2><p>Esto queda cerrado; no genera cuotas.</p></div></div>
-      <div class="sale-money-preview"><div><span>Precio objetivo</span><strong id="saleTargetPrice">RD$0</strong></div><div><span>Costo real estimado</span><strong id="saleCostPreview">RD$0</strong></div><div class="is-profit"><span>Utilidad</span><strong id="saleProfitPreview">RD$0</strong></div></div>
-      <div class="form-grid two sale-form-fields">
-        <label class="field"><span>Cantidad *</span><input type="number" name="quantity" id="saleQuantity" value="{{ form.get('quantity','1') }}" min="1" step="1" inputmode="numeric" required></label>
-        <label class="field"><span>Precio final por unidad *</span><input type="number" name="unit_price" id="saleUnitPrice" value="{{ form.get('unit_price','') }}" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
-        <label class="field"><span>Fecha</span><input type="date" name="sale_date" value="{{ form.get('sale_date', default_date) }}" required></label>
-        <label class="field"><span>Método de pago</span><select name="payment_method">{% set pm=form.get('payment_method','cash') %}{% for value,label in [('cash','Efectivo'),('transfer','Transferencia'),('deposit','Depósito'),('card','Tarjeta'),('other','Otro')] %}<option value="{{ value }}" {{ 'selected' if pm==value }}>{{ label }}</option>{% endfor %}</select></label>
-        <label class="field field-span-2"><span>Referencia</span><input name="reference" maxlength="120" value="{{ form.get('reference','') }}" placeholder="Transferencia, depósito, factura..."></label>
+<section class="sls-workspace">
+  {{ heading('Nueva venta', 'Selecciona el vehículo y registra el pago recibido.', url_for('main.sales')) }}
+  <form method="post" id="saleForm" class="sls-sale-form" data-step="1" data-lookup-url="{{ url_for('main.sale_assets_api') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="request_key" value="{{ request_key }}"><input type="hidden" name="asset_id" id="saleAssetId" value="{{ selected_asset_id or '' }}">
+    <nav class="sls-mobile-steps" aria-label="Pasos de la venta"><button type="button" data-go-step="1" aria-current="step"><span>1</span>Vehículo</button><button type="button" data-go-step="2"><span>2</span>Datos</button><button type="button" data-go-step="3"><span>3</span>Cierre</button></nav>
+    <p class="sls-notice sls-error" id="saleError" role="alert" hidden></p>
+    <div class="sls-layout">
+      <section class="sls-panel sls-product" data-step-panel="1">
+        <div class="sls-panel-heading"><div><span class="sls-eyebrow">INVENTARIO</span><h2 id="saleProductHeading">Selecciona una unidad</h2></div><span class="sls-availability">{{ icon('sales-check',15) }}Disponible</span></div>
+        <div id="salePicker">
+          <label class="sls-search sls-inventory-search">{{ icon('search',19) }}<input type="search" id="saleAssetSearch" autocomplete="off" enterkeyhint="search" placeholder="Buscar por nombre, placa o serial" aria-label="Buscar en inventario"></label>
+          <div class="sls-categories" aria-label="Tipo de artículo"><button type="button" data-kind="" aria-pressed="true">Todos</button><button type="button" data-kind="car" aria-pressed="false">Carros</button><button type="button" data-kind="motorcycle" aria-pressed="false">Motores</button><button type="button" data-kind="other" aria-pressed="false">Otros</button></div>
+          <p class="sls-result-label" id="saleSearchStatus" role="status" aria-live="polite">{{ asset_count }} resultado{{ 's' if asset_count!=1 }} en inventario</p>
+          <div class="sls-picker-grid" id="saleAssetResults">{% for asset in assets %}{{ picker_card(asset) }}{% endfor %}</div>
+          <div class="sls-inventory-empty" id="saleInventoryEmpty" {% if assets %}hidden{% endif %}>{{ icon('car',38) }}<h3>No hay unidades disponibles</h3><p>Revisa el inventario o cambia la búsqueda.</p>{% if can('inventory.manage') %}<a class="sls-text-link" href="{{ url_for('main.asset_new') }}">Agregar al inventario {{ icon('plus',16) }}</a>{% endif %}</div>
+          <button class="sls-button sls-secondary sls-load-more" type="button" id="saleLoadMore" {% if not asset_next_page %}hidden{% endif %}>Cargar más unidades</button>
+        </div>
+        <article class="sls-selected" id="saleSelectedAsset" hidden>
+          <div class="sls-media sls-selected-photo"><img id="saleSelectedImage" data-asset-image alt="" width="1169" height="780" decoding="async" hidden><div class="sls-no-photo" data-photo-placeholder>{{ icon('car',52) }}<span>Sin foto</span></div></div>
+          <div class="sls-selected-actions"><button type="button" class="sls-text-link" id="saleAssetClear">{{ icon('refresh',16) }}Cambiar unidad</button>{% if can('inventory.manage') %}<label class="sls-text-link sls-photo-upload" for="salePhotoInput">{{ icon('sales-camera',17) }}<span id="salePhotoLabel">Agregar foto</span><input id="salePhotoInput" type="file" accept="image/jpeg,image/png,image/webp" class="sls-sr-only"></label>{% endif %}</div>
+          <p class="sls-notice" id="salePhotoStatus" role="status" hidden></p>
+          <div class="sls-selected-heading"><div><span class="sls-eyebrow" id="saleSelectedKind"></span><h2 id="saleSelectedName"></h2></div><div class="sls-target"><span>Precio de inventario</span><strong id="saleTargetPrice">—</strong></div></div>
+          <dl class="sls-specs"><div><dt id="saleIdentifierLabel">Placa / serial</dt><dd id="saleSelectedIdentifier">—</dd></div><div><dt>Marca y modelo</dt><dd id="saleSelectedModel">—</dd></div><div><dt id="saleYearLabel">Año</dt><dd id="saleSelectedYear">—</dd></div><div><dt id="saleMileageLabel">Kilometraje</dt><dd id="saleSelectedMileage">—</dd></div></dl>
+        </article>
+      </section>
+      <div class="sls-panel sls-checkout">
+        <section class="sls-sale-fields" data-step-panel="2">
+          <div class="sls-panel-heading"><div><span class="sls-eyebrow">OPERACIÓN</span><h2>Precio y comprador</h2></div>{{ icon('home-sales',25) }}</div>
+          <div class="sls-field-grid">
+            <label class="sls-field sls-price-field"><span>Precio final por unidad <b>*</b></span><div class="sls-price-input"><span>RD$</span><input id="saleUnitPrice" type="number" name="unit_price" value="{{ form.get('unit_price','') }}" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required></div></label>
+            <label class="sls-field"><span>Cantidad <b>*</b></span><input type="number" name="quantity" id="saleQuantity" value="{{ form.get('quantity','1') }}" min="1" step="1" inputmode="numeric" required></label>
+            <label class="sls-field"><span>Fecha de venta</span><input type="date" name="sale_date" id="saleDate" value="{{ form.get('sale_date',default_date) }}" required></label>
+            <label class="sls-field"><span>Método de pago</span><select name="payment_method" id="salePaymentMethod">{% for value,label in [('cash','Efectivo'),('transfer','Transferencia'),('deposit','Depósito'),('card','Tarjeta'),('other','Otro')] %}<option value="{{ value }}" {{ 'selected' if form.get('payment_method','cash')==value }}>{{ label }}</option>{% endfor %}</select></label>
+          </div>
+          <div class="sls-buyer-heading"><h3>Comprador</h3><span>Opcional</span></div>
+          <label class="sls-field"><span>Cliente registrado</span><input class="sls-client-search" type="search" autocomplete="off" placeholder="Buscar cliente por nombre" data-remote-select="{{ url_for('main.client_lookup_api') }}" data-remote-target="saleClientSelect"><select name="client_id" id="saleClientSelect"><option value="">Cliente ocasional</option>{% for client in clients %}<option value="{{ client.id }}" data-phone="{{ client.phone or '' }}" {{ 'selected' if form.get('client_id')|string==client.id|string }}>{{ client.full_name }}{% if client.phone %} · {{ client.phone }}{% endif %}</option>{% endfor %}</select></label>
+          <div class="sls-field-grid sls-buyer-fields" id="saleOccasionalFields"><label class="sls-field"><span>Nombre del comprador</span><input name="buyer_name" id="saleBuyerName" value="{{ form.get('buyer_name','') }}" maxlength="140" placeholder="Nombre y apellido" autocomplete="name"></label><label class="sls-field"><span>Teléfono</span><input name="buyer_phone" value="{{ form.get('buyer_phone','') }}" maxlength="40" type="tel" placeholder="809-000-0000" autocomplete="tel"></label></div>
+          <details class="sls-extra-fields" {% if form.get('reference') or form.get('notes') %}open{% endif %}><summary>Referencia y nota <span>Opcional</span>{{ icon('plus',16) }}</summary><div><label class="sls-field"><span>Referencia de pago</span><input name="reference" maxlength="120" value="{{ form.get('reference','') }}" placeholder="Número de transferencia o recibo"></label><label class="sls-field"><span>Nota de la operación</span><textarea name="notes" rows="2" maxlength="240" placeholder="Observación adicional">{{ form.get('notes','') }}</textarea></label></div></details>
+        </section>
+        <section class="sls-review" data-step-panel="3">
+          <div class="sls-mobile-review-title"><span class="sls-eyebrow">CONFIRMACIÓN</span><h2>Revisa la venta</h2></div>
+          <div class="sls-review-product" id="saleReviewProduct" hidden><div class="sls-media"><img id="saleReviewImage" data-asset-image alt="" width="1169" height="780" hidden><div class="sls-no-photo" data-photo-placeholder>{{ icon('car',28) }}</div></div><div><strong id="saleReviewName"></strong><small id="saleReviewMeta"></small></div></div>
+          <dl class="sls-review-lines"><div><dt>Costo real <span>(estimado)</span></dt><dd id="saleCostPreview">—</dd></div><div><dt>Utilidad <span>(estimada)</span></dt><dd class="sls-positive" id="saleProfitPreview">—</dd></div><div class="sls-mobile-only"><dt>Comprador</dt><dd id="saleReviewBuyer">Cliente ocasional</dd></div><div class="sls-mobile-only"><dt>Pago</dt><dd id="saleReviewMethod">Efectivo</dd></div><div class="sls-mobile-only"><dt>Fecha</dt><dd id="saleReviewDate"></dd></div></dl>
+          <p class="sls-notice sls-warning" id="saleLossWarning" hidden>El precio final está por debajo del costo registrado.</p>
+          <div class="sls-final-total"><span>Total de la venta</span><strong id="saleFinalTotal">—</strong></div>
+          <p class="sls-close-note">{{ icon('sales-check',17) }}Al registrar, confirmas que recibiste el pago completo.</p>
+          <button class="sls-button sls-primary sls-desktop-submit" id="saleSubmit" type="submit" disabled>Registrar venta {{ icon('sales-arrow',18) }}</button>
+          <p class="sls-separation-note">Venta directa. No genera cuotas ni cuentas por cobrar.</p>
+        </section>
       </div>
-    </section>
-
-    <section class="surface sale-buyer-panel">
-      <div class="sale-panel-head"><span class="sale-step">3</span><div><h2>Comprador</h2><p>Puede ser un cliente guardado o una venta ocasional.</p></div></div>
-      <label class="field smart-select-field-v17"><span>Cliente guardado <small>(opcional)</small></span><input class="smart-select-search-v17" type="search" autocomplete="off" placeholder="Buscar cliente" data-remote-select="{{ url_for('main.client_lookup_api') }}" data-remote-target="saleClientSelect"><select name="client_id" id="saleClientSelect"><option value="">Cliente ocasional</option>{% for client in clients %}<option value="{{ client.id }}" data-phone="{{ client.phone or '' }}" {{ 'selected' if form.get('client_id')|string==client.id|string }}>{{ client.full_name }}{% if client.phone %} · {{ client.phone }}{% endif %}</option>{% endfor %}</select></label>
-      <div class="form-grid two sale-occasional-fields" id="saleOccasionalFields">
-        <label class="field"><span>Nombre</span><input name="buyer_name" value="{{ form.get('buyer_name','') }}" maxlength="140" placeholder="Cliente ocasional"></label>
-        <label class="field"><span>Teléfono</span><input name="buyer_phone" value="{{ form.get('buyer_phone','') }}" maxlength="40" inputmode="tel" placeholder="809-000-0000"></label>
-      </div>
-      <label class="field"><span>Nota</span><textarea name="notes" rows="2" maxlength="240" placeholder="Opcional">{{ form.get('notes','') }}</textarea></label>
-    </section>
-
-    <aside class="surface sale-final-card">
-      <span>Venta directa</span><strong id="saleFinalTotal">RD$0</strong><small id="saleFinalText">Selecciona un artículo.</small>
-      <button class="btn btn-primary btn-lg" type="submit" id="saleSubmit">Registrar venta</button>
-      <p>{{ icon('check', 15) }} Descuenta Inventario y registra utilidad. No crea cuotas.</p>
-    </aside>
+    </div>
+    <div class="sls-mobile-actions"><div><span>Total de venta</span><strong id="saleMobileTotal">—</strong></div><button type="button" class="sls-button sls-primary" id="saleMobileNext"><span>Continuar</span>{{ icon('sales-arrow',18) }}</button></div>
+    <noscript><p class="sls-notice sls-error">Activa JavaScript para seleccionar el inventario y registrar una venta.</p></noscript>
   </form>
+  <script type="application/json" id="saleInitialData">{{ {'items': asset_payloads, 'selected': selected_asset_payload, 'next_page': asset_next_page, 'total': asset_count, 'posted': request.method == 'POST'}|tojson }}</script>
+  <template id="salePickerCardTemplate"><button class="sls-picker-card" type="button"><span class="sls-media"><img data-asset-image width="1169" height="780" alt="" loading="lazy" decoding="async" hidden><span class="sls-no-photo" data-photo-placeholder>{{ icon('car',46) }}<span>Sin foto</span></span></span><span class="sls-picker-copy"><span class="sls-picker-title"></span><span class="sls-picker-spec"></span><span class="sls-picker-bottom"><strong></strong><span class="sls-pick-arrow">{{ icon('plus',17) }}</span></span></span></button></template>
 </section>
-{% endblock %}
-{% block scripts %}
-<script>
-(() => {
-  const search = document.getElementById('saleAssetSearch');
-  const results = document.getElementById('saleAssetResults');
-  const assetId = document.getElementById('saleAssetId');
-  const selected = document.getElementById('saleSelectedAsset');
-  const image = document.getElementById('saleSelectedImage');
-  const placeholder = document.getElementById('saleSelectedPlaceholder');
-  const name = document.getElementById('saleSelectedName');
-  const meta = document.getElementById('saleSelectedMeta');
-  const kind = document.getElementById('saleSelectedKind');
-  const clear = document.getElementById('saleAssetClear');
-  const quantity = document.getElementById('saleQuantity');
-  const price = document.getElementById('saleUnitPrice');
-  const target = document.getElementById('saleTargetPrice');
-  const costPreview = document.getElementById('saleCostPreview');
-  const profitPreview = document.getElementById('saleProfitPreview');
-  const finalTotal = document.getElementById('saleFinalTotal');
-  const finalText = document.getElementById('saleFinalText');
-  const client = document.getElementById('saleClientSelect');
-  const occasional = document.getElementById('saleOccasionalFields');
-  const money = new Intl.NumberFormat('es-DO',{style:'currency',currency:'DOP',maximumFractionDigits:2});
-  let current = null, timer = null, seq = 0;
-  const kindLabel = (kindValue) => kindValue === 'car' ? 'Carro' : (kindValue === 'motorcycle' ? 'Motor' : 'Artículo');
-  const safe = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-
-  const updateMoney = () => {
-    const qty = Math.max(1, Number(quantity?.value || 1));
-    const unit = Math.max(0, Number(price?.value || 0));
-    const base = Number(current?.price || 0);
-    const inv = Number(current?.investment_total || 0) / Math.max(1, Number(current?.stock_total || current?.available || 1));
-    const cost = (base + inv) * qty;
-    const total = unit * qty;
-    if (target) target.textContent = money.format(Number(current?.sale_price || 0));
-    if (costPreview) costPreview.textContent = money.format(cost);
-    if (profitPreview) { profitPreview.textContent = money.format(total-cost); profitPreview.classList.toggle('text-danger', total-cost < 0); }
-    if (finalTotal) finalTotal.textContent = money.format(total);
-    if (finalText) finalText.textContent = current ? `${qty} × ${current.name} · ${money.format(total-cost)} de utilidad estimada` : 'Selecciona un artículo.';
-  };
-  const selectAsset = (item) => {
-    current = item;
-    assetId.value = item.id;
-    name.textContent = item.name;
-    kind.textContent = kindLabel(item.kind);
-    const metaParts = [
-      `${item.available} disponible${Number(item.available)===1?'':'s'}`,
-      [item.brand, item.model].filter(Boolean).join(' '),
-      item.identifier || item.serial_number || '',
-      item.vehicle_year ? `Año ${item.vehicle_year}` : '',
-      item.mileage ? `${Number(item.mileage).toLocaleString('es-DO')} km` : '',
-      item.image_url ? 'Con foto' : 'Sin foto',
-    ].filter(Boolean);
-    meta.textContent = metaParts.join(' · ');
-    quantity.max = item.available; if (item.kind==='car' || item.kind==='motorcycle') { quantity.value=1; quantity.max=1; }
-    if (!price.value || Number(price.value) <= 0) price.value = item.sale_price && Number(item.sale_price)>0 ? item.sale_price : item.price;
-    if (item.image_url) { image.src=item.image_url; image.hidden=false; placeholder.hidden=true; } else { image.hidden=true; placeholder.hidden=false; }
-    selected.hidden=false; results.innerHTML=''; search.value=''; updateMoney();
-  };
-  const render = (items) => {
-    results.innerHTML='';
-    if (!items.length) { results.innerHTML='<p class="sale-search-empty">No encontré artículos disponibles.</p>'; return; }
-    items.forEach((item) => {
-      const b=document.createElement('button');
-      const specs = [
-        [item.brand, item.model].filter(Boolean).join(' '),
-        item.identifier || item.serial_number || '',
-        item.vehicle_year ? `Año ${item.vehicle_year}` : '',
-      ].filter(Boolean);
-      b.type='button';
-      b.className='sale-asset-option';
-      b.innerHTML=`<span class="sale-asset-option-media">${item.image_url?`<img src="${item.image_url}" alt="" loading="lazy">`:`<span>${kindLabel(item.kind)==='Artículo' ? '▣' : '🚗'}</span>`}</span><span class="sale-asset-option-copy"><strong>${safe(item.name)}</strong><small>${safe(specs.join(' · ') || `${item.available} disponible${Number(item.available)===1?'':'s'}`)}</small><span class="sale-asset-option-tags"><span class="sale-meta-chip">${safe(kindLabel(item.kind))}</span>${(item.identifier || item.serial_number) ? `<span class="sale-meta-chip is-strong">${safe(item.identifier || item.serial_number)}</span>` : ''}<span class="sale-meta-chip ${item.image_url ? 'is-photo' : 'is-muted'}">${item.image_url ? 'Con foto' : 'Sin foto'}</span></span></span><b>${money.format(Number(item.sale_price||item.price||0))}</b>`;
-      b.addEventListener('click',()=>selectAsset(item));
-      results.appendChild(b);
-    });
-  };
-  const load = async (q='') => { const token=++seq; try { const r=await fetch(`{{ url_for('main.asset_lookup_api') }}?q=${encodeURIComponent(q)}`,{headers:{Accept:'application/json'}}); const data=await r.json(); if(token!==seq)return; (data.items||[]).forEach(x=>{ if (!x.stock_total) x.stock_total=x.available; }); render(data.items||[]); } catch(e) { if(token===seq) results.innerHTML='<p class="sale-search-empty">No se pudo cargar Inventario.</p>'; } };
-  search?.addEventListener('input',()=>{ clearTimeout(timer); timer=setTimeout(()=>load(search.value.trim()),160); });
-  search?.addEventListener('focus',()=>{ if(!current && !results.children.length) load(search.value.trim()); });
-  clear?.addEventListener('click',()=>{current=null;assetId.value='';selected.hidden=true;price.value='';load('');updateMoney();search.focus();});
-  quantity?.addEventListener('input',updateMoney); price?.addEventListener('input',updateMoney);
-  const syncClient=()=>{if(occasional) occasional.hidden=Boolean(client?.value);}; client?.addEventListener('change',syncClient); syncClient();
-  {% if form.get('asset_id') %}
-  const selectedAssetId = {{ (form.get('asset_id') or '')|tojson }};
-  fetch(`{{ url_for('main.asset_lookup_api') }}?q=`).then(r=>r.json()).then(d=>{const hit=(d.items||[]).find(x=>String(x.id)===String(selectedAssetId));if(hit)selectAsset(hit);});
-  {% endif %}
-  updateMoney();
-})();
-</script>
 {% endblock %}

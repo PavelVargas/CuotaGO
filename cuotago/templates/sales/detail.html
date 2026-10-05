@@ -1,42 +1,28 @@
-{% extends 'base.html' %}
+{% extends 'sales/base.html' %}
 {% from 'macros/icons.html' import icon %}
+{% from 'sales/_components.html' import heading, media with context %}
 {% block title %}{{ sale.code }} · Ventas · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page sales-page sale-detail-page">
-  <div class="page-head sales-page-head no-print">
-    <div class="page-head-left"><a class="icon-btn" href="{{ url_for('main.sales') }}" aria-label="Volver">{{ icon('back', 22) }}</a><span class="module-context-icon accent-orange" aria-hidden="true">{{ icon('home-sales', 24) }}</span><div><span class="eyebrow">VENTAS</span><h1>{{ sale.code }}</h1><p>{{ sale.sale_date.strftime('%d/%m/%Y') }} · {{ sale.buyer_display }}</p></div></div>
-    <button class="btn btn-secondary" type="button" onclick="window.print()">Imprimir</button>
-  </div>
-
-  {% set detail_kind_label = 'Carro' if sale.asset.kind == 'car' else ('Motor' if sale.asset.kind == 'motorcycle' else 'Artículo') %}
-  <article class="surface sale-detail-hero {{ 'is-voided' if sale.status=='voided' }}">
-    <div class="sale-detail-media">{% if sale.asset.image_mime %}<img src="{{ url_for('main.asset_image', asset_id=sale.asset.id, v=(sale.asset.image_updated_at.strftime('%Y%m%d%H%M%S') if sale.asset.image_updated_at else 'legacy')) }}" alt="{{ sale.asset.name }}" decoding="async">{% else %}<span>{{ icon('car' if sale.asset.kind in ['car','motorcycle'] else 'home-inventory', 54) }}</span>{% endif %}</div>
-    <div class="sale-detail-copy">
-      <div class="sale-detail-status-row"><span class="sale-status {{ 'is-voided' if sale.status=='voided' }}">{{ sale_status_label(sale.status) }}</span><span>Venta directa</span></div>
-      <span class="eyebrow">{{ 'VEHÍCULO' if sale.asset.kind in ['car','motorcycle'] else 'ARTÍCULO' }}</span><h2>{{ sale.asset.name }}</h2><p>{{ [sale.asset.brand, sale.asset.model]|select|join(' · ') }}{% if sale.asset.identifier %} · {{ sale.asset.identifier }}{% endif %}</p>
-      <div class="sale-detail-tags">
-        <span class="sale-meta-chip">{{ detail_kind_label }}</span>
-        {% if sale.asset.vehicle_year %}<span class="sale-meta-chip">{{ sale.asset.vehicle_year }}</span>{% endif %}
-        {% if sale.asset.mileage %}<span class="sale-meta-chip">{{ '{:,.0f}'.format(sale.asset.mileage).replace(',', '.') }} km</span>{% endif %}
-        {% if sale.asset.image_mime %}<span class="sale-meta-chip is-photo">Con foto</span>{% endif %}
+<section class="sls-workspace sls-detail">
+  {{ heading(sale.code, 'Detalle de la venta · ' ~ sale.sale_date.strftime('%d/%m/%Y'), url_for('main.sales'), print_button=true) }}
+  {% if sale.status=='voided' %}<div class="sls-notice sls-error"><strong>Venta anulada.</strong> {{ sale.void_reason or 'Sin motivo registrado.' }} La unidad fue devuelta al inventario.</div>{% endif %}
+  <div class="sls-detail-layout">
+    <article class="sls-panel sls-vehicle-file">
+      <div class="sls-card-photo">{{ media(sale.asset, large=true, eager=true) }}<span class="sls-badge {{ 'is-voided' if sale.status=='voided' }}">{{ sale_status_label(sale.status) }}</span></div>
+      <div class="sls-vehicle-info"><span class="sls-eyebrow">{{ asset_kind_label(sale.asset.kind) }}</span><h2>{{ sale.asset.name }}</h2><p>{{ [sale.asset.brand, sale.asset.model]|select|join(' · ') }}</p>
+        <dl class="sls-specs"><div><dt>{{ 'Placa' if sale.asset.kind in ['car','motorcycle'] else 'Identificador' }}</dt><dd>{{ sale.asset.identifier or '—' }}</dd></div><div><dt>{{ 'Chasis / VIN' if sale.asset.kind in ['car','motorcycle'] else 'Serial' }}</dt><dd>{{ sale.asset.serial_number or '—' }}</dd></div>{% if sale.asset.kind in ['car','motorcycle'] %}<div><dt>Año</dt><dd>{{ sale.asset.vehicle_year or '—' }}</dd></div><div><dt>Kilometraje</dt><dd>{{ '{:,.0f}'.format(sale.asset.mileage) ~ ' km' if sale.asset.mileage is not none else '—' }}</dd></div>{% else %}<div><dt>Cantidad vendida</dt><dd>{{ sale.quantity }}</dd></div><div><dt>Precio unitario</dt><dd>{{ money(sale.unit_price) }}</dd></div>{% endif %}</dl>
+        {% if can('inventory.view') %}<a class="sls-text-link sls-inventory-link" href="{{ url_for('main.asset_detail',asset_id=sale.asset.id) }}">Ver ficha de inventario {{ icon('sales-arrow',17) }}</a>{% endif %}
       </div>
-      <div class="sale-detail-total"><span>Total vendido</span><strong>{{ money(sale.total_amount) }}</strong><small>{{ sale.quantity }} × {{ money(sale.unit_price) }}</small></div>
+    </article>
+    <div class="sls-detail-sidebar">
+      <article class="sls-panel sls-receipt"><div class="sls-panel-heading"><span class="sls-eyebrow">Venta directa</span><span class="sls-subtle">{{ payment_method_label(sale.payment_method) }}</span></div><span class="sls-receipt-label">Total vendido</span><strong class="sls-receipt-total">{{ money(sale.total_amount) }}</strong><p>{{ sale.quantity }} unidad{{ 'es' if sale.quantity!=1 }} × {{ money(sale.unit_price) }}</p>
+        <dl class="sls-review-lines"><div><dt>Costo de compra</dt><dd>{{ money(sale.unit_cost * sale.quantity) }}</dd></div><div><dt>Inversiones asignadas</dt><dd>{{ money(sale.investment_cost) }}</dd></div><div><dt>Costo real</dt><dd>{{ money(sale.total_cost) }}</dd></div><div class="sls-profit-line"><dt>Utilidad</dt><dd class="{{ 'sls-positive' if sale.profit_amount>=0 else 'sls-negative' }}">{{ money(sale.profit_amount) }}</dd></div></dl><small>{{ '%.2f'|format(sale.margin_percent) }}% sobre costo · Valores guardados al vender</small>
+      </article>
+      <article class="sls-panel sls-info-panel"><h3>{{ icon('users',19) }}Comprador</h3><strong>{{ sale.buyer_display }}</strong><p>{{ sale.buyer_phone or (sale.client.phone if sale.client else None) or 'Sin teléfono registrado' }}</p>{% if sale.client and can('clients.view') %}<a class="sls-text-link" href="{{ url_for('main.client_detail',client_id=sale.client.id) }}">Ver cliente {{ icon('sales-arrow',16) }}</a>{% endif %}</article>
+      <article class="sls-panel sls-info-panel"><h3>{{ icon('calendar',19) }}Datos de la operación</h3><dl class="sls-review-lines"><div><dt>Fecha</dt><dd>{{ sale.sale_date.strftime('%d/%m/%Y') }}</dd></div><div><dt>Referencia</dt><dd>{{ sale.reference or '—' }}</dd></div><div><dt>Registro</dt><dd>{{ sale.code }}</dd></div></dl></article>
     </div>
-  </article>
-
-  <section class="sale-detail-kpis">
-    <article class="surface"><span>Costo base</span><strong>{{ money(sale.unit_cost * sale.quantity) }}</strong><small>Costo congelado al vender</small></article>
-    <article class="surface"><span>Inversiones</span><strong>{{ money(sale.investment_cost) }}</strong><small>Trabajos asignados a esta venta</small></article>
-    <article class="surface"><span>Costo real</span><strong>{{ money(sale.total_cost) }}</strong><small>Compra + inversiones</small></article>
-    <article class="surface sale-profit-card"><span>Utilidad</span><strong class="{{ 'text-success' if sale.profit_amount >= 0 else 'text-danger' }}">{{ money(sale.profit_amount) }}</strong><small>{{ '%.2f'|format(sale.margin_percent) }}% sobre costo</small></article>
-  </section>
-
-  <div class="sale-detail-columns">
-    <article class="surface sale-detail-info"><div class="sale-panel-head"><span class="sale-step">$</span><div><h2>Pago</h2><p>Operación cerrada</p></div></div><dl><div><dt>Método</dt><dd>{{ payment_method_label(sale.payment_method) }}</dd></div><div><dt>Referencia</dt><dd>{{ sale.reference or '—' }}</dd></div><div><dt>Fecha</dt><dd>{{ sale.sale_date.strftime('%d/%m/%Y') }}</dd></div><div><dt>Registrada</dt><dd>{{ sale.created_at.strftime('%d/%m/%Y %H:%M') if sale.created_at else '—' }}</dd></div></dl></article>
-    <article class="surface sale-detail-info"><div class="sale-panel-head"><span class="sale-step">✓</span><div><h2>Comprador</h2><p>Datos asociados a esta venta</p></div></div><dl><div><dt>Nombre</dt><dd>{% if sale.client %}<a href="{{ url_for('main.client_detail', client_id=sale.client.id) }}">{{ sale.client.full_name }}</a>{% else %}{{ sale.buyer_name or 'Cliente ocasional' }}{% endif %}</dd></div><div><dt>Teléfono</dt><dd>{{ sale.buyer_phone or (sale.client.phone if sale.client else None) or '—' }}</dd></div><div><dt>Artículo</dt><dd><a href="{{ url_for('main.asset_detail', asset_id=sale.asset.id) }}">Ver en Inventario</a></dd></div><div><dt>Estado</dt><dd>{{ sale_status_label(sale.status) }}</dd></div></dl></article>
   </div>
-  {% if sale.notes %}<article class="surface sale-notes"><span>Nota</span><p>{{ sale.notes }}</p></article>{% endif %}
-  {% if sale.status=='voided' %}<article class="surface sale-voided-note"><strong>Venta anulada</strong><p>{{ sale.void_reason or 'Sin motivo registrado.' }}</p></article>{% endif %}
-  {% if can('sales.manage') and sale.status=='completed' %}<details class="surface sale-danger-zone no-print"><summary>Anular venta</summary><form method="post" action="{{ url_for('main.sale_void', sale_id=sale.id) }}" onsubmit="return confirm('¿Anular esta venta? La unidad volverá a Inventario.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="field"><span>Motivo *</span><input name="reason" required minlength="3" maxlength="240" placeholder="Ej. Venta cancelada por el comprador"></label><button class="btn btn-danger" type="submit">Anular y devolver al inventario</button></form></details>{% endif %}
+  {% if sale.notes %}<article class="sls-panel sls-note-panel"><h3>Nota de la operación</h3><p>{{ sale.notes }}</p></article>{% endif %}
+  {% if can('sales.manage') and sale.status=='completed' %}<details class="sls-void"><summary>Anular esta venta</summary><p>La unidad regresará al inventario. La operación permanecerá en el historial como anulada.</p><form method="post" action="{{ url_for('main.sale_void',sale_id=sale.id) }}" data-sale-void><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="sls-field"><span>Motivo de anulación</span><input name="reason" required minlength="3" maxlength="240" placeholder="Escribe el motivo"></label><button class="sls-button sls-danger" type="submit">Anular y devolver al inventario</button></form></details>{% endif %}
 </section>
 {% endblock %}

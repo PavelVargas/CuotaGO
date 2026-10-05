@@ -2077,6 +2077,90 @@ def asset_lookup_api():
     return jsonify({"ok": True, "items": rows})
 
 
+def _sale_inventory_query(q="", kind=""):
+    sold = db.session.query(func.coalesce(func.sum(case(
+        (Sale.quantity > 0, Sale.quantity), else_=1
+    )), 0)).filter(Sale.asset_id == Asset.id, Sale.status == "completed").correlate(Asset).scalar_subquery()
+    committed = db.session.query(func.coalesce(func.sum(case(
+        (Contract.quantity > 0, Contract.quantity), else_=1
+    )), 0)).filter(Contract.asset_id == Asset.id, or_(
+        Contract.status == "active",
+        and_(Contract.status == "completed", Contract.deal_type == "credit_sale"),
+    )).correlate(Asset).scalar_subquery()
+    stock = case((or_(Asset.quantity_total.is_(None), Asset.quantity_total == 0), 1), else_=Asset.quantity_total)
+    query = Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales), selectinload(Asset.investments)).filter(
+        Asset.organization_id == current_user.organization_id,
+        Asset.status.notin_(["maintenance", "workshop"]), stock > sold + committed,
+    )
+    if kind in {"car", "motorcycle"}:
+        query = query.filter(Asset.kind == kind)
+    elif kind == "other":
+        query = query.filter(Asset.kind.notin_(["car", "motorcycle"]))
+    if q:
+        like = f"%{q}%"
+        clauses = [Asset.name.ilike(like), Asset.brand.ilike(like), Asset.model.ilike(like),
+                   Asset.identifier.ilike(like), Asset.serial_number.ilike(like)]
+        if q.isdecimal() and len(q) == 4:
+            clauses.append(Asset.vehicle_year == int(q))
+        query = query.filter(or_(*clauses))
+    return query.order_by(Asset.created_at.desc(), Asset.id.desc())
+
+
+def _sale_asset_payload(asset):
+    version = asset.image_updated_at.strftime("%Y%m%d%H%M%S%f") if asset.image_updated_at else "legacy"
+    return {
+        "id": asset.id, "name": asset.name, "kind": asset.kind, "kind_label": asset_kind_label(asset.kind),
+        "brand": asset.brand or "", "model": asset.model or "", "identifier": asset.identifier or "",
+        "serial_number": asset.serial_number or "", "vehicle_year": asset.vehicle_year, "mileage": asset.mileage,
+        "available": asset.available_quantity, "stock_total": max(int(asset.quantity_total or 1), 1),
+        "price": str(money_decimal(asset.estimated_value)), "sale_price": str(money_decimal(asset.sale_price)),
+        "investment_total": str(money_decimal(sum((money_decimal(x.amount) for x in asset.investments), Decimal("0.00")))),
+        "image_url": url_for("main.asset_image", asset_id=asset.id, thumb=1, v=version) if asset.image_mime else "",
+        "full_image_url": url_for("main.asset_image", asset_id=asset.id, v=version) if asset.image_mime else "",
+        "photo_upload_url": url_for("main.sale_asset_photo", asset_id=asset.id) if has_permission(current_user, "inventory.manage") else "",
+    }
+
+
+@main_bp.get("/api/sales/assets")
+@login_required
+@permission_required("sales.manage")
+def sale_assets_api():
+    q = (request.args.get("q") or "").strip()[:100]
+    kind = (request.args.get("kind") or "").strip()
+    page = max(1, request.args.get("page", 1, type=int) or 1)
+    pagination = _sale_inventory_query(q, kind).paginate(page=page, per_page=12, error_out=False)
+    response = jsonify({"ok": True, "items": [_sale_asset_payload(x) for x in pagination.items],
+                        "total": pagination.total, "next_page": pagination.next_num if pagination.has_next else None})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@main_bp.post("/api/sales/assets/<int:asset_id>/photo")
+@login_required
+@permission_required("sales.manage")
+@permission_required("inventory.manage")
+def sale_asset_photo(asset_id):
+    asset = scoped_asset(asset_id)
+    try:
+        image, mime, thumb = read_asset_image_upload(request.files.get("image"))
+        if not image:
+            return jsonify({"ok": False, "error": "Selecciona una foto JPG, PNG o WebP."}), 400
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    try:
+        asset.image_data, asset.image_mime, asset.image_thumb_data = image, mime, thumb
+        asset.image_updated_at = datetime.utcnow()
+        tenant_audit("asset.photo_updated", "asset", asset.id, "Foto de inventario actualizada desde Ventas.")
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Could not update inventory photo from sales")
+        return jsonify({"ok": False, "error": "No se pudo guardar la foto. Intenta nuevamente."}), 500
+    response = jsonify({"ok": True, "item": _sale_asset_payload(asset)})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
 @main_bp.get("/sales")
 @login_required
 @permission_required("sales.view")
@@ -2110,11 +2194,12 @@ def sales():
         query = query.outerjoin(Client, Sale.client_id == Client.id).join(Asset, Sale.asset_id == Asset.id).filter(or_(
             Sale.code.ilike(like), Sale.buyer_name.ilike(like), Sale.buyer_phone.ilike(like),
             Client.full_name.ilike(like), Client.phone.ilike(like),
-            Asset.name.ilike(like), Asset.identifier.ilike(like), Asset.serial_number.ilike(like),
+            Asset.name.ilike(like), Asset.brand.ilike(like), Asset.model.ilike(like),
+            Asset.identifier.ilike(like), Asset.serial_number.ilike(like),
         ))
 
     page = max(request.args.get("page", 1, type=int) or 1, 1)
-    pagination = query.order_by(Sale.sale_date.desc(), Sale.created_at.desc()).paginate(page=page, per_page=60, error_out=False)
+    pagination = query.order_by(Sale.sale_date.desc(), Sale.created_at.desc()).paginate(page=page, per_page=24, error_out=False)
     items = pagination.items
 
     month_start = today_value.replace(day=1)
@@ -2132,6 +2217,7 @@ def sales():
         "sales/list.html", sales=items, pagination=pagination, q=q, period=period, method=method, status=status,
         month_revenue=month_revenue, month_profit=month_profit, month_units=month_units,
         today_count=len(today_sales), today_revenue=today_revenue, month_margin=margin,
+        available_preview=_sale_inventory_query().limit(4).all() if not items and has_permission(current_user, "sales.manage") else [],
     )
 
 
@@ -2141,7 +2227,7 @@ def sales():
 def sale_new():
     org_id = current_user.organization_id
     form = request.form if request.method == "POST" else {}
-    selected_asset_id = parse_int(form.get("asset_id")) if form else None
+    selected_asset_id = parse_int(form.get("asset_id") if form else request.args.get("asset_id"))
     selected_client_id = parse_int(form.get("client_id")) if form else None
 
     if request.method == "POST":
@@ -2237,14 +2323,20 @@ def sale_new():
                     return redirect(url_for("main.sale_detail", sale_id=sale.id))
 
     clients = Client.query.filter_by(organization_id=org_id).order_by(Client.full_name.asc()).limit(80).all()
-    assets_query = Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales), selectinload(Asset.investments)).filter(
-        Asset.organization_id == org_id, Asset.status.notin_(["maintenance", "workshop"])
-    ).order_by(Asset.created_at.desc()).limit(160).all()
-    assets = [item for item in assets_query if item.available_quantity > 0][:100]
+    if selected_client_id and all(x.id != selected_client_id for x in clients):
+        selected_client = Client.query.filter_by(id=selected_client_id, organization_id=org_id).first()
+        if selected_client:
+            clients.append(selected_client)
+    inventory_page = _sale_inventory_query().paginate(page=1, per_page=12, error_out=False)
+    selected_asset = _sale_inventory_query().filter(Asset.id == selected_asset_id).first() if selected_asset_id else None
     return render_template(
-        "sales/form.html", form=form, clients=clients, assets=assets,
+        "sales/form.html", form=form, clients=clients, assets=inventory_page.items,
+        asset_payloads=[_sale_asset_payload(x) for x in inventory_page.items],
+        asset_count=inventory_page.total, asset_next_page=inventory_page.next_num if inventory_page.has_next else None,
+        selected_asset_payload=_sale_asset_payload(selected_asset) if selected_asset else None,
         request_key=(form.get("request_key") if form else None) or uuid.uuid4().hex,
-        default_date=local_today().isoformat(), selected_asset_id=selected_asset_id, selected_client_id=selected_client_id,
+        default_date=local_today().isoformat(), selected_asset_id=selected_asset.id if selected_asset else None,
+        selected_client_id=selected_client_id,
     )
 
 
