@@ -8,11 +8,18 @@
     <button class="btn btn-secondary" type="button" onclick="window.print()">Imprimir</button>
   </div>
 
+  {% set detail_kind_label = 'Carro' if sale.asset.kind == 'car' else ('Motor' if sale.asset.kind == 'motorcycle' else 'Artículo') %}
   <article class="surface sale-detail-hero {{ 'is-voided' if sale.status=='voided' }}">
-    <div class="sale-detail-media">{% if sale.asset.image_mime %}<img src="{{ url_for('main.asset_image', asset_id=sale.asset.id, v=(sale.asset.image_updated_at.strftime('%Y%m%d%H%M%S') if sale.asset.image_updated_at else 'legacy')) }}" alt="{{ sale.asset.name }}" decoding="async">{% else %}<span>{{ icon('home-inventory', 54) }}</span>{% endif %}</div>
+    <div class="sale-detail-media">{% if sale.asset.image_mime %}<img src="{{ url_for('main.asset_image', asset_id=sale.asset.id, v=(sale.asset.image_updated_at.strftime('%Y%m%d%H%M%S') if sale.asset.image_updated_at else 'legacy')) }}" alt="{{ sale.asset.name }}" decoding="async">{% else %}<span>{{ icon('car' if sale.asset.kind in ['car','motorcycle'] else 'home-inventory', 54) }}</span>{% endif %}</div>
     <div class="sale-detail-copy">
       <div class="sale-detail-status-row"><span class="sale-status {{ 'is-voided' if sale.status=='voided' }}">{{ sale_status_label(sale.status) }}</span><span>Venta directa</span></div>
-      <span class="eyebrow">ARTÍCULO</span><h2>{{ sale.asset.name }}</h2><p>{{ [sale.asset.brand, sale.asset.model]|select|join(' · ') }}{% if sale.asset.identifier %} · {{ sale.asset.identifier }}{% endif %}</p>
+      <span class="eyebrow">{{ 'VEHÍCULO' if sale.asset.kind in ['car','motorcycle'] else 'ARTÍCULO' }}</span><h2>{{ sale.asset.name }}</h2><p>{{ [sale.asset.brand, sale.asset.model]|select|join(' · ') }}{% if sale.asset.identifier %} · {{ sale.asset.identifier }}{% endif %}</p>
+      <div class="sale-detail-tags">
+        <span class="sale-meta-chip">{{ detail_kind_label }}</span>
+        {% if sale.asset.vehicle_year %}<span class="sale-meta-chip">{{ sale.asset.vehicle_year }}</span>{% endif %}
+        {% if sale.asset.mileage %}<span class="sale-meta-chip">{{ '{:,.0f}'.format(sale.asset.mileage).replace(',', '.') }} km</span>{% endif %}
+        {% if sale.asset.image_mime %}<span class="sale-meta-chip is-photo">Con foto</span>{% endif %}
+      </div>
       <div class="sale-detail-total"><span>Total vendido</span><strong>{{ money(sale.total_amount) }}</strong><small>{{ sale.quantity }} × {{ money(sale.unit_price) }}</small></div>
     </div>
   </article>

@@ -30,13 +30,45 @@
     <button class="btn btn-secondary" type="submit">Filtrar</button>
   </form>
 
+  <section class="surface sales-showroom-hero">
+    <div class="sales-showroom-copy">
+      <span class="eyebrow">SHOWROOM</span>
+      <h2>Ventas pensadas para carros, motores y artículos con foto.</h2>
+      <p>La venta luce como un catálogo: foto del inventario, datos del vehículo o producto, comprador, total y utilidad real en el mismo flujo.</p>
+    </div>
+    <div class="sales-showroom-pills" aria-label="Fortalezas del módulo de ventas">
+      <span>Foto del producto</span>
+      <span>Placa / IMEI</span>
+      <span>Utilidad real</span>
+      <span>Venta directa</span>
+    </div>
+  </section>
+
   <div class="sales-list">
     {% for sale in sales %}
+    {% set kind_label = 'Carro' if sale.asset.kind == 'car' else ('Motor' if sale.asset.kind == 'motorcycle' else 'Artículo') %}
+    {% set vehicle_meta = [sale.asset.brand, sale.asset.model]|select|join(' ') %}
     <a class="surface sale-row {{ 'is-voided' if sale.status=='voided' }}" href="{{ url_for('main.sale_detail', sale_id=sale.id) }}">
       <div class="sale-thumb">
-        {% if sale.asset.image_mime %}<img src="{{ url_for('main.asset_image', asset_id=sale.asset.id, thumb=1, v=(sale.asset.image_updated_at.strftime('%Y%m%d%H%M%S') if sale.asset.image_updated_at else 'legacy')) }}" alt="" loading="lazy" decoding="async">{% else %}<span>{{ icon('home-inventory', 27) }}</span>{% endif %}
+        {% if sale.asset.image_mime %}
+          <img src="{{ url_for('main.asset_image', asset_id=sale.asset.id, thumb=1, v=(sale.asset.image_updated_at.strftime('%Y%m%d%H%M%S') if sale.asset.image_updated_at else 'legacy')) }}" alt="{{ sale.asset.name }}" loading="lazy" decoding="async">
+          <span class="sale-thumb-badge">Con foto</span>
+        {% else %}
+          <span>{{ icon('car' if sale.asset.kind in ['car','motorcycle'] else 'home-inventory', 27) }}</span>
+          <span class="sale-thumb-badge is-muted">Sin foto</span>
+        {% endif %}
       </div>
-      <div class="sale-row-main"><div class="sale-row-title"><strong>{{ sale.asset.name }}</strong><span class="sale-status {{ 'is-voided' if sale.status=='voided' }}">{{ sale_status_label(sale.status) }}</span></div><p>{{ sale.code }} · {{ sale.buyer_display }}</p><small>{{ sale.sale_date.strftime('%d/%m/%Y') }} · {{ payment_method_label(sale.payment_method) }} · {{ sale.quantity }} ud.</small></div>
+      <div class="sale-row-main">
+        <div class="sale-row-title"><strong>{{ sale.asset.name }}</strong><span class="sale-status {{ 'is-voided' if sale.status=='voided' }}">{{ sale_status_label(sale.status) }}</span></div>
+        <p>{{ sale.buyer_display }}</p>
+        <div class="sale-row-specs">
+          <span class="sale-meta-chip">{{ kind_label }}</span>
+          {% if vehicle_meta %}<span class="sale-meta-chip">{{ vehicle_meta }}</span>{% endif %}
+          {% if sale.asset.identifier %}<span class="sale-meta-chip is-strong">{{ sale.asset.identifier }}</span>{% endif %}
+          {% if sale.asset.vehicle_year %}<span class="sale-meta-chip">{{ sale.asset.vehicle_year }}</span>{% endif %}
+        </div>
+        <small>{{ sale.code }} · {{ sale.sale_date.strftime('%d/%m/%Y') }} · {{ payment_method_label(sale.payment_method) }} · {{ sale.quantity }} ud.</small>
+      </div>
       <div class="sale-row-money"><span>Venta</span><strong>{{ money(sale.total_amount) }}</strong><small class="{{ 'text-success' if sale.profit_amount >= 0 else 'text-danger' }}">Utilidad {{ money(sale.profit_amount) }}</small></div>
       <span class="sale-row-chevron">›</span>
     </a>

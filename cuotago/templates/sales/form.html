@@ -10,13 +10,14 @@
   <form method="post" class="sale-create-grid" id="saleForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="request_key" value="{{ request_key }}">
     <section class="surface sale-product-panel">
-      <div class="sale-panel-head"><span class="sale-step">1</span><div><h2>Artículo</h2><p>Selecciona una unidad realmente disponible.</p></div></div>
+      <div class="sale-panel-head"><span class="sale-step">1</span><div><h2>Vehículo o artículo</h2><p>Selecciona una unidad disponible y con su foto de inventario lista para vender.</p></div></div>
+      <div class="sale-showroom-tip">{{ icon('car', 16) }} <span>Prioriza artículos con imagen para que la venta se vea como un verdadero showroom.</span></div>
       <label class="field"><span>Buscar en Inventario</span><input type="search" id="saleAssetSearch" autocomplete="off" enterkeyhint="search" placeholder="Nombre, placa, IMEI o serial"></label>
       <input type="hidden" name="asset_id" id="saleAssetId" value="{{ form.get('asset_id','') }}" required>
       <div class="sale-asset-results" id="saleAssetResults" role="listbox"></div>
       <article class="sale-selected-asset" id="saleSelectedAsset" hidden>
-        <div class="sale-selected-media"><img id="saleSelectedImage" alt="" hidden><span id="saleSelectedPlaceholder">{{ icon('home-inventory', 38) }}</span></div>
-        <div><span id="saleSelectedKind">Inventario</span><strong id="saleSelectedName">Artículo</strong><small id="saleSelectedMeta"></small></div>
+        <div class="sale-selected-media"><img id="saleSelectedImage" alt="" hidden><span id="saleSelectedPlaceholder">{{ icon('car', 38) }}</span></div>
+        <div><span id="saleSelectedKind">Inventario</span><strong id="saleSelectedName">Artículo</strong><small id="saleSelectedMeta"></small><div class="sale-selected-note">La imagen de Inventario será la misma que verás en esta venta.</div></div>
         <button type="button" id="saleAssetClear" aria-label="Cambiar artículo">Cambiar</button>
       </article>
       {% if not assets %}<p class="sale-inline-warning">No hay artículos disponibles. Registra Inventario o cambia una unidad de mantenimiento/taller a Disponible.</p>{% endif %}
@@ -76,6 +77,8 @@
   const occasional = document.getElementById('saleOccasionalFields');
   const money = new Intl.NumberFormat('es-DO',{style:'currency',currency:'DOP',maximumFractionDigits:2});
   let current = null, timer = null, seq = 0;
+  const kindLabel = (kindValue) => kindValue === 'car' ? 'Carro' : (kindValue === 'motorcycle' ? 'Motor' : 'Artículo');
+  const safe = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
   const updateMoney = () => {
     const qty = Math.max(1, Number(quantity?.value || 1));
@@ -91,8 +94,19 @@
     if (finalText) finalText.textContent = current ? `${qty} × ${current.name} · ${money.format(total-cost)} de utilidad estimada` : 'Selecciona un artículo.';
   };
   const selectAsset = (item) => {
-    current = item; assetId.value = item.id; name.textContent = item.name; kind.textContent = item.kind === 'car' ? 'Vehículo' : item.kind === 'motorcycle' ? 'Motor' : 'Inventario';
-    meta.textContent = `${item.available} disponible${Number(item.available)===1?'':'s'}${item.brand ? ' · '+item.brand : ''}${item.model ? ' '+item.model : ''}`;
+    current = item;
+    assetId.value = item.id;
+    name.textContent = item.name;
+    kind.textContent = kindLabel(item.kind);
+    const metaParts = [
+      `${item.available} disponible${Number(item.available)===1?'':'s'}`,
+      [item.brand, item.model].filter(Boolean).join(' '),
+      item.identifier || item.serial_number || '',
+      item.vehicle_year ? `Año ${item.vehicle_year}` : '',
+      item.mileage ? `${Number(item.mileage).toLocaleString('es-DO')} km` : '',
+      item.image_url ? 'Con foto' : 'Sin foto',
+    ].filter(Boolean);
+    meta.textContent = metaParts.join(' · ');
     quantity.max = item.available; if (item.kind==='car' || item.kind==='motorcycle') { quantity.value=1; quantity.max=1; }
     if (!price.value || Number(price.value) <= 0) price.value = item.sale_price && Number(item.sale_price)>0 ? item.sale_price : item.price;
     if (item.image_url) { image.src=item.image_url; image.hidden=false; placeholder.hidden=true; } else { image.hidden=true; placeholder.hidden=false; }
@@ -101,7 +115,19 @@
   const render = (items) => {
     results.innerHTML='';
     if (!items.length) { results.innerHTML='<p class="sale-search-empty">No encontré artículos disponibles.</p>'; return; }
-    items.forEach((item) => { const b=document.createElement('button'); b.type='button'; b.className='sale-asset-option'; b.innerHTML=`<span class="sale-asset-option-media">${item.image_url?`<img src="${item.image_url}" alt="" loading="lazy">`:'<span>▣</span>'}</span><span><strong></strong><small></small></span><b>${money.format(Number(item.sale_price||item.price||0))}</b>`; b.querySelector('strong').textContent=item.name; b.querySelector('small').textContent=`${item.available} disp.${item.detail?' · '+item.detail.replace(/^\d+ disp\.\s*·?\s*/, ''):''}`; b.addEventListener('click',()=>selectAsset(item)); results.appendChild(b); });
+    items.forEach((item) => {
+      const b=document.createElement('button');
+      const specs = [
+        [item.brand, item.model].filter(Boolean).join(' '),
+        item.identifier || item.serial_number || '',
+        item.vehicle_year ? `Año ${item.vehicle_year}` : '',
+      ].filter(Boolean);
+      b.type='button';
+      b.className='sale-asset-option';
+      b.innerHTML=`<span class="sale-asset-option-media">${item.image_url?`<img src="${item.image_url}" alt="" loading="lazy">`:`<span>${kindLabel(item.kind)==='Artículo' ? '▣' : '🚗'}</span>`}</span><span class="sale-asset-option-copy"><strong>${safe(item.name)}</strong><small>${safe(specs.join(' · ') || `${item.available} disponible${Number(item.available)===1?'':'s'}`)}</small><span class="sale-asset-option-tags"><span class="sale-meta-chip">${safe(kindLabel(item.kind))}</span>${(item.identifier || item.serial_number) ? `<span class="sale-meta-chip is-strong">${safe(item.identifier || item.serial_number)}</span>` : ''}<span class="sale-meta-chip ${item.image_url ? 'is-photo' : 'is-muted'}">${item.image_url ? 'Con foto' : 'Sin foto'}</span></span></span><b>${money.format(Number(item.sale_price||item.price||0))}</b>`;
+      b.addEventListener('click',()=>selectAsset(item));
+      results.appendChild(b);
+    });
   };
   const load = async (q='') => { const token=++seq; try { const r=await fetch(`{{ url_for('main.asset_lookup_api') }}?q=${encodeURIComponent(q)}`,{headers:{Accept:'application/json'}}); const data=await r.json(); if(token!==seq)return; (data.items||[]).forEach(x=>{ if (!x.stock_total) x.stock_total=x.available; }); render(data.items||[]); } catch(e) { if(token===seq) results.innerHTML='<p class="sale-search-empty">No se pudo cargar Inventario.</p>'; } };
   search?.addEventListener('input',()=>{ clearTimeout(timer); timer=setTimeout(()=>load(search.value.trim()),160); });

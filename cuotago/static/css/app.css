@@ -7552,3 +7552,106 @@ html[data-theme="dark"] .sale-status{background:#14352a;color:#70dfa8}html[data-
   html.is-standalone-app .sale-danger-zone form{display:block}html.is-standalone-app .sale-danger-zone .btn{width:100%;margin-top:8px}
 }
 @media print{.no-print,.pwa-utility-dock-v61,.pwa-utility-rail-v62{display:none!important}.sale-detail-page{max-width:none!important}.sale-detail-hero,.sale-detail-kpis article,.sale-detail-info{box-shadow:none!important}.sale-detail-hero{border:1px solid #ddd}.sale-detail-page *{color:#111!important}}
+
+
+/* =========================================================
+   CuotaGo v1.25.1 ui-v65 · Sales showroom refresh
+   - Stronger vehicle-selling feel on desktop and PWA.
+   - Product photos are more visible across list/create/detail views.
+   ========================================================= */
+.dashboard-launcher-v3 .accent-orange{--accent:#ff914d;color:#ff914d}
+.sales-page-head .module-context-icon.accent-orange{background:color-mix(in srgb,#ff914d 14%,var(--surface-2));color:#dc6d1e}
+.sales-showroom-hero{display:grid;grid-template-columns:minmax(0,1.2fr) auto;gap:18px;align-items:center;padding:22px 24px;margin-bottom:12px;border-radius:28px;background:
+  radial-gradient(circle at top right,color-mix(in srgb,#ffae73 20%,transparent),transparent 42%),
+  linear-gradient(135deg,color-mix(in srgb,#ff914d 13%,var(--surface)) 0%,var(--surface) 62%,color-mix(in srgb,#243443 5%,var(--surface)) 100%);
+  border:1px solid color-mix(in srgb,#ff914d 22%,var(--border));overflow:hidden}
+.sales-showroom-copy h2{margin:4px 0 6px;font-size:clamp(21px,2.4vw,30px);line-height:1.06;letter-spacing:-.035em}
+.sales-showroom-copy p{margin:0;color:var(--muted);max-width:760px}
+.sales-showroom-pills{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.sales-showroom-pills span,.sale-row-specs .sale-meta-chip,.sale-detail-tags .sale-meta-chip,.sale-asset-option-tags .sale-meta-chip{display:inline-flex;align-items:center;justify-content:center;padding:6px 11px;border-radius:999px;background:color-mix(in srgb,#ff914d 10%,var(--surface-2));border:1px solid color-mix(in srgb,#ff914d 20%,var(--border));color:var(--text-strong);font-size:11px;font-weight:700;line-height:1.1;white-space:nowrap}
+.sale-meta-chip.is-strong{background:color-mix(in srgb,#243443 7%,var(--surface-2));border-color:color-mix(in srgb,#243443 24%,var(--border))}
+.sale-meta-chip.is-photo{background:color-mix(in srgb,#29b66f 10%,var(--surface-2));border-color:color-mix(in srgb,#29b66f 22%,var(--border));color:#17784a}
+.sale-meta-chip.is-muted{background:var(--surface-2);border-color:var(--border);color:var(--muted)}
+.sales-kpi{position:relative;overflow:hidden;background:linear-gradient(180deg,color-mix(in srgb,#ff914d 7%,var(--surface)),var(--surface))}
+.sales-kpi:after{content:"";position:absolute;inset:auto -24px -36px auto;width:88px;height:88px;border-radius:50%;background:color-mix(in srgb,#ff914d 7%,transparent)}
+.sale-row{grid-template-columns:120px minmax(0,1fr) 190px 22px;padding:10px 14px 10px 10px;border-radius:26px;background:linear-gradient(180deg,color-mix(in srgb,#ff914d 3%,var(--surface)),var(--surface));border:1px solid var(--border);box-shadow:0 10px 28px rgba(27,39,54,.05)}
+.sale-row:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(27,39,54,.10)}
+.sale-thumb{position:relative;width:120px;border-radius:20px;background:linear-gradient(160deg,color-mix(in srgb,#1d2f3f 7%,var(--surface-2)),color-mix(in srgb,#ff914d 6%,var(--surface-2)))}
+.sale-thumb img{object-fit:cover}
+.sale-thumb-badge{position:absolute;left:8px;bottom:8px;padding:5px 8px;border-radius:999px;background:rgba(16,22,30,.78);color:#fff;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.sale-thumb-badge.is-muted{background:rgba(255,255,255,.88);color:#495867}
+.sale-row-title{align-items:flex-start;gap:10px;margin-bottom:3px}.sale-row-title strong{font-size:17px;line-height:1.08}
+.sale-row-main p{margin:0 0 8px;font-size:13px;color:var(--text-strong);font-weight:700}
+.sale-row-specs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:7px}
+.sale-row-main small{display:block;color:var(--muted);font-size:11.5px}
+.sale-row-money strong{font-size:19px}.sale-row-money small{font-size:11.5px}
+.sale-row-chevron{font-size:27px}
+.sale-showroom-tip{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:16px;margin-bottom:10px;background:color-mix(in srgb,#ff914d 7%,var(--surface-2));border:1px solid color-mix(in srgb,#ff914d 15%,var(--border));color:var(--text-strong);font-size:12px;font-weight:600}
+.sale-asset-results{gap:9px}
+.sale-asset-option{grid-template-columns:92px minmax(0,1fr) auto;padding:8px 9px;border-radius:20px;background:linear-gradient(180deg,var(--surface-2),color-mix(in srgb,#ff914d 3%,var(--surface-2)));transition:transform .13s ease,border-color .13s ease,box-shadow .13s ease}
+.sale-asset-option:hover{transform:translateY(-1px);box-shadow:0 10px 20px rgba(27,39,54,.07)}
+.sale-asset-option-media{width:92px;border-radius:16px;background:linear-gradient(160deg,color-mix(in srgb,#1d2f3f 8%,var(--surface-3)),color-mix(in srgb,#ff914d 6%,var(--surface-3)))}
+.sale-asset-option-media span{font-size:28px;line-height:1}
+.sale-asset-option-copy{min-width:0;display:flex;flex-direction:column;gap:4px}
+.sale-asset-option-copy strong{font-size:14px;line-height:1.1}.sale-asset-option-copy small{font-size:11px;margin:0}
+.sale-asset-option-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:1px}
+.sale-asset-option>b{align-self:flex-start;font-size:12.5px;padding-top:2px}
+.sale-selected-asset{grid-template-columns:142px minmax(0,1fr) auto;gap:14px;padding:11px;border-radius:22px;background:linear-gradient(140deg,color-mix(in srgb,#ff914d 8%,var(--surface-2)),var(--surface));border-color:color-mix(in srgb,#ff914d 32%,var(--border));box-shadow:0 12px 24px rgba(27,39,54,.05)}
+.sale-selected-media{width:142px;border-radius:18px;background:linear-gradient(160deg,color-mix(in srgb,#1d2f3f 8%,var(--surface-3)),color-mix(in srgb,#ff914d 7%,var(--surface-3)))}
+.sale-selected-asset>div:nth-child(2)>span{font-size:10.5px;letter-spacing:.08em}
+.sale-selected-asset>div:nth-child(2)>strong{font-size:18px;line-height:1.08}
+.sale-selected-asset>div:nth-child(2)>small{display:block;margin-top:4px;font-size:11px;line-height:1.35}
+.sale-selected-note{margin-top:8px;color:#c86d26;font-size:10px;font-weight:700}
+.sale-selected-asset>button{height:40px;padding:0 14px;border:1px solid var(--border)}
+.sale-final-card{border:1px solid color-mix(in srgb,#ff914d 20%,var(--border));box-shadow:0 16px 32px rgba(27,39,54,.06)}
+.sale-detail-hero{background:linear-gradient(120deg,color-mix(in srgb,#121b24 2%,var(--surface)) 0%,var(--surface) 42%,color-mix(in srgb,#ff914d 7%,var(--surface)) 100%);border:1px solid color-mix(in srgb,#ff914d 18%,var(--border))}
+.sale-detail-media{background:linear-gradient(180deg,color-mix(in srgb,#16212d 7%,var(--surface-2)),color-mix(in srgb,#ff914d 7%,var(--surface-2)))}
+.sale-detail-copy{padding:26px 28px}
+.sale-detail-tags{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.sale-detail-total{box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.sale-detail-kpis article,.sale-detail-info,.sale-notes,.sale-voided-note,.sale-danger-zone{border:1px solid var(--border)}
+html[data-theme="dark"] .sales-showroom-hero{background:radial-gradient(circle at top right,rgba(255,145,77,.16),transparent 42%),linear-gradient(135deg,#111922 0%,#121b24 58%,#171f2a 100%);border-color:#354355}
+html[data-theme="dark"] .sale-meta-chip.is-photo{color:#7fe2ad}
+html[data-theme="dark"] .sale-thumb-badge{background:rgba(8,12,16,.78)}
+html[data-theme="dark"] .sale-thumb-badge.is-muted{background:rgba(21,30,40,.9);color:#cfd7e0}
+html[data-theme="dark"] .sale-showroom-tip{color:#f2f5f9}
+
+@media (max-width:1050px){
+  .sales-showroom-hero{grid-template-columns:1fr;gap:12px}
+  .sales-showroom-pills{justify-content:flex-start}
+  .sale-row{grid-template-columns:104px minmax(0,1fr) 170px 22px}
+  .sale-thumb{width:104px}
+  .sale-selected-asset{grid-template-columns:124px minmax(0,1fr)}
+  .sale-selected-media{width:124px}
+  .sale-selected-asset>button{grid-column:1/-1;width:100%}
+}
+
+@media (max-width:720px){
+  html.is-standalone-app .sales-showroom-hero{padding:15px 14px;border-radius:22px;gap:10px;margin-bottom:8px}
+  html.is-standalone-app .sales-showroom-copy h2{font-size:20px}
+  html.is-standalone-app .sales-showroom-copy p{font-size:11px}
+  html.is-standalone-app .sales-showroom-pills{gap:6px}
+  html.is-standalone-app .sales-showroom-pills span,html.is-standalone-app .sale-row-specs .sale-meta-chip,html.is-standalone-app .sale-detail-tags .sale-meta-chip,html.is-standalone-app .sale-asset-option-tags .sale-meta-chip{padding:5px 8px;font-size:9.5px}
+  html.is-standalone-app .sales-kpi{padding:10px 11px}
+  html.is-standalone-app .sale-row{grid-template-columns:88px minmax(0,1fr) auto;padding:8px;border-radius:20px;gap:9px}
+  html.is-standalone-app .sale-thumb{width:88px;border-radius:16px}
+  html.is-standalone-app .sale-thumb-badge{left:6px;bottom:6px;padding:4px 7px;font-size:8px}
+  html.is-standalone-app .sale-row-title strong{font-size:13.5px}
+  html.is-standalone-app .sale-row-main p{font-size:10.7px;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.is-standalone-app .sale-row-specs{gap:4px;margin-bottom:5px}
+  html.is-standalone-app .sale-showroom-tip{padding:9px 10px;margin-bottom:8px;font-size:10.5px;border-radius:14px}
+  html.is-standalone-app .sale-asset-option{grid-template-columns:78px minmax(0,1fr) auto;padding:6px;border-radius:16px;gap:7px}
+  html.is-standalone-app .sale-asset-option-media{width:78px;border-radius:12px}
+  html.is-standalone-app .sale-asset-option-media span{font-size:24px}
+  html.is-standalone-app .sale-asset-option-copy strong{font-size:12.5px}
+  html.is-standalone-app .sale-asset-option-copy small{font-size:9.5px}
+  html.is-standalone-app .sale-selected-asset{grid-template-columns:1fr;gap:8px;padding:8px;border-radius:16px}
+  html.is-standalone-app .sale-selected-media{width:100%;max-width:100%;aspect-ratio:1169/780;border-radius:13px}
+  html.is-standalone-app .sale-selected-asset>button{width:100%;grid-column:auto;height:38px}
+  html.is-standalone-app .sale-selected-note{font-size:9.5px}
+  html.is-standalone-app .sale-final-card{box-shadow:none}
+  html.is-standalone-app .sale-detail-copy{padding:14px}
+  html.is-standalone-app .sale-detail-tags{gap:6px;margin-bottom:10px}
+}
+
+@media print{.sales-showroom-hero,.sales-showroom-tip{display:none!important}}
