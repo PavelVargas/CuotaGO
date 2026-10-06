@@ -132,12 +132,14 @@ def test_motion_has_one_owner_and_excludes_reduced_motion():
     app=(ROOT/'cuotago/static/js/app.js').read_text(encoding='utf-8')
     css=(ROOT/'cuotago/static/css/motion.css').read_text(encoding='utf-8')
     assert 'pwaMotionStyle' not in app
-    assert '@view-transition { navigation:auto; }' in css
+    assert '@view-transition { navigation:auto; }' not in css
     assert '@view-transition { navigation:none; }' in css
-    assert 'view-transition-name:cuotago-content' in css
+    assert 'view-transition-name:none' in css
+    assert 'view-transition-name:cuotago-content' not in css
     assert 'pointer-events:none' in css
     base=(ROOT/'cuotago/templates/base.html').read_text(encoding='utf-8')
     assert base.index("filename='js/motion.js'") < base.index('</head>')
+    assert 'defer' in base.split("filename='js/motion.js'", 1)[1].split('</script>', 1)[0]
 
 
 def test_new_code_is_versioned_and_in_the_static_worker():

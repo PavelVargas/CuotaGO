@@ -1,5 +1,5 @@
 /* CuotaGo motion: progressive MPA transitions, not a client-side router.
- * Runs in <head> so pagereveal is registered before the first paint.
+ * Deferred: never blocks HTML parsing. No full-page snapshot transitions.
  * No prevented clicks, delayed navigation, fetch of private pages, or timers
  * holding a screen open. Only opacity and transform are animated.
  */
@@ -11,7 +11,6 @@
   const activeAnimations = new Map();
   const isApp = () => root.dataset.authScreen !== '1';
   const path = (url) => new URL(url, location.href).pathname.replace(/\/$/, '') || '/';
-  let hasViewTransition = false;
   let appeared = false;
 
   const directionBetween = (from, to) => {
@@ -37,24 +36,29 @@
     for (const animation of activeAnimations.values()) animation.cancel();
     activeAnimations.clear();
   };
-  const reveal = (element, direction = 'forward', duration = 220) => {
-    if (!element || element.hidden || reduced.matches || !element.animate) return;
-    activeAnimations.get(element)?.cancel();
-    const sign = direction === 'back' ? -1 : 1;
-    const distance = direction === 'fade' ? 0 : 12 * sign;
-    const animation = element.animate([
-      { opacity: .5, transform: `translate3d(${distance}px, 0, 0)` },
+  const reveal = (element, direction = 'forward', duration = 160) => {
+    if (!element || element.hidden || reduced.matches || !element.animate || document.visibilityState === 'hidden') return;
+    // Never promote an entire long inventory/CRM page to an animated texture.
+    // Animate a small heading instead, leaving forms and fixed controls usable.
+    const heading = element.querySelector('.pwa-home-heading,.page-head,.sls-header,.dlr-head,.wizard-progress,h2');
+    const target = heading || element;
+    const box = target.getBoundingClientRect();
+    if (!box.width || !box.height || box.height > Math.min(320, innerHeight * .5)) return;
+    activeAnimations.get(target)?.cancel();
+    const distance = direction === 'fade' ? 0 : (direction === 'back' ? -5 : 5);
+    const animation = target.animate([
+      { opacity: .72, transform: `translate3d(${distance}px, 0, 0)` },
       { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-    ], { duration, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'none' });
-    activeAnimations.set(element, animation);
-    const clear = () => { if (activeAnimations.get(element) === animation) activeAnimations.delete(element); };
+    ], { duration: Math.min(duration, 170), easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'none' });
+    activeAnimations.set(target, animation);
+    const clear = () => { if (activeAnimations.get(target) === animation) activeAnimations.delete(target); };
     animation.finished.then(clear, clear);
   };
   // Shared by agreement steps. It never changes visibility, focus or data.
   window.CuotaGoMotion = Object.freeze({ reveal, cancel: cancelAnimations });
 
   const fallbackEntrance = () => {
-    if (appeared || hasViewTransition || !isApp() || reduced.matches || root.classList.contains('show-boot')) return;
+    if (appeared || !isApp() || reduced.matches || root.classList.contains('show-boot')) return;
     appeared = true;
     // Home geometry includes anchored indicators; only fade its content.
     const target = document.querySelector('.page-shell > .content-page, .page-shell > .launcher-wrap');
@@ -65,24 +69,14 @@
     requestAnimationFrame(fallbackEntrance);
   }, { once: true });
   window.addEventListener('pagereveal', (event) => {
-    const transition = event.viewTransition;
-    if (!transition) { requestAnimationFrame(fallbackEntrance); return; }
-    hasViewTransition = true;
-    appeared = true;
-    cancelAnimations();
-    const activation = window.navigation?.activation;
-    if (activation?.from?.url) {
-      setDirection(activation.navigationType === 'traverse' && activation.entry?.index < activation.from.index
-        ? 'back' : directionBetween(activation.from.url, location.href));
-    }
-    if (reduced.matches || !isApp() || root.classList.contains('show-boot')) transition.skipTransition();
-    // Catch rejected promises on interrupted/unsupported snapshots.
-    transition.ready?.catch(() => {});
-    transition.finished?.catch(() => {});
+    // Compatibility guard if an old cached page opted in to a snapshot.
+    event.viewTransition?.skipTransition();
+    event.viewTransition?.ready?.catch(() => {});
+    event.viewTransition?.finished?.catch(() => {});
+    requestAnimationFrame(fallbackEntrance);
   });
-  window.addEventListener('pageswap', (event) => {
-    if (event.viewTransition && (reduced.matches || !isApp())) event.viewTransition.skipTransition();
-  });
+  window.addEventListener('pageswap', (event) => event.viewTransition?.skipTransition());
+  document.addEventListener('pointerdown', cancelAnimations, { passive: true });
   window.addEventListener('pagehide', cancelAnimations);
   window.addEventListener('pageshow', (event) => {
     if (event.persisted) {

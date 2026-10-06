@@ -1,4 +1,4 @@
-const VERSION = new URL(self.location.href).searchParams.get('v') || '1.26.0-ui-v70';
+const VERSION = new URL(self.location.href).searchParams.get('v') || '1.26.1-ui-v71';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const CORE_ASSETS = [
   '/static/css/app.css',
@@ -35,9 +35,17 @@ const CORE = ['/offline', ...CORE_ASSETS.map(versionedAsset)];
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(STATIC_CACHE);
-    await Promise.all(CORE.map(async (path) => {
-      const response = await fetch(path, { cache: 'reload' });
-      if (response.ok) await cache.put(path, response.clone());
+    // Avoid starting every stylesheet, script and icon at the same instant.
+    // Assets carry a build fingerprint, so normal HTTP cache reuse is safe.
+    let index = 0;
+    await Promise.all(Array.from({ length: 4 }, async () => {
+      while (index < CORE.length) {
+        const path = CORE[index++];
+        try {
+          const response = await fetch(path, { cache: 'default' });
+          if (response.ok) await cache.put(path, response.clone());
+        } catch (_) { /* Runtime fetch retries an optional asset when needed. */ }
+      }
     }));
   })());
   self.skipWaiting();
@@ -109,11 +117,19 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 const fetchWithTimeout = async (request, timeoutMs = 10000, preloadResponse = null) => {
-  const preloaded = preloadResponse ? await preloadResponse.catch(() => null) : null;
-  if (preloaded) return preloaded;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try { return await fetch(request, { signal: controller.signal }); }
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => { controller.abort(); reject(new Error('navigation_timeout')); }, timeoutMs);
+  });
+  const network = async () => {
+    const preloaded = preloadResponse ? await preloadResponse.catch(() => null) : null;
+    if (controller.signal.aborted) throw new Error('navigation_timeout');
+    if (preloaded) return preloaded;
+    return fetch(request, { signal: controller.signal });
+  };
+  // The deadline includes preload: previously a stalled preload waited forever.
+  try { return await Promise.race([network(), deadline]); }
   finally { clearTimeout(timer); }
 };
 
@@ -128,7 +144,11 @@ self.addEventListener('fetch', (event) => {
   // preload only removes service-worker startup latency and still comes from
   // the live server. Offline falls back to a neutral shell instead of stale money.
   if (request.mode === 'navigate') {
-    event.respondWith(fetchWithTimeout(request, 10000, event.preloadResponse).catch(() => caches.match('/offline')));
+    event.respondWith(fetchWithTimeout(request, 10000, event.preloadResponse).catch(async () =>
+      (await caches.match('/offline')) || new Response('Sin conexion. Reintenta cuando vuelva la red.', {
+        status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+      })));
+
     return;
   }
 
@@ -141,8 +161,8 @@ self.addEventListener('fetch', (event) => {
         try {
           const response = await fetch(request, { cache: 'default' });
           if (response && response.ok && response.type === 'basic') {
-            const cache = await caches.open(STATIC_CACHE);
-            await cache.put(request, response.clone());
+            const copy = response.clone();
+            event.waitUntil(caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy)).catch(() => {}));
           }
           return response;
         } catch (_) {
@@ -156,8 +176,8 @@ self.addEventListener('fetch', (event) => {
       const cached = await caches.match(request);
       const network = fetch(request, { cache: 'no-cache' }).then(async (response) => {
         if (response && response.ok && response.type === 'basic') {
-          const cache = await caches.open(STATIC_CACHE);
-          await cache.put(request, response.clone());
+          const copy = response.clone();
+          event.waitUntil(caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy)).catch(() => {}));
         }
         return response;
       }).catch(() => null);

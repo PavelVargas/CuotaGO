@@ -107,86 +107,56 @@
     splash?.remove();
     requestAnimationFrame(markAppReady);
   } else {
-    const splashStartedAt = performance.now();
     let splashFinished = false;
     const finishSplash = () => {
-      if (splashFinished || !splash) return;
+      if (splashFinished) return;
       splashFinished = true;
-      const paintReady = () => requestAnimationFrame(() => requestAnimationFrame(() => {
-        markAppReady();
-        const remaining = Math.max(0, 220 - (performance.now() - splashStartedAt));
-        window.setTimeout(() => {
-          splash.classList.add('is-hidden');
-          window.setTimeout(() => {
-            splash.remove();
-            root.classList.remove('show-boot');
-            applyTheme(readTheme(), false);
-          }, 120);
-        }, remaining);
-      }));
-      if (document.fonts?.ready) document.fonts.ready.then(paintReady).catch(paintReady);
-      else paintReady();
+      // Do not wait for external fonts, photographs or window.load.
+      markAppReady();
+      splash?.classList.add('is-hidden');
+      root.classList.remove('show-boot');
+      window.setTimeout(() => splash?.remove(), 120);
     };
-    if (document.readyState === 'complete') finishSplash();
-    else window.addEventListener('load', finishSplash, { once: true });
-    // A broken/slow image must never trap the user behind the splash.
-    window.setTimeout(finishSplash, 1500);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', finishSplash, { once: true });
+    else requestAnimationFrame(finishSplash);
+    window.setTimeout(finishSplash, 650);
   }
 
-  let pwaRailFrame = 0;
-  let pwaRailTimers = [];
-  const syncPwaUtilityRailOffset = () => {
-    if (!IS_STANDALONE || !document.body?.classList.contains('dashboard-home')) return false;
-    const status = document.querySelector('.dashboard-launcher-v3 .home-status');
-    if (!status) return false;
-    const rect = status.getBoundingClientRect();
-    const viewportHeight = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight;
-    if (!Number.isFinite(rect.top) || !Number.isFinite(viewportHeight) || viewportHeight <= 0) return false;
-    // Anchor the rail to the *current* footer position. On iOS the launcher can
-    // finish laying out after DOM ready (fonts, safe-area and restored viewport).
-    // Measuring only once caused the rail to overlap KPIs until a manual refresh.
-    const offset = Math.ceil(Math.max(120, viewportHeight - rect.top + 12));
-    root.style.setProperty('--pwa-home-footer-offset', `${offset}px`);
-    return true;
-  };
-
-  const queuePwaUtilityRailMeasure = () => {
-    if (pwaRailFrame) cancelAnimationFrame(pwaRailFrame);
-    pwaRailFrame = requestAnimationFrame(() => {
-      pwaRailFrame = 0;
-      syncPwaUtilityRailOffset();
-    });
-  };
-
-  const settlePwaUtilityRail = (delays = [0, 60, 180, 420, 900, 1600]) => {
+  // One measurement per frame, only on Home; no repeated "settling" timers.
+  const setupPwaUtilityRail = () => {
     if (!IS_STANDALONE || !document.body?.classList.contains('dashboard-home')) return;
-    pwaRailTimers.forEach((timer) => window.clearTimeout(timer));
-    pwaRailTimers = [];
-    queuePwaUtilityRailMeasure();
-    delays.filter((delay) => delay > 0).forEach((delay) => {
-      pwaRailTimers.push(window.setTimeout(queuePwaUtilityRailMeasure, delay));
-    });
+    const status = document.querySelector('.dashboard-launcher-v3 .home-status');
+    if (!status) return;
+    let frame = 0;
+    let lastOffset = -1;
+    const measure = () => {
+      frame = 0;
+      if (document.visibilityState === 'hidden') return;
+      const rect = status.getBoundingClientRect();
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      if (!Number.isFinite(rect.top) || !viewportHeight) return;
+      const offset = Math.ceil(Math.max(120, viewportHeight - rect.top + 12));
+      if (offset === lastOffset) return;
+      lastOffset = offset;
+      root.style.setProperty('--pwa-home-footer-offset', `${offset}px`);
+    };
+    const queue = () => { if (!frame) frame = requestAnimationFrame(measure); };
+    const observer = 'ResizeObserver' in window ? new ResizeObserver(queue) : null;
+    const observe = () => {
+      observer?.observe(status);
+      const launcher = document.querySelector('.dashboard-launcher-v3');
+      if (launcher) observer?.observe(launcher);
+      queue();
+    };
+    window.addEventListener('resize', queue, { passive: true });
+    window.visualViewport?.addEventListener('resize', queue, { passive: true });
+    window.addEventListener('pageshow', observe);
+    window.addEventListener('pagehide', () => { observer?.disconnect(); if (frame) cancelAnimationFrame(frame); frame = 0; });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') queue(); });
+    document.fonts?.ready.then(queue).catch(() => {});
+    observe();
   };
-
-  // Re-check a few times after cold launch/restoration. This catches the late
-  // iOS safe-area/layout shift without running a continuous animation loop.
-  settlePwaUtilityRail();
-  window.addEventListener('load', () => settlePwaUtilityRail([0, 80, 240, 600, 1100]), { once: true });
-  window.addEventListener('pageshow', () => settlePwaUtilityRail([0, 80, 260, 700]));
-  window.addEventListener('resize', () => settlePwaUtilityRail([0, 90, 300]), { passive: true });
-  window.addEventListener('orientationchange', () => settlePwaUtilityRail([0, 100, 320, 800]), { passive: true });
-  window.visualViewport?.addEventListener('resize', () => settlePwaUtilityRail([0, 90, 300]), { passive: true });
-  if (document.fonts?.ready) document.fonts.ready.then(() => settlePwaUtilityRail([0, 100, 350, 800])).catch(() => {});
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') settlePwaUtilityRail([0, 90, 300, 700]);
-  });
-  if ('ResizeObserver' in window) {
-    const observer = new ResizeObserver(() => settlePwaUtilityRail([0, 80, 240, 520]));
-    ['.dashboard-launcher-v3', '.dashboard-launcher-v3 .module-grid', '.dashboard-launcher-v3 .home-status']
-      .map((selector) => document.querySelector(selector))
-      .filter(Boolean)
-      .forEach((element) => observer.observe(element));
-  }
+  setupPwaUtilityRail();
 
   const networkBanner = document.getElementById('networkBanner');
   const syncNetworkState = () => {
@@ -217,7 +187,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.26.0-ui-v70';
+  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.26.1-ui-v71';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -569,9 +539,9 @@
     inAppAlertTimer = window.setTimeout(() => host.remove(), 9000);
   };
 
-  const fetchPaymentNotifications = async () => {
-    const data = await apiJson('/api/notifications');
-    updateNotificationBadge(data.badgeCount ?? data.count ?? data.urgentCount ?? 0);
+  const fetchPaymentNotifications = async ({ summary = false, signal } = {}) => {
+    const data = await apiJson(summary ? '/api/notifications?summary=1' : '/api/notifications', { cache: 'no-store', signal });
+    if (!signal?.aborted) updateNotificationBadge(data.badgeCount ?? data.count ?? data.urgentCount ?? 0);
     return data;
   };
 
@@ -589,26 +559,80 @@
     }
   };
 
-  let paymentAlertInterval = null;
-  let lastPaymentAlertPollAt = 0;
   const startPaymentAlertWatcher = () => {
     if (!document.body.classList.contains('app-authenticated') || document.body.dataset.canCollect !== '1') return;
-    // v1.24.6: navigation stays quiet. We refresh only the bell/app badge;
-    // payment alerts live in the notification center instead of reopening a toast
-    // every time the user changes modules.
-    const runPoll = async () => {
-      lastPaymentAlertPollAt = Date.now();
-      try { await fetchPaymentNotifications(); } catch (_) {}
+    const scope = document.body.dataset.notificationScope || '';
+    const key = scope ? `cuotago-badge-v71:${scope}` : '';
+    const interval = IS_STANDALONE ? 90000 : 60000;
+    let checkedAt = 0;
+    let timer = 0;
+    let controller = null;
+    let stopped = document.visibilityState === 'hidden';
+    const restore = () => {
+      try {
+        const cached = key && JSON.parse(sessionStorage.getItem(key) || 'null');
+        if (cached && Number.isFinite(cached.count) && cached.count >= 0 && Number.isFinite(cached.at) && Date.now() >= cached.at && Date.now() - cached.at < interval) {
+          checkedAt = cached.at;
+          updateNotificationBadge(cached.count);
+        }
+      } catch (_) {}
     };
-    const warmup = () => runPoll();
-    if ('requestIdleCallback' in window) requestIdleCallback(warmup, { timeout: 1800 });
-    else window.setTimeout(warmup, IS_STANDALONE ? 700 : 300);
-    if (paymentAlertInterval) window.clearInterval(paymentAlertInterval);
-    paymentAlertInterval = window.setInterval(runPoll, IS_STANDALONE ? 90000 : 60000);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState !== 'visible') return;
-      if ((Date.now() - lastPaymentAlertPollAt) > 60000) runPoll();
+    const schedule = (delay) => {
+      clearTimeout(timer);
+      if (!stopped) timer = window.setTimeout(runPoll, delay);
+    };
+    const runPoll = async () => {
+      if (stopped || document.visibilityState === 'hidden' || controller) return;
+      if (!navigator.onLine) { schedule(interval); return; }
+      const elapsed = Date.now() - checkedAt;
+      if (checkedAt && elapsed < interval) { schedule(interval - elapsed); return; }
+      const request = new AbortController();
+      controller = request;
+      const timeout = window.setTimeout(() => request.abort(), 10000);
+      try {
+        const data = await fetchPaymentNotifications({ summary: true, signal: request.signal });
+        if (request.signal.aborted) return;
+        checkedAt = Date.now();
+        // Only a numeric badge is cached, scoped to this signed-in user.
+        // No balances, customer records, amounts or notification bodies.
+        try { if (key) sessionStorage.setItem(key, JSON.stringify({ at: checkedAt, count: Number(data.badgeCount || 0) })); } catch (_) {}
+      } catch (_) {
+        // A failed refresh never clears a valid badge or blocks navigation.
+      } finally {
+        clearTimeout(timeout);
+        if (controller === request) { controller = null; schedule(interval); }
+      }
+    };
+    const pause = () => {
+      stopped = true;
+      clearTimeout(timer);
+      controller?.abort();
+      controller = null;
+    };
+    const resume = () => {
+      stopped = document.visibilityState === 'hidden';
+      if (!stopped) { restore(); schedule(Math.max(600, interval - (Date.now() - checkedAt))); }
+    };
+    const invalidate = () => {
+      // A pre-write response must not repopulate the cache after invalidation.
+      controller?.abort();
+      controller = null;
+      checkedAt = 0;
+      try { if (key) sessionStorage.removeItem(key); } catch (_) {}
+      schedule(600);
+    };
+    // A successful POST may change what is due. Do not re-use that old badge.
+    document.addEventListener('submit', (event) => {
+      if (event.target.method?.toLowerCase() === 'post') invalidate();
     });
+    navigator.serviceWorker?.addEventListener('message', (event) => {
+      if (event.data?.type === 'CUOTAGO_PUSH') invalidate();
+    });
+    window.addEventListener('online', resume);
+    window.addEventListener('pagehide', pause);
+    window.addEventListener('pageshow', resume);
+    document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' ? pause() : resume());
+    resume();
   };
 
   const buildNotificationOptions = (payload = {}) => ({
@@ -992,62 +1016,66 @@
   const setupPullToRefresh = () => {
     const indicator = document.getElementById('pullRefreshIndicator');
     if (!indicator || !document.body.classList.contains('app-authenticated')) return;
-    if (!IS_STANDALONE || !window.matchMedia('(pointer: coarse)').matches) {
-      indicator.remove();
-      return;
-    }
-    const host = document.querySelector('.page-shell') || document;
+    if (!IS_STANDALONE || !window.matchMedia('(pointer: coarse)').matches) { indicator.remove(); return; }
+    const host = document.querySelector('.page-shell');
+    if (!host) return;
     const label = indicator.querySelector('span');
-    let startY = null;
+    let start = null;
     let distance = 0;
-    let active = false;
     let frame = 0;
-    const threshold = 68;
+    let refreshing = false;
+    const threshold = 80;
     const paint = () => {
       frame = 0;
-      indicator.classList.add('is-pulling');
+      indicator.classList.toggle('is-pulling', distance > 0);
       indicator.style.setProperty('--pull', `${distance}px`);
-      const ready = distance >= threshold;
-      indicator.classList.toggle('is-ready', ready);
-      if (label) label.textContent = ready ? 'Suelta para actualizar' : 'Desliza para actualizar';
+      indicator.classList.toggle('is-ready', distance >= threshold);
+      if (label) label.textContent = distance >= threshold ? 'Suelta para actualizar' : 'Desliza para actualizar';
     };
     const reset = () => {
       if (frame) cancelAnimationFrame(frame);
-      frame = 0;
-      startY = null;
-      distance = 0;
-      active = false;
-      indicator.classList.remove('is-ready', 'is-pulling');
-      indicator.style.setProperty('--pull', '0px');
-      if (label) label.textContent = 'Desliza para actualizar';
+      frame = 0; start = null; distance = 0;
+      if (!refreshing) {
+        indicator.classList.remove('is-ready', 'is-pulling', 'is-refreshing');
+        indicator.style.setProperty('--pull', '0px');
+      }
+    };
+    const atTop = () => (window.scrollY || document.scrollingElement?.scrollTop || 0) <= 1;
+    const inNestedScroller = (target) => {
+      // Check only at gesture start. Scrolling inside a catalog/dialog is never
+      // a request to refresh the entire page, even if that inner list is at top.
+      for (let node = target; node && node !== document.body; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight + 2) return true;
+      }
+      return false;
     };
     host.addEventListener('touchstart', (event) => {
-      if (event.touches?.length !== 1 || window.scrollY > 0) return;
-      if (event.target.closest('input,textarea,select,[contenteditable="true"],.profile-trigger,.profile-dialog')) return;
-      startY = event.touches[0].clientY;
-      distance = 0;
+      reset();
+      if (refreshing || event.touches?.length !== 1 || !atTop()) return;
+      if (event.target.closest('input,textarea,select,button,a,dialog,[contenteditable="true"],.profile-dialog') || inNestedScroller(event.target)) return;
+      start = { x: event.touches[0].clientX, y: event.touches[0].clientY };
     }, { passive: true });
     host.addEventListener('touchmove', (event) => {
-      if (startY === null || event.touches?.length !== 1 || window.scrollY > 0) return;
-      const delta = event.touches[0].clientY - startY;
-      if (delta <= 10) return;
-      active = true;
-      event.preventDefault();
-      distance = Math.min(102, (delta - 10) * 0.54);
+      if (!start || event.touches?.length !== 1) return;
+      const dy = event.touches[0].clientY - start.y;
+      const dx = Math.abs(event.touches[0].clientX - start.x);
+      if (!atTop() || dy < -8 || dx > Math.max(18, dy)) { reset(); return; }
+      distance = Math.min(105, Math.max(0, dy - 24) * .45);
       if (!frame) frame = requestAnimationFrame(paint);
-    }, { passive: false });
+      // Intentionally passive: never delay or cancel the browser's scroll.
+    }, { passive: true });
     host.addEventListener('touchend', () => {
-      if (!active) return reset();
-      if (frame) { cancelAnimationFrame(frame); frame = 0; paint(); }
-      if (distance >= threshold) {
+      if (start && distance >= threshold && atTop()) {
+        refreshing = true;
         indicator.classList.add('is-refreshing');
-        if (label) label.textContent = 'Actualizando…';
-        window.setTimeout(() => window.location.reload(), 60);
-        return;
-      }
-      reset();
+        if (label) label.textContent = 'Actualizando...';
+        window.location.reload();
+      } else reset();
     }, { passive: true });
     host.addEventListener('touchcancel', reset, { passive: true });
+    window.addEventListener('pagehide', reset);
+    window.addEventListener('pageshow', () => { refreshing = false; reset(); });
   };
 
   const setupAssetPhotoPreview = () => {

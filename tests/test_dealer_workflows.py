@@ -160,7 +160,8 @@ def test_new_components_are_versioned_and_precached():
     base=(ROOT/'cuotago/templates/base.html').read_text()
     for rel in ['css/dealer.css','js/dealer.js']:
         assert rel in worker and rel in base
-    assert '1.26.0-ui-v70' in worker
+    version=(ROOT/'VERSION.txt').read_text().strip()
+    assert version+'-ui-' in worker
     assert (ROOT/'chatbridge-run.bat').is_file()
 
 

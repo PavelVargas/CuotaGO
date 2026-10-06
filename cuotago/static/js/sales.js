@@ -168,10 +168,6 @@
       button.querySelector('.sls-picker-bottom strong').textContent = Number(item.sale_price) > 0 ? money(cents(item.sale_price)) : 'Precio por definir';
       const image = button.querySelector('[data-asset-image]');
       setPhoto(image, item);
-      if (item.image_url && item.full_image_url) {
-        image.srcset = `${item.image_url} 360w, ${item.full_image_url} 1169w`;
-        image.sizes = '(max-width: 760px) 85vw, 28vw';
-      }
       fragment.append(button);
     });
     if (!append) results.replaceChildren();

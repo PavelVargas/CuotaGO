@@ -1,29 +1,20 @@
-/* Native-feeling navigation shared by browser and installed PWA.
-   The chrome stays still; the page content moves by only 14 px. */
-@view-transition { navigation:auto; }
-:root { --motion-in-x:14px; --motion-out-x:-7px; }
-:root[data-motion-direction="back"] { --motion-in-x:-14px; --motion-out-x:7px; }
-:root[data-motion-direction="fade"] { --motion-in-x:0px; --motion-out-x:0px; }
+/* CuotaGo v71: no raster snapshots of long pages. Small WAAPI entrances in
+   motion.js provide feedback without blocking scrolling or animating forms. */
+@view-transition { navigation:none; }
 @media screen {
-  /* Retire the older entrance layer to avoid double animations and persistent
-     transformed ancestors (which break fixed mobile controls). */
   html body.app-authenticated .page-shell > * { animation:none!important; }
-  body.app-authenticated .page-shell { view-transition-name:cuotago-content; }
+  body.app-authenticated .page-shell { view-transition-name:none; }
   ::view-transition { pointer-events:none; }
-  ::view-transition-group(root) { animation-duration:0s; }
-  ::view-transition-old(root), ::view-transition-new(root) { animation:none; mix-blend-mode:normal; }
-  ::view-transition-old(root) { opacity:0; }
-  ::view-transition-group(cuotago-content) { animation-duration:240ms; animation-timing-function:cubic-bezier(.2,.75,.25,1); }
-  ::view-transition-old(cuotago-content) { animation:cg-content-out 150ms ease-out both; mix-blend-mode:normal; }
-  ::view-transition-new(cuotago-content) { animation:cg-content-in 240ms cubic-bezier(.2,.75,.25,1) both; mix-blend-mode:normal; }
-  ::view-transition-image-pair(cuotago-content) { isolation:auto; }
   html body.app-authenticated :is(.module-card,.btn,.icon-btn,.sls-button,.ag-asset-card) { -webkit-tap-highlight-color:transparent; }
+  html.is-standalone-app :is(.form-actions,.quick-create-actions,.wizard-actions,.pull-refresh-indicator,.inapp-payment-alert) {
+    backdrop-filter:none!important; -webkit-backdrop-filter:none!important;
+    background:var(--surface)!important;
+  }
+  html.is-standalone-app :is(.profile-dialog,.quick-search-dialog-v17,.dlr-dialog)::backdrop {
+    backdrop-filter:none!important; -webkit-backdrop-filter:none!important;
+  }
 }
-@keyframes cg-content-in { from { opacity:0; transform:translate3d(var(--motion-in-x),0,0); } to { opacity:1; transform:translate3d(0,0,0); } }
-@keyframes cg-content-out { from { opacity:1; transform:translate3d(0,0,0); } to { opacity:0; transform:translate3d(var(--motion-out-x),0,0); } }
 @media (prefers-reduced-motion:reduce) {
-  @view-transition { navigation:none; }
   ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*) { animation:none!important; }
   html body.app-authenticated :is(.module-card,.btn,.icon-btn,.sls-button,.ag-asset-card) { transition:none!important; }
 }
-@media print { body.app-authenticated .page-shell { view-transition-name:none; } }

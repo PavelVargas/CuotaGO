@@ -3,7 +3,7 @@
 {% set version = asset.image_updated_at.strftime('%Y%m%d%H%M%S%f') if asset.image_updated_at else 'legacy' %}
 <div class="sls-media">
   {% if asset.image_mime %}
-  <img data-asset-image src="{{ url_for('main.asset_image', asset_id=asset.id, v=version) if large else url_for('main.asset_image', asset_id=asset.id, thumb=1, v=version) }}" {% if not large %}srcset="{{ url_for('main.asset_image', asset_id=asset.id, thumb=1, v=version) }} 360w, {{ url_for('main.asset_image', asset_id=asset.id, v=version) }} 1169w" sizes="(max-width: 760px) 92vw, (max-width: 1180px) 42vw, 30vw"{% endif %} alt="{{ asset.name }}" width="1169" height="780" loading="{{ 'eager' if eager else 'lazy' }}" decoding="async">
+  <img data-asset-image src="{{ url_for('main.asset_image', asset_id=asset.id, v=version) if large else url_for('main.asset_image', asset_id=asset.id, thumb=1, v=version) }}"  alt="{{ asset.name }}" width="1169" height="780" loading="{{ 'eager' if eager else 'lazy' }}" decoding="async">
   {% endif %}
   <div class="sls-no-photo" data-photo-placeholder {% if asset.image_mime %}hidden{% endif %}>{{ icon('car' if asset.kind in ['car','motorcycle'] else 'box', 46) }}<span>Sin foto</span></div>
 </div>

@@ -466,6 +466,10 @@ def create_app(test_config=None):
 
     @app.before_request
     def enforce_account_and_subscription_state():
+        # Public application assets do not require a user/subscription lookup.
+        # Keep private photos, APIs and business pages on the authenticated path.
+        if request.endpoint in {"static", "service_worker", "healthz", "offline"}:
+            return None
         if not current_user.is_authenticated:
             return None
         if not getattr(current_user, "is_enabled", True):

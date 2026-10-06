@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from flask_login import UserMixin
-from sqlalchemy.orm import deferred
+from sqlalchemy.orm import deferred, joinedload
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .extensions import db, login_manager
@@ -58,7 +58,10 @@ class User(UserMixin, db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     try:
-        return db.session.get(User, int(user_id))
+        return db.session.get(
+            User, int(user_id),
+            options=[joinedload(User.organization).joinedload(Organization.subscription)],
+        )
     except (TypeError, ValueError):
         return None
 
