@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, Response, abort, current_app, flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import and_, case, or_, func
-from sqlalchemy.orm import joinedload, selectinload, undefer
+from sqlalchemy.orm import joinedload, selectinload
 
 from .extensions import db
 from .models import (
@@ -212,18 +212,25 @@ def installment_remaining_sql():
     return principal + late_fee
 
 
-def _late_fee_updates(contract, today_value):
-    """Pure calculation shared by the read precheck and the locked write.
+def sync_contract_late_fees(contract, today_value=None, commit=False, already_locked=False):
+    """Persist daily mora without retroactively charging a later activation.
 
-    Do not acquire a stock lock just to learn that today's fees are unchanged.
-    Never use the precheck's values for writes: the caller recomputes after
-    taking the existing asset -> contract lock with freshly loaded children.
+    Agreements created with mora keep the original behavior: each installment
+    starts accruing after its due date. If mora is added later, the effective
+    start is ``late_fee_started_on`` so old overdue days are never backcharged.
+    Once principal is fully paid, mora stops growing on that date.
     """
     rate = money_decimal(getattr(contract, "daily_late_interest", 0))
     if rate <= 0 or contract.status != "active":
-        return []
+        return False
+    if not already_locked:
+        contract = lock_contract(contract.id)
+        rate = money_decimal(getattr(contract, "daily_late_interest", 0))
+        if rate <= 0 or contract.status != "active":
+            return False
+    today_value = today_value or local_today()
     activation_day = getattr(contract, "late_fee_started_on", None) or contract.start_date
-    updates = []
+    changed = False
     for installment in contract.installments:
         if installment.due_date >= today_value or installment.is_paid:
             continue
@@ -235,30 +242,13 @@ def _late_fee_updates(contract, today_value):
         days_late = max((end_day - charge_start).days, 0)
         base_fee = money_decimal(getattr(installment, "late_fee_base_amount", 0))
         target = money_decimal(base_fee + (rate * days_late))
-        if target > money_decimal(installment.late_fee_amount):
-            updates.append((installment, target))
-    return updates
-
-
-def sync_contract_late_fees(contract, today_value=None, commit=False, already_locked=False):
-    """Persist daily mora, retaining activation dates and historical payments.
-
-    GETs with already-current fees do not lock stock or reload its full history.
-    All actual writes still use the same tenant-scoped transaction lock order.
-    """
-    today_value = today_value or local_today()
-    updates = _late_fee_updates(contract, today_value)
-    if not updates:
-        return False
-    if not already_locked:
-        contract = lock_contract(contract.id)
-        # A concurrent payment/void/rate change may have happened while waiting.
-        updates = _late_fee_updates(contract, today_value)
-    for installment, target in updates:
-        installment.late_fee_amount = target
-    if updates and commit:
+        current = money_decimal(installment.late_fee_amount)
+        if target > current:
+            installment.late_fee_amount = target
+            changed = True
+    if changed and commit:
         db.session.commit()
-    return bool(updates)
+    return changed
 
 
 def sync_org_late_fees(commit=True):
@@ -687,10 +677,10 @@ def inject_helpers():
         "receipt_wa_link": receipt_whatsapp_link,
         "today": local_today(),
         "app_name": current_app.config.get("APP_NAME", "CuotaGo"),
-        "notification_count": 0,  # Notification center supplies its own count; chrome uses the lightweight API.
+        "notification_count": urgent_payment_alert_count() if current_user.is_authenticated and has_permission(current_user, "collections.view") else 0,
         "can": lambda permission: has_permission(current_user, permission),
         "role_label": role_label,
-        "dealer_context": None if request.endpoint == "offline" else origin_context(),
+        "dealer_context": origin_context(),
         "operational_status": operational_status,
     }
 
@@ -922,52 +912,28 @@ def notifications():
     )
 
 
-def payment_notification_summary():
-    """Read-only counts for the app badge, with no fee writes or row locks.
-
-    Fee accrual cannot create an open installment from a fully paid one. Thus
-    an amount recalculation is unnecessary for counting open due installments.
-    Full notification details still use the existing live calculation path.
-    Keep the notification center's 500-item window and promise semantics.
-    """
-    today_value = local_today()
-    remaining = installment_remaining_sql()
-    row = db.session.query(
-        func.count(Installment.id).label("total"),
-        func.coalesce(func.sum(case((Installment.due_date <= today_value, 1), else_=0)), 0).label("urgent"),
-    ).join(Contract).filter(
-        Contract.organization_id == current_user.organization_id,
-        Contract.status == "active",
-        Installment.due_date <= today_value + timedelta(days=7),
-        remaining > Decimal("0.009"),
-    ).one()
-    count = min(int(row.total or 0), 500)
-    promise_count = PaymentPromise.query.filter_by(organization_id=current_user.organization_id).filter(
-        PaymentPromise.status.in_(["pending", "broken"]),
-        PaymentPromise.promised_date <= today_value + timedelta(days=7),
-    ).count()
-    return {"ok": True, "count": count, "promiseCount": promise_count,
-            "badgeCount": count + promise_count, "urgentCount": min(int(row.urgent or 0), count)}
-
-
 @main_bp.get("/api/notifications")
 @login_required
 @permission_required("collections.view")
 def notifications_api():
-    if request.args.get("summary") == "1":
-        response = jsonify(payment_notification_summary())
-    else:
-        items = payment_notification_items(limit=500)
-        urgent_count = sum(1 for item in items if item["urgent"])
-        today_value = local_today()
-        promise_count = PaymentPromise.query.filter_by(organization_id=current_user.organization_id).filter(
-            PaymentPromise.status.in_(["pending", "broken"]),
-            PaymentPromise.promised_date <= today_value + timedelta(days=7),
-        ).count()
-        response = jsonify({"ok": True, "count": len(items), "promiseCount": promise_count,
-            "badgeCount": len(items) + promise_count, "urgentCount": urgent_count, "items": items})
-    response.headers["Cache-Control"] = "private, no-store"
-    return response
+    # Keep the bell count aligned with the notification center: payment alerts
+    # plus pending/broken promises that need attention in the next 7 days.
+    items = payment_notification_items(limit=500)
+    urgent_count = sum(1 for item in items if item["urgent"])
+    today_value = local_today()
+    promise_count = PaymentPromise.query.filter_by(organization_id=current_user.organization_id).filter(
+        PaymentPromise.status.in_(["pending", "broken"]),
+        PaymentPromise.promised_date <= today_value + timedelta(days=7),
+    ).count()
+    badge_count = len(items) + promise_count
+    return jsonify({
+        "ok": True,
+        "count": len(items),
+        "promiseCount": promise_count,
+        "badgeCount": badge_count,
+        "urgentCount": urgent_count,
+        "items": items,
+    })
 
 
 @main_bp.route("/clients", methods=["GET"])
@@ -1296,41 +1262,28 @@ def client_statement_pdf(client_id):
 @login_required
 @permission_required("inventory.view")
 def asset_image(asset_id):
-    use_thumb = request.args.get("thumb") == "1"
-    # Read the requested blob in the metadata query. A cached thumbnail must
-    # never load the original full-resolution blob just to check its existence.
-    column = Asset.image_thumb_data if use_thumb else Asset.image_data
-    asset = Asset.query.options(undefer(column)).filter_by(
-        id=asset_id, organization_id=current_user.organization_id
-    ).first_or_404()
-    if not asset.image_mime:
+    asset = scoped_asset(asset_id)
+    if not asset.image_mime or not asset.image_data:
         abort(404)
-    thumbnail = asset.image_thumb_data if use_thumb else None
-    if thumbnail:
-        payload = bytes(thumbnail)
-        mimetype = "image/webp"
-    else:
-        original = asset.image_data
-        if not original:
-            abort(404)
-        payload = bytes(original)
-        mimetype = asset.image_mime
-        # Old records get an optimized thumbnail once, without startup work.
-        if use_thumb:
-            try:
-                from PIL import Image, ImageOps
-                with Image.open(io.BytesIO(payload)) as source:
-                    source = ImageOps.exif_transpose(source)
-                    payload = _encode_asset_image(source, ASSET_THUMB_SIZE, quality=78)
-                asset.image_thumb_data = payload
-                if asset.image_updated_at is None:
-                    asset.image_updated_at = datetime.utcnow()
-                db.session.commit()
-                mimetype = "image/webp"
-            except Exception:
-                db.session.rollback()
-                payload = bytes(original)
-                mimetype = asset.image_mime
+
+    use_thumb = request.args.get("thumb") == "1"
+    payload = bytes(asset.image_thumb_data) if use_thumb and asset.image_thumb_data else bytes(asset.image_data)
+    mimetype = "image/webp" if use_thumb and asset.image_thumb_data else asset.image_mime
+
+    # Legacy images receive a thumbnail lazily once, without delaying app startup.
+    if use_thumb and not asset.image_thumb_data:
+        try:
+            from PIL import Image, ImageOps
+            with Image.open(io.BytesIO(bytes(asset.image_data))) as source:
+                source = ImageOps.exif_transpose(source)
+                payload = _encode_asset_image(source, ASSET_THUMB_SIZE, quality=78)
+            asset.image_thumb_data = payload
+            if asset.image_updated_at is None:
+                asset.image_updated_at = datetime.utcnow()
+            db.session.commit()
+            mimetype = "image/webp"
+        except Exception:
+            db.session.rollback()
 
     response = Response(payload, mimetype=mimetype)
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -1348,6 +1301,7 @@ def asset_image(asset_id):
 def assets():
     q = request.args.get("q", "").strip()
     status = request.args.get("status", "").strip()
+    brand = request.args.get("brand", "").strip()
     query = Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales)).filter_by(organization_id=current_user.organization_id)
     if q:
         pattern = f"%{q}%"
@@ -1362,8 +1316,10 @@ def assets():
         )
     if status in {"available", "on_loan", "maintenance", "workshop", "sold"}:
         query = query.filter(Asset.status == status)
+    if brand:
+        query = query.filter(Asset.brand.ilike(brand))
     page = max(request.args.get("page", 1, type=int) or 1, 1)
-    pagination = query.order_by(Asset.created_at.desc()).paginate(page=page, per_page=80, error_out=False)
+    pagination = query.order_by(Asset.status.asc(), Asset.created_at.desc()).paginate(page=page, per_page=80, error_out=False)
     items = pagination.items
     # Dealer dashboard summary is intentionally calculated outside the active
     # filters so the operator always sees the real inventory position.
@@ -1372,6 +1328,7 @@ def assets():
         .filter_by(organization_id=current_user.organization_id)
         .all()
     )
+    brand_options = sorted({(asset.brand or "").strip() for asset in summary_assets if (asset.brand or "").strip()}, key=str.casefold)
     available_units = sum((asset.available_quantity for asset in summary_assets if operational_status(asset) == "available"), 0)
     maintenance_units = sum((max(int(asset.quantity_total or 1), 1) for asset in summary_assets if operational_status(asset) == "maintenance"), 0)
     workshop_units = sum((max(int(asset.quantity_total or 1), 1) for asset in summary_assets if operational_status(asset) == "workshop"), 0)
@@ -1399,7 +1356,14 @@ def assets():
         "potential_profit": money_decimal(inventory_sale_value - inventory_cost_value),
     }
     return render_template(
-        "assets/list.html", assets=items, q=q, status=status, pagination=pagination, inventory_summary=inventory_summary
+        "assets/list.html",
+        assets=items,
+        q=q,
+        status=status,
+        brand=brand,
+        brand_options=brand_options,
+        pagination=pagination,
+        inventory_summary=inventory_summary,
     )
 
 

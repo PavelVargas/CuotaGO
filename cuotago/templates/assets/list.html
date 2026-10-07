@@ -2,7 +2,8 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Inventario · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page inventory-page inventory-page-v18 inventory-page-v19 inventory-page-v20 inventory-page-v22">
+<section class="content-page inventory-page inventory-page-v18 inventory-page-v19 inventory-page-v20 inventory-page-v22 inventory-page-v73">
+  {% set has_filters = q or status or brand %}
   <div class="page-head inventory-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
@@ -19,26 +20,39 @@
     <article class="inventory-overview-card-v22 is-money"><span>Capital disponible</span><strong>{{ money(inventory_summary.cost_value) }}</strong><small>Ganancia potencial {{ money(inventory_summary.potential_profit) }}</small></article>
   </section>
 
-  <div class="toolbar inventory-toolbar inventory-toolbar-v18">
-    <form class="filter-row inventory-filter-row" method="get">
-      <label class="search-box">{{ icon('search', 18) }}<input name="q" value="{{ q }}" placeholder="Buscar vehículo, producto, chasis o serial"></label>
-      <select name="status" onchange="this.form.submit()" aria-label="Filtrar por estado">
-        <option value="">Todos</option>
-        <option value="available" {{ 'selected' if status=='available' }}>Disponibles</option>
-        <option value="on_loan" {{ 'selected' if status=='on_loan' }}>Entregados</option>
-        <option value="maintenance" {{ 'selected' if status=='maintenance' }}>Mantenimiento</option>
-        <option value="workshop" {{ 'selected' if status=='workshop' }}>En taller</option>
-        <option value="sold" {{ 'selected' if status=='sold' }}>Vendidos</option>
-      </select>
-    </form>
-    <span class="result-count">{{ pagination.total }} registrado{{ 's' if pagination.total != 1 }}</span>
-  </div>
+  <section class="inventory-toolbar-shell-v73">
+    <div class="toolbar inventory-toolbar inventory-toolbar-v18 inventory-toolbar-v73">
+      <form class="filter-row inventory-filter-row inventory-filter-row-v73" method="get">
+        <label class="search-box search-box-v73">{{ icon('search', 18) }}<input name="q" value="{{ q }}" placeholder="Buscar vehículo, producto, chasis o serial"></label>
+        <select name="status" aria-label="Filtrar por estado">
+          <option value="">Todos los estados</option>
+          <option value="available" {{ 'selected' if status=='available' }}>Disponibles</option>
+          <option value="on_loan" {{ 'selected' if status=='on_loan' }}>Entregados</option>
+          <option value="maintenance" {{ 'selected' if status=='maintenance' }}>Mantenimiento</option>
+          <option value="workshop" {{ 'selected' if status=='workshop' }}>En taller</option>
+          <option value="sold" {{ 'selected' if status=='sold' }}>Vendidos</option>
+        </select>
+        <select name="brand" aria-label="Filtrar por marca">
+          <option value="">Todas las marcas</option>
+          {% for item in brand_options %}<option value="{{ item }}" {{ 'selected' if brand==item }}>{{ item }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-secondary inventory-filter-submit-v73" type="submit">{{ icon('search',16) }} Filtrar</button>
+        {% if has_filters %}<a class="btn btn-ghost inventory-clear-v73" href="{{ url_for('main.assets') }}">Limpiar</a>{% endif %}
+      </form>
+      <div class="inventory-toolbar-meta-v73">
+        <span class="result-count">{{ pagination.total }} registrado{{ 's' if pagination.total != 1 }}</span>
+        <span class="inventory-meta-chip-v73">{{ icon('home-inventory',15) }} Inventario activo</span>
+        {% if brand %}<span class="inventory-meta-chip-v73">{{ icon('box',15) }} Marca: {{ brand }}</span>{% endif %}
+        {% if status %}<span class="inventory-meta-chip-v73">{{ icon('shield',15) }} {{ asset_status_label(status) }}</span>{% endif %}
+      </div>
+    </div>
+  </section>
 
-  <div class="inventory-list inventory-list-v18">
+  <div class="inventory-list inventory-list-v18 inventory-list-v73">
     {% for asset in assets %}
       {% set is_vehicle = asset.kind in ['car','motorcycle'] %}
-      <a href="{{ url_for('main.asset_detail', asset_id=asset.id) }}" class="inventory-row inventory-product-card inventory-product-card-v18 inventory-state-{{ asset.status }}">
-        <span class="inventory-row-media inventory-row-media-v18">
+      <a href="{{ url_for('main.asset_detail', asset_id=asset.id) }}" class="inventory-row inventory-product-card inventory-product-card-v18 inventory-state-{{ asset.status }} inventory-row-v73">
+        <span class="inventory-row-media inventory-row-media-v18 inventory-row-media-v73 {{ 'is-vehicle' if is_vehicle else 'is-device' if asset.kind=='phone' else 'is-generic' }}">
           {% if asset.image_mime %}
             <img src="{{ url_for('main.asset_image', asset_id=asset.id, thumb=1, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}" loading="lazy" decoding="async">
           {% else %}
@@ -48,55 +62,58 @@
           {% endif %}
         </span>
 
-        <span class="inventory-row-main inventory-row-main-v18">
-          <span class="inventory-card-topline">
-            <strong class="inventory-product-name">{{ asset.name }}</strong>
+        <span class="inventory-row-main inventory-row-main-v18 inventory-row-main-v73">
+          <span class="inventory-card-topline inventory-card-topline-v73">
+            <span>
+              <strong class="inventory-product-name">{{ asset.name }}</strong>
+              <small class="inventory-line-kind-v73">{{ asset_kind_label(asset.kind) }}</small>
+            </span>
             <span class="vehicle-status vehicle-status-{{ asset.status }}">{{ asset_status_label(asset.status) }}</span>
           </span>
-          <span class="inventory-row-subtitle">
+          <span class="inventory-row-subtitle inventory-row-subtitle-v73">
             {% if is_vehicle %}
               {{ [asset.brand, asset.model]|select|join(' · ') or asset_kind_label(asset.kind) }}{% if asset.vehicle_year %} · {{ asset.vehicle_year }}{% endif %}
             {% else %}
               {{ [asset.brand, asset.model]|select|join(' · ') or (asset.identifier or asset_kind_label(asset.kind)) }}
             {% endif %}
           </span>
-          <span class="inventory-row-meta inventory-row-meta-v18">
+          <span class="inventory-row-tags-v73">
+            {% if asset.brand %}<small>{{ icon('box',13) }} {{ asset.brand }}</small>{% endif %}
+            {% if is_vehicle and asset.vehicle_year %}<small>{{ icon('calendar',13) }} {{ asset.vehicle_year }}</small>{% endif %}
+            {% if not is_vehicle %}<small>{{ icon('box',13) }} {{ asset.available_quantity }} disponibles</small>{% endif %}
+          </span>
+          <span class="inventory-row-meta-grid-v73">
             {% if is_vehicle %}
-              <span>{{ '{:,.0f}'.format(asset.mileage) ~ ' km' if asset.mileage is not none else 'Km no registrado' }}</span>
-              {% if asset.serial_number or asset.identifier %}<span>{{ asset.serial_number or asset.identifier }}</span>{% endif %}
+              <small><b>Placa / ID</b><span>{{ asset.identifier or '—' }}</span></small>
+              <small><b>Chasis / VIN</b><span>{{ asset.serial_number or '—' }}</span></small>
+              <small><b>Kilometraje</b><span>{{ '{:,.0f}'.format(asset.mileage) ~ ' km' if asset.mileage is not none else 'No registrado' }}</span></small>
+              <small><b>Disponibles</b><span>{{ asset.available_quantity }} de {{ asset.quantity_total or 1 }}</span></small>
             {% else %}
-              <span>{{ asset.available_quantity }} disponible{{ 's' if asset.available_quantity != 1 }}</span>
-              {% if asset.identifier %}<span>{{ asset.identifier }}</span>{% endif %}
+              <small><b>Identificador</b><span>{{ asset.identifier or '—' }}</span></small>
+              <small><b>Serial</b><span>{{ asset.serial_number or '—' }}</span></small>
+              <small><b>Disponibles</b><span>{{ asset.available_quantity }} de {{ asset.quantity_total or 1 }}</span></small>
+              <small><b>Adquisición</b><span>{{ acquisition_type_label(asset.acquisition_type) if asset.acquisition_type else 'Compra' }}</span></small>
             {% endif %}
           </span>
         </span>
 
-        <span class="inventory-row-side inventory-row-side-v18">
-          <small>{{ 'Venta objetivo' if asset.sale_price else 'Costo' }}</small>
-          <strong>{{ money(asset.sale_price if asset.sale_price else asset.estimated_value) }}</strong>
-          {% if is_vehicle and asset.estimated_value %}
-            <span>Compra {{ money(asset.estimated_value) }}</span>
-            {% if asset.sale_price %}<em>{{ money(asset.expected_profit_per_unit) }} potencial · {{ '%.1f'|format(asset.expected_margin_percent) }}%</em>{% endif %}
-          {% endif %}
+        <span class="inventory-row-side inventory-row-side-v18 inventory-row-side-v73">
+          <span class="inventory-money-stack-v73 is-primary"><small>Venta objetivo</small><strong>{{ money(asset.sale_price if asset.sale_price else asset.estimated_value) }}</strong></span>
+          <span class="inventory-money-grid-v73">
+            <small><b>{{ 'Compra' if is_vehicle else 'Costo' }}</b><span>{{ money(asset.estimated_value) }}</span></small>
+            {% if is_vehicle %}
+              <small class="is-profit"><b>Potencial</b><span>{{ money(asset.expected_profit_per_unit if asset.sale_price else 0) }}</span></small>
+            {% else %}
+              <small><b>Stock</b><span>{{ asset.available_quantity }}</span></small>
+            {% endif %}
+          </span>
+          <span class="inventory-row-cta-v73">Ver ficha {{ icon('sales-arrow',15) }}</span>
         </span>
-
-        <span class="inventory-mobile-finance-v58" aria-label="Resumen financiero de {{ asset.name }}">
-          {% if is_vehicle %}
-            <span class="inventory-mobile-money-v58 is-sale"><small>Venta</small><strong>{{ money(asset.sale_price if asset.sale_price else asset.estimated_value) }}</strong></span>
-            <span class="inventory-mobile-money-v58"><small>Compra</small><strong>{{ money(asset.estimated_value) }}</strong></span>
-            <span class="inventory-mobile-money-v58 is-profit"><small>Ganancia</small><strong>{{ money(asset.expected_profit_per_unit if asset.sale_price else 0) }}</strong></span>
-          {% else %}
-            <span class="inventory-mobile-money-v58 is-sale"><small>Venta</small><strong>{{ money(asset.sale_price if asset.sale_price else asset.estimated_value) }}</strong></span>
-            <span class="inventory-mobile-money-v58"><small>Costo</small><strong>{{ money(asset.estimated_value) }}</strong></span>
-            <span class="inventory-mobile-money-v58 is-stock"><small>Stock</small><strong>{{ asset.available_quantity }}</strong></span>
-          {% endif %}
-        </span>
-        <span class="inventory-row-chevron" aria-hidden="true">›</span>
       </a>
     {% else %}
       <div class="surface empty-state full-grid"><span class="empty-icon">{{ icon('car', 34) }}</span><h3>Inventario vacío</h3><p>Registra el primer vehículo o producto para empezar a controlar costos, ventas y existencias.</p>{% if can('inventory.manage') %}<a class="btn btn-primary" href="{{ url_for('main.asset_new') }}">{{ icon('plus',16) }} Registrar producto</a>{% endif %}</div>
     {% endfor %}
   </div>
-  {% if pagination.pages > 1 %}<nav class="simple-pagination-v16" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.assets', page=pagination.prev_num, q=q, status=status) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.assets', page=pagination.next_num, q=q, status=status) }}"{% endif %}>Siguiente</a></nav>{% endif %}
+  {% if pagination.pages > 1 %}<nav class="simple-pagination-v16" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.assets', page=pagination.prev_num, q=q, status=status, brand=brand) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.assets', page=pagination.next_num, q=q, status=status, brand=brand) }}"{% endif %}>Siguiente</a></nav>{% endif %}
 </section>
 {% endblock %}

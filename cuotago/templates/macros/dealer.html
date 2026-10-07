@@ -14,9 +14,12 @@
 </header>
 {% endmacro %}
 {% macro photo(asset, large=false) %}
-<span class="dlr-photo {{ 'is-large' if large }}">
-  {% if asset.image_mime and can('inventory.view') %}<img src="{{ url_for('main.asset_image',asset_id=asset.id,thumb=0 if large else 1,v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}" loading="{{ 'eager' if large else 'lazy' }}" decoding="async" width="{{ 1169 if large else 360 }}" height="{{ 780 if large else 240 }}">
-  {% else %}{{ icon('car' if asset.kind in ['car','motorcycle'] else 'phone' if asset.kind=='phone' else 'inventory',40) }}{% if large %}<small>Sin foto registrada</small>{% endif %}{% endif %}
+<span class="dlr-photo {{ 'is-large' if large }} {{ 'is-vehicle-large' if large and asset.kind in ['car','motorcycle'] else '' }} {{ 'is-device-large' if large and asset.kind == 'phone' else '' }}">
+  {% if asset.image_mime and can('inventory.view') %}
+    <img src="{{ url_for('main.asset_image',asset_id=asset.id,thumb=0 if large else 1,v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}" loading="{{ 'eager' if large else 'lazy' }}" decoding="async" width="{{ 1169 if large else 360 }}" height="{{ 780 if large else 240 }}">
+  {% else %}
+    {{ icon('car' if asset.kind in ['car','motorcycle'] else 'phone' if asset.kind=='phone' else 'inventory',40) }}{% if large %}<small>Sin foto registrada</small>{% endif %}
+  {% endif %}
 </span>
 {% endmacro %}
 {% macro section_heading(title, glyph, subtitle='') %}
