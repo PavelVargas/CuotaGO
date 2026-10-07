@@ -32,7 +32,7 @@
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --safe-left:env(safe-area-inset-left,0px);
   --topbar-h:62px;
-  --font-ui:"Roboto","Helvetica Neue",Arial,sans-serif;
+  --font-ui:"Comfortaa","Segoe UI",Arial,sans-serif;
   --pwa-launcher-button-size:72px;
   --pwa-launcher-glyph-size:50px;
 }
@@ -7603,7 +7603,7 @@ html[data-theme="dark"] .drawer-shortcut-v72{background:rgba(20,27,37,.94);}
 
 /* ===== Workspace refresh v77 ===== */
 :root{
-  --font-ui:"Fredoka",Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-ui:"Comfortaa","Segoe UI",Arial,sans-serif;
   --bg:#eef3f8;
   --bg-elevated:#f5f8fb;
   --surface:#ffffff;
@@ -7710,8 +7710,8 @@ html[data-theme='dark'] .workspace-topbar-v75{background:rgba(24,24,24,.96)!impo
 html[data-theme='dark'] .profile-sheet,
 html[data-theme='dark'] .profile-sheet-v72{background:#1f1f1f!important;border-color:#3a3a3a!important;}
 
-/* Fredoka is the single application typeface. */
-html,body,button,input,select,textarea{font-family:"Fredoka",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;}
+/* Legacy typeface override; v1.26.8 below promotes Comfortaa globally. */
+html,body,button,input,select,textarea{font-family:"Comfortaa","Segoe UI",Arial,sans-serif!important;}
 
 /* Consistent modern radii without changing the Home launcher layout. */
 body.app-authenticated :is(.btn,.icon-btn,.profile-close,.payment-dialog-close,.quick-pay-button){border-radius:15px!important;}
@@ -7730,3 +7730,118 @@ body.app-authenticated:not(.dashboard-home) .contract-payment-launch{border-radi
   .agreement-note-compose-v77 textarea{min-height:78px;}
   .agreement-activity-row-v77{padding:12px;border-radius:16px;}
 }
+
+
+/* ===== CuotaGo v1.26.8 · Comfortaa + graphite dark refinement ===== */
+:root{
+  --font-ui:"Comfortaa","Segoe UI",Arial,sans-serif;
+}
+
+/* Comfortaa works best lighter. Keep hierarchy through size/spacing instead of heavy bold. */
+html,body,button,input,select,textarea{font-family:var(--font-ui)!important;font-weight:400;}
+body{font-weight:400;}
+h1,h2,h3,h4,h5,h6{font-family:var(--font-ui)!important;font-weight:500!important;letter-spacing:-.018em!important;}
+strong,b{font-weight:500!important;}
+.btn,.dropdown-link,.module-card strong,.workspace-module-name-v75,.workspace-module-nav-v75 a,
+.dashboard-launcher-v3 .module-card strong,.dashboard-launcher-v2 .module-card strong,
+.ops-title-v76 h1,.ops-table-row-v76 strong,.ops-table-head-v76,.field>span,.section-heading h2,
+.user-dropdown a,.profile-sheet-account strong{font-weight:500!important;}
+.eyebrow,.module-badge,.status-pill,.ops-status-v76{font-weight:500!important;letter-spacing:.035em!important;}
+
+
+.dashboard-launcher-v2,.dashboard-launcher-v3,.launcher-wrap{font-family:var(--font-ui)!important;}
+
+/* Graphite dark: softer than black, neutral rather than navy, with visible surface depth. */
+:root[data-theme='dark']{
+  --bg:#202328;
+  --bg-elevated:#24282e;
+  --surface:#282c32;
+  --surface-2:#2d3239;
+  --surface-3:#343a43;
+  --line:#3b424c;
+  --line-strong:#4a525e;
+  --text:#d7dce3;
+  --text-strong:#f2f4f7;
+  --muted:#a2aab5;
+  --muted-2:#7f8995;
+  --primary:#6ea8fe;
+  --primary-deep:#a7cbff;
+  --primary-soft:rgba(110,168,254,.14);
+  --success:#58c990;
+  --success-soft:rgba(88,201,144,.13);
+  --warning:#e2b25b;
+  --warning-soft:rgba(226,178,91,.13);
+  --danger:#ef858b;
+  --danger-soft:rgba(239,133,139,.13);
+  --shadow:0 16px 42px rgba(0,0,0,.24);
+  --shadow-soft:0 7px 22px rgba(0,0,0,.18);
+  --shadow-float:0 22px 56px rgba(0,0,0,.34);
+}
+html[data-theme='dark'],html[data-theme='dark'] body{background:#202328!important;}
+html[data-theme='dark'] body.app-authenticated{
+  background:linear-gradient(180deg,#24272c 0%,#202328 210px,#1f2227 100%)!important;
+}
+html[data-theme='dark'] body.dashboard-home{
+  background:
+    radial-gradient(ellipse at 50% -8%,rgba(75,85,99,.26) 0%,rgba(42,47,54,.14) 34%,transparent 63%),
+    linear-gradient(180deg,#22262b 0%,#202328 48%,#1f2227 100%)!important;
+}
+html[data-theme='dark'] .topbar,
+html[data-theme='dark'] .topbar.topbar-v72{
+  background:rgba(29,32,37,.90)!important;
+  border-bottom-color:rgba(82,91,103,.52)!important;
+}
+html[data-theme='dark'] .brand-compact-v72,
+html[data-theme='dark'] .app-menu-trigger-v72{
+  background:#292d33!important;
+  border-color:#404751!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.18)!important;
+}
+html[data-theme='dark'] .surface,
+html[data-theme='dark'] .form-surface,
+html[data-theme='dark'] .table-surface,
+html[data-theme='dark'] .profile-sheet,
+html[data-theme='dark'] .profile-sheet-v72,
+html[data-theme='dark'] .payment-dialog-sheet{
+  background:#282c32!important;
+  border-color:#3b424c!important;
+}
+html[data-theme='dark'] :is(.field input,.field select,.field textarea,.search-box,.calendar-search){
+  background:#2d3239!important;
+  border-color:#454d58!important;
+  color:#e1e5ea!important;
+}
+html[data-theme='dark'] :is(.field input,.field select,.field textarea,.search-box,.calendar-search):focus,
+html[data-theme='dark'] .search-box:focus-within{
+  background:#30353c!important;
+  border-color:#6ea8fe!important;
+  box-shadow:0 0 0 3px rgba(110,168,254,.12)!important;
+}
+html[data-theme='dark'] .btn-secondary,
+html[data-theme='dark'] .btn-ghost,
+html[data-theme='dark'] .icon-btn{
+  background:#2d3239!important;
+  border-color:#454d58!important;
+  color:#e1e5ea!important;
+}
+html[data-theme='dark'] .btn-secondary:hover,
+html[data-theme='dark'] .btn-ghost:hover,
+html[data-theme='dark'] .icon-btn:hover{background:#343a43!important;border-color:#55606d!important;}
+html[data-theme='dark'] .btn-primary{
+  background:#3f82df!important;
+  border-color:#3f82df!important;
+  box-shadow:0 7px 18px rgba(27,72,132,.22)!important;
+}
+html[data-theme='dark'] .dashboard-launcher-v3 .status-kpis>div,
+html[data-theme='dark'] .dashboard-launcher-v3 .home-empty,
+html[data-theme='dark'] .home-reminder-button{
+  background:#282c32!important;
+  border-color:#3b424c!important;
+}
+html[data-theme='dark'] .dashboard-launcher-v3 .module-icon{
+  border-color:rgba(105,116,129,.34)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.035),0 8px 22px rgba(0,0,0,.16)!important;
+}
+html[data-theme='dark'] .drawer-shortcut-v72{background:#2d3239!important;border-color:#424a55!important;}
+html[data-theme='dark'] .theme-segment{background:#24282e!important;}
+html[data-theme='dark'] .theme-segment button.is-active{background:#343a43!important;color:#f3f5f7!important;}

@@ -690,3 +690,39 @@ html[data-theme='dark'] body.workbench-shell-v75 :is(.ops-search-v76,.ops-filter
   color:#d4d4d4!important;
 }
 html[data-theme='dark'] .purchase-lines-v76{background:#1c1c1c!important;}
+
+
+/* ===== CuotaGo v1.26.8 · final workbench graphite dark ===== */
+html[data-theme='dark'] body.workbench-shell-v75{
+  background:linear-gradient(180deg,#23272c 0%,#202328 185px,#1f2227 100%)!important;
+}
+html[data-theme='dark'] .workspace-topbar-v75{
+  background:rgba(30,33,38,.96)!important;
+  border-bottom-color:#3b424c!important;
+}
+html[data-theme='dark'] body.workbench-shell-v75 :is(.ops-command-v76,.ops-table-shell-v76,.surface,.ops-table-row-v76,.payment-dialog-sheet){
+  background:#282c32!important;
+  border-color:#3b424c!important;
+}
+html[data-theme='dark'] body.workbench-shell-v75 .ops-table-head-v76{
+  background:#30353c!important;
+  color:#bcc3cc!important;
+  border-color:#3f4751!important;
+}
+html[data-theme='dark'] body.workbench-shell-v75 .ops-table-row-v76:nth-child(even){background:#2b3036!important;}
+html[data-theme='dark'] body.workbench-shell-v75 .ops-table-row-v76:hover{background:#343a43!important;}
+html[data-theme='dark'] body.workbench-shell-v75 :is(.ops-search-v76,.ops-filterbar-v76 select,.ops-filter-submit-v76,.ops-icon-v76,.btn-secondary,.btn-ghost,.field input,.field select,.field textarea){
+  background:#2d3239!important;
+  border-color:#454d58!important;
+  color:#e1e5ea!important;
+}
+html[data-theme='dark'] body.workbench-shell-v75 :is(.ops-search-v76,.ops-filterbar-v76 select,.ops-filter-submit-v76,.ops-icon-v76,.field input,.field select,.field textarea):focus,
+html[data-theme='dark'] body.workbench-shell-v75 .ops-search-v76:focus-within{
+  border-color:#6ea8fe!important;
+  box-shadow:0 0 0 3px rgba(110,168,254,.12)!important;
+}
+html[data-theme='dark'] .purchase-lines-v76{background:#25292f!important;}
+html[data-theme='dark'] .clients-page-v76 .ops-table-row-v76.client-row-v76>span:not(.client-primary-v76):not(.client-row-actions-v76){
+  background:#2d3239!important;
+  border-color:#414953!important;
+}

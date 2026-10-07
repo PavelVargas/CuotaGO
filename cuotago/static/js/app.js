@@ -83,7 +83,7 @@
     root.dataset.themeChoice = safeChoice;
     root.dataset.theme = resolved;
     const booting = root.classList.contains('show-boot');
-    document.getElementById('themeColorMeta')?.setAttribute('content', resolved === 'dark' ? '#0b1016' : '#f6f8fc');
+    document.getElementById('themeColorMeta')?.setAttribute('content', resolved === 'dark' ? '#202328' : '#f6f8fc');
     document.getElementById('appleStatusMeta')?.setAttribute('content', resolved === 'dark' ? 'black-translucent' : 'default');
     syncThemeControls(safeChoice);
     if (persist) {
@@ -187,7 +187,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.26.7-ui-v77';
+  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.26.8-ui-v78';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
