@@ -1349,6 +1349,7 @@ def assets():
     q = request.args.get("q", "").strip()
     status = request.args.get("status", "").strip()
     brand = request.args.get("brand", "").strip()
+    kind = request.args.get("kind", "").strip()
     query = Asset.query.options(selectinload(Asset.contracts), selectinload(Asset.sales)).filter_by(organization_id=current_user.organization_id)
     if q:
         pattern = f"%{q}%"
@@ -1365,6 +1366,8 @@ def assets():
         query = query.filter(Asset.status == status)
     if brand:
         query = query.filter(Asset.brand.ilike(brand))
+    if kind in {"car", "motorcycle", "phone", "computer", "appliance", "other"}:
+        query = query.filter(Asset.kind == kind)
     page = max(request.args.get("page", 1, type=int) or 1, 1)
     pagination = query.order_by(Asset.status.asc(), Asset.created_at.desc()).paginate(page=page, per_page=80, error_out=False)
     items = pagination.items
@@ -1408,6 +1411,7 @@ def assets():
         q=q,
         status=status,
         brand=brand,
+        kind=kind,
         brand_options=brand_options,
         pagination=pagination,
         inventory_summary=inventory_summary,

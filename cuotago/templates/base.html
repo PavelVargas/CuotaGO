@@ -9,7 +9,7 @@
   <meta name="cuotago-push-enabled" content="{{ '1' if config.get('PUSH_NOTIFICATIONS_ENABLED') and config.get('VAPID_PUBLIC_KEY') else '0' }}">
   <meta name="cuotago-vapid-key" content="{{ config.get('VAPID_PUBLIC_KEY', '') }}">
   <meta name="theme-color" content="#f6f8fc" id="themeColorMeta">
-  <meta name="cuotago-build-version" content="{{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}">
+  <meta name="cuotago-build-version" content="{{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}">
   <meta name="application-name" content="{{ app_name }}">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default" id="appleStatusMeta">
@@ -104,10 +104,10 @@
     html.show-boot .boot-splash{display:grid}.boot-splash-inner{display:flex;flex-direction:column;align-items:center;gap:13px;transform:translateY(-4vh)}.boot-splash-logo{display:block;width:min(236px,66vw);height:auto}.boot-splash small{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;line-height:1.25;color:#7b8491}.boot-splash.is-hidden{opacity:0;visibility:hidden;pointer-events:none}html[data-theme="dark"] .boot-splash small{color:#9da8b8}@media(prefers-reduced-motion:reduce){.boot-splash{transition:none}}
   </style>
 
-  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}?v={{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}">
-  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}?v={{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}">
-  <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='icons/favicon-64.png') }}?v={{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}">
-  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32.png') }}?v={{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}">
+  <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='icons/favicon-64.png') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32.png') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}">
 
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1320x2868-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1320x2868-dark.png') }}">
@@ -132,18 +132,19 @@
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-dark.png') }}">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}">
   {% block styles %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/ui.css',v=config['ASSET_VERSION']) }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/motion.css', v=config['ASSET_VERSION']) }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dealer.css', v=config['ASSET_VERSION']) }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/workspace.css', v=config['ASSET_VERSION']) }}">
 </head>
-<body data-notification-scope="{{ current_user.id|default('') if current_user.is_authenticated else '' }}" class="ui-v67 {% if current_user.is_authenticated and request.blueprint != 'auth' %}app-authenticated{% else %}auth-shell{% endif %} {% if current_user.is_authenticated and request.blueprint != 'auth' and request.endpoint not in ['main.dashboard','admin.dashboard'] %}workbench-shell-v74{% endif %} {% block body_class %}{% endblock %}" data-can-collect="{{ '1' if current_user.is_authenticated and request.blueprint != 'auth' and can('collections.view') else '0' }}">
+{% set is_workbench = current_user.is_authenticated and request.blueprint != 'auth' and request.endpoint not in ['main.dashboard','admin.dashboard'] %}
+<body data-notification-scope="{{ current_user.id|default('') if current_user.is_authenticated else '' }}" class="ui-v67 {% if current_user.is_authenticated and request.blueprint != 'auth' %}app-authenticated{% else %}auth-shell{% endif %} {% if is_workbench %}workbench-shell-v75{% endif %} {% block body_class %}{% endblock %}" data-can-collect="{{ '1' if current_user.is_authenticated and request.blueprint != 'auth' and can('collections.view') else '0' }}">
   <div class="boot-splash" id="bootSplash" aria-hidden="true">
     <div class="boot-splash-inner">
-      <img class="boot-splash-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}" alt="{{ app_name }}">
-      <img class="boot-splash-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}" alt="{{ app_name }}">
+      <img class="boot-splash-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}" alt="{{ app_name }}">
+      <img class="boot-splash-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}" alt="{{ app_name }}">
       <small>Cobros simples, sin enredos</small>
     </div>
   </div>
@@ -151,31 +152,116 @@
   <div class="network-banner" id="networkBanner" role="status" hidden>{{ icon('offline', 16) }} <span>Sin conexión</span></div>
 
   {% if current_user.is_authenticated and request.blueprint != 'auth' %}
+  {% if is_workbench %}
+    {% set ep = request.endpoint or '' %}
+    {% set wb_name = 'CuotaGo' %}
+    {% set wb_icon = 'home' %}
+    {% if ep == 'main.assets' or ep.startswith('main.asset_') %}{% set wb_name='Inventario' %}{% set wb_icon='home-inventory' %}
+    {% elif ep == 'main.sales' or ep.startswith('main.sale_') %}{% set wb_name='Ventas' %}{% set wb_icon='home-sales' %}
+    {% elif ep == 'main.contracts' or ep.startswith('main.contract_') %}{% set wb_name='Acuerdos' %}{% set wb_icon='home-agreements' %}
+    {% elif ep == 'main.clients' or ep.startswith('main.client_') %}{% set wb_name='Clientes' %}{% set wb_icon='home-clients' %}
+    {% elif ep in ['main.collections','main.payment_calendar','main.payment_calendar_events_api'] or ep.startswith('main.payment_') %}{% set wb_name='Cobros' %}{% set wb_icon='home-payments' %}
+    {% elif ep == 'main.purchases' or ep.startswith('main.purchase_') %}{% set wb_name='Compras' %}{% set wb_icon='home-purchases' %}
+    {% elif ep == 'main.expenses' or ep.startswith('main.expense_') %}{% set wb_name='Gastos' %}{% set wb_icon='home-expenses' %}
+    {% elif ep == 'main.reports' %}{% set wb_name='Reportes' %}{% set wb_icon='home-reports' %}
+    {% elif ep in ['main.documents','main.help'] %}{% set wb_name='Documentos' %}{% set wb_icon='home-documents' %}
+    {% elif ep == 'main.notifications' %}{% set wb_name='Notificaciones' %}{% set wb_icon='bell' %}
+    {% elif ep == 'main.reminders' %}{% set wb_name='Recordatorios' %}{% set wb_icon='calendar' %}
+    {% elif ep in ['main.settings','main.team_settings','main.audit_log'] or ep.startswith('main.team_') %}{% set wb_name='Configuración' %}{% set wb_icon='settings' %}
+    {% elif ep == 'main.global_search' %}{% set wb_name='Buscar' %}{% set wb_icon='search' %}
+    {% elif current_user.role == 'superadmin' %}{% set wb_name='Administración' %}{% set wb_icon='shield' %}
+    {% endif %}
+  <header class="workspace-topbar-v75" aria-label="Barra de {{ wb_name }}">
+    <div class="workspace-topbar-left-v75">
+      <a class="workspace-launcher-v75" href="{{ url_for('admin.dashboard') if current_user.role == 'superadmin' else url_for('main.dashboard') }}" aria-label="Volver a módulos">
+        <img class="brand-logo-light" src="{{ url_for('static', filename='icons/logo-symbol-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}" alt="" width="26" height="26">
+        <img class="brand-logo-dark" src="{{ url_for('static', filename='icons/logo-symbol-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}" alt="" width="26" height="26">
+      </a>
+      <span class="workspace-module-mark-v75" aria-hidden="true">{{ icon(wb_icon,18) }}</span>
+      <strong class="workspace-module-name-v75">{{ wb_name }}</strong>
+      {% if current_user.role != 'superadmin' %}
+      <nav class="workspace-module-nav-v75" aria-label="Secciones de {{ wb_name }}">
+        {% if wb_name == 'Inventario' %}
+          <a href="{{ url_for('main.assets') }}" {% if ep == 'main.assets' %}aria-current="page"{% endif %}>Productos</a>
+          {% if can('purchases.view') %}<a href="{{ url_for('main.purchases') }}">Compras</a>{% endif %}
+        {% elif wb_name == 'Ventas' %}
+          <a href="{{ url_for('main.sales') }}" {% if ep == 'main.sales' %}aria-current="page"{% endif %}>Operaciones</a>
+          {% if can('inventory.view') %}<a href="{{ url_for('main.assets') }}">Inventario</a>{% endif %}
+          {% if can('sales.view') or can('payments.view') %}<a href="{{ url_for('main.documents') }}">Comprobantes</a>{% endif %}
+        {% elif wb_name == 'Acuerdos' %}
+          <a href="{{ url_for('main.contracts') }}" {% if ep == 'main.contracts' %}aria-current="page"{% endif %}>Acuerdos</a>
+          {% if can('collections.view') %}<a href="{{ url_for('main.collections') }}">Cobros</a><a href="{{ url_for('main.payment_calendar') }}">Calendario</a>{% endif %}
+        {% elif wb_name == 'Clientes' %}
+          <a href="{{ url_for('main.clients') }}" {% if ep == 'main.clients' %}aria-current="page"{% endif %}>Clientes</a>
+          {% if can('contracts.view') %}<a href="{{ url_for('main.contracts') }}">Acuerdos</a>{% endif %}
+          {% if can('sales.view') %}<a href="{{ url_for('main.sales') }}">Ventas</a>{% endif %}
+        {% elif wb_name == 'Cobros' %}
+          <a href="{{ url_for('main.collections') }}" {% if ep == 'main.collections' %}aria-current="page"{% endif %}>Cobros</a>
+          <a href="{{ url_for('main.payment_calendar') }}" {% if ep == 'main.payment_calendar' %}aria-current="page"{% endif %}>Calendario</a>
+          <a href="{{ url_for('main.reminders') }}">Recordatorios</a>
+        {% elif wb_name == 'Compras' %}
+          <a href="{{ url_for('main.purchases') }}" {% if ep == 'main.purchases' %}aria-current="page"{% endif %}>Órdenes</a>
+          {% if can('inventory.view') %}<a href="{{ url_for('main.assets') }}">Productos</a>{% endif %}
+        {% elif wb_name == 'Gastos' %}
+          <a href="{{ url_for('main.expenses') }}" aria-current="page">Gastos</a>
+          {% if can('purchases.view') %}<a href="{{ url_for('main.purchases') }}">Compras</a>{% endif %}
+          {% if can('reports.view') %}<a href="{{ url_for('main.reports') }}">Reportes</a>{% endif %}
+        {% elif wb_name == 'Reportes' %}
+          <a href="{{ url_for('main.reports') }}" aria-current="page">Resumen</a>
+          {% if can('sales.view') %}<a href="{{ url_for('main.sales') }}">Ventas</a>{% endif %}
+          {% if can('collections.view') %}<a href="{{ url_for('main.collections') }}">Cobros</a>{% endif %}
+        {% elif wb_name == 'Documentos' %}
+          <a href="{{ url_for('main.documents') }}" {% if ep == 'main.documents' %}aria-current="page"{% endif %}>Comprobantes</a>
+          <a href="{{ url_for('main.help') }}" {% if ep == 'main.help' %}aria-current="page"{% endif %}>Ayuda</a>
+        {% elif wb_name == 'Notificaciones' %}
+          <a href="{{ url_for('main.notifications') }}" aria-current="page">Avisos</a>
+          {% if can('collections.view') %}<a href="{{ url_for('main.collections') }}">Cobros</a>{% endif %}
+        {% elif wb_name == 'Recordatorios' %}
+          <a href="{{ url_for('main.reminders') }}" aria-current="page">Recordatorios</a>
+          {% if can('collections.view') %}<a href="{{ url_for('main.payment_calendar') }}">Calendario</a><a href="{{ url_for('main.collections') }}">Cobros</a>{% endif %}
+        {% elif wb_name == 'Configuración' %}
+          <a href="{{ url_for('main.settings') }}" {% if ep == 'main.settings' %}aria-current="page"{% endif %}>General</a>
+          {% if can('team.manage') %}<a href="{{ url_for('main.team_settings') }}" {% if ep == 'main.team_settings' %}aria-current="page"{% endif %}>Equipo</a>{% endif %}
+          {% if can('audit.view') %}<a href="{{ url_for('main.audit_log') }}" {% if ep == 'main.audit_log' %}aria-current="page"{% endif %}>Auditoría</a>{% endif %}
+        {% endif %}
+      </nav>
+      {% endif %}
+    </div>
+    <div class="workspace-topbar-tools-v75">
+      {% if current_user.role != 'superadmin' %}
+      <button type="button" class="workspace-tool-v75" data-global-search-open aria-label="Buscar">{{ icon('search',18) }}</button>
+      {% if can('collections.view') %}<a class="workspace-tool-v75" href="{{ url_for('main.notifications') }}" aria-label="Notificaciones">{{ icon('bell',18) }}<span class="notification-badge-v61" data-notification-badge hidden>0</span></a>{% endif %}
+      {% endif %}
+      <button type="button" class="workspace-profile-v75" id="profileMenuTrigger" aria-label="Abrir menú de cuenta" aria-haspopup="dialog" aria-controls="profileMenuDialog" aria-expanded="false">
+        <span class="avatar">{{ current_user.name[:1]|upper }}</span>
+        <span class="workspace-profile-copy-v75"><strong>{{ current_user.name }}</strong><small>{{ role_label(current_user.role) }}</small></span>
+      </button>
+    </div>
+  </header>
+  {% else %}
   <header class="topbar topbar-v72">
     <div class="topbar-inner topbar-inner-v72">
       <a class="brand brand-modern brand-modern-v2 brand-compact-v72" href="{{ url_for('admin.dashboard') if current_user.role == 'superadmin' else url_for('main.dashboard') }}" aria-label="Ir al inicio">
         <span class="brand-mark-shell" aria-hidden="true">
-          <img class="brand-mark brand-logo-light" src="{{ url_for('static', filename='icons/logo-symbol-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}" alt="" width="32" height="32">
-          <img class="brand-mark brand-logo-dark" src="{{ url_for('static', filename='icons/logo-symbol-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}" alt="" width="32" height="32">
+          <img class="brand-mark brand-logo-light" src="{{ url_for('static', filename='icons/logo-symbol-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}" alt="" width="32" height="32">
+          <img class="brand-mark brand-logo-dark" src="{{ url_for('static', filename='icons/logo-symbol-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}" alt="" width="32" height="32">
         </span>
         <span class="brand-word-shell" aria-label="{{ app_name }}">
-          <img class="brand-wordmark brand-logo-light" src="{{ url_for('static', filename='icons/logo-word-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}" alt="{{ app_name }}" width="118" height="22">
-          <img class="brand-wordmark brand-logo-dark" src="{{ url_for('static', filename='icons/logo-word-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}" alt="{{ app_name }}" width="118" height="22">
+          <img class="brand-wordmark brand-logo-light" src="{{ url_for('static', filename='icons/logo-word-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}" alt="{{ app_name }}" width="118" height="22">
+          <img class="brand-wordmark brand-logo-dark" src="{{ url_for('static', filename='icons/logo-word-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}" alt="{{ app_name }}" width="118" height="22">
         </span>
-        {% if current_user.role == 'superadmin' %}<span class="brand-badge">v{{ config.get('APP_VERSION', '1.26.4') }}</span>{% endif %}
+        {% if current_user.role == 'superadmin' %}<span class="brand-badge">v{{ config.get('APP_VERSION', '1.26.5') }}</span>{% endif %}
       </a>
-
       <div class="topbar-actions topbar-actions-v72">
         <button type="button" class="app-menu-trigger-v72" id="profileMenuTrigger" aria-label="Abrir menú" aria-haspopup="dialog" aria-controls="profileMenuDialog" aria-expanded="false">
           <span class="app-menu-trigger-shell-v72" aria-hidden="true">{{ icon('sales-more', 18) }}</span>
-          <span class="app-menu-user-v72">
-            <span class="avatar">{{ current_user.name[:1]|upper }}</span>
-            <span class="app-menu-copy-v72"><strong>{{ current_user.name }}</strong><small>{{ role_label(current_user.role) }}</small></span>
-          </span>
+          <span class="app-menu-user-v72"><span class="avatar">{{ current_user.name[:1]|upper }}</span><span class="app-menu-copy-v72"><strong>{{ current_user.name }}</strong><small>{{ role_label(current_user.role) }}</small></span></span>
         </button>
       </div>
     </div>
   </header>
+  {% endif %}
+  {% endif %}
 
   {% if current_user.is_authenticated and request.blueprint != 'auth' and current_user.role != 'superadmin' %}
   <dialog class="quick-search-dialog-v17" id="globalSearchDialog" aria-label="Buscar en CuotaGo">
@@ -192,6 +278,7 @@
   </dialog>
   {% endif %}
 
+  {% if current_user.is_authenticated and request.blueprint != 'auth' %}
   <dialog class="profile-dialog profile-dialog-v72" id="profileMenuDialog" aria-label="Menú de cuenta">
     <section class="profile-sheet profile-sheet-v72" role="document">
       <div class="profile-sheet-handle" aria-hidden="true"></div>
@@ -286,7 +373,7 @@
   <footer class="footer"><span class="status-dot"></span><span>© 2026 {{ app_name }}</span>{% if current_user.role == 'superadmin' %}<a href="{{ url_for('admin.dashboard') }}">Superadmin</a>{% else %}<a href="{{ url_for('main.settings') }}">Configuración</a>{% endif %}</footer>
   {% endif %}
 
-  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('ASSET_VERSION', '1.26.4-ui-v74') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('ASSET_VERSION', '1.26.5-ui-v75') }}" defer></script>
   <script src="{{ url_for('static', filename='js/dealer.js', v=config['ASSET_VERSION']) }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>

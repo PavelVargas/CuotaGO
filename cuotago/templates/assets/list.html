@@ -2,107 +2,88 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Inventario · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page inventory-page inventory-page-v18 inventory-page-v19 inventory-page-v20 inventory-page-v22 inventory-page-v74">
-  {% set has_filters = q or status or brand %}
-  <div class="page-head inventory-page-head">
+<section class="content-page inventory-page-v75">
+  {% set has_filters = q or status or brand or kind %}
+  <div class="page-head module-head-v75">
     <div class="page-head-left">
-      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <span class="module-context-icon accent-teal" aria-hidden="true">{{ icon('home-inventory', 24) }}</span>
-      <div><span class="eyebrow">INVENTARIO</span><h1>Inventario</h1><p>Existencias, vehículos, productos y valores del negocio.</p></div>
+      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver a módulos">{{ icon('back', 20) }}</a>
+      <span class="module-context-icon accent-teal" aria-hidden="true">{{ icon('home-inventory', 21) }}</span>
+      <div><span class="eyebrow">INVENTARIO</span><h1>Productos y vehículos</h1><p>Controla disponibilidad, costo, precio y estado desde una sola vista.</p></div>
     </div>
-    {% if can('inventory.manage') %}<a class="btn btn-primary inventory-new-button" href="{{ url_for('main.asset_new') }}">{{ icon('plus', 17) }} <span>Nuevo</span></a>{% endif %}
+    {% if can('inventory.manage') %}<a class="btn btn-primary inventory-new-button" href="{{ url_for('main.asset_new') }}">{{ icon('plus', 16) }} <span>Nuevo producto</span></a>{% endif %}
   </div>
 
-  <section class="inventory-overview-v74" aria-label="Resumen de inventario">
-    <article class="inventory-overview-item-v74 is-available"><span class="inventory-overview-icon-v74">{{ icon('inventory',17) }}</span><div><small>Disponibles</small><strong>{{ inventory_summary.available_units }}</strong><em>Listos para negocio</em></div></article>
-    <article class="inventory-overview-item-v74 is-maintenance"><span class="inventory-overview-icon-v74">{{ icon('wrench',17) }}</span><div><small>Mantenimiento</small><strong>{{ inventory_summary.maintenance_units }}</strong><em>En proceso interno</em></div></article>
-    <article class="inventory-overview-item-v74 is-workshop"><span class="inventory-overview-icon-v74">{{ icon('wrench',17) }}</span><div><small>En taller</small><strong>{{ inventory_summary.workshop_units }}</strong><em>Fuera del piso</em></div></article>
-    <article class="inventory-overview-item-v74 is-money"><span class="inventory-overview-icon-v74">{{ icon('wallet',17) }}</span><div><small>Capital disponible</small><strong>{{ money(inventory_summary.cost_value) }}</strong><em>Potencial {{ money(inventory_summary.potential_profit) }}</em></div></article>
+  <section class="inventory-summary-strip-v75" aria-label="Resumen de inventario">
+    <article><span class="inventory-summary-icon-v75 is-green">{{ icon('inventory',16) }}</span><div><strong>{{ inventory_summary.available_units }}</strong><small>Disponibles</small></div></article>
+    <article><span class="inventory-summary-icon-v75 is-amber">{{ icon('wrench',16) }}</span><div><strong>{{ inventory_summary.maintenance_units + inventory_summary.workshop_units }}</strong><small>En proceso</small></div></article>
+    <article><span class="inventory-summary-icon-v75 is-blue">{{ icon('wallet',16) }}</span><div><strong>{{ money(inventory_summary.cost_value) }}</strong><small>Capital disponible</small></div></article>
+    <article><span class="inventory-summary-icon-v75 is-green">{{ icon('chart',16) }}</span><div><strong>{{ money(inventory_summary.potential_profit) }}</strong><small>Ganancia potencial</small></div></article>
   </section>
 
-  <section class="surface inventory-workbench-v74">
-    <div class="inventory-toolbar-v74">
-      <form class="inventory-filter-row-v74" method="get">
-        <label class="inventory-search-v74">
-          {{ icon('search',18) }}
-          <input name="q" value="{{ q }}" placeholder="Buscar nombre, placa, chasis, IMEI o serial" autocomplete="off">
+  <section class="inventory-board-v75">
+    <div class="inventory-board-toolbar-v75">
+      <form class="inventory-controls-v75" method="get">
+        <label class="inventory-search-v75">
+          {{ icon('search',17) }}
+          <input name="q" value="{{ q }}" placeholder="Buscar por nombre, placa, chasis, IMEI o serial" autocomplete="off" aria-label="Buscar inventario">
         </label>
-        <select name="status" aria-label="Filtrar por estado">
-          <option value="">Todos los estados</option>
-          <option value="available" {{ 'selected' if status=='available' }}>Disponibles</option>
-          <option value="on_loan" {{ 'selected' if status=='on_loan' }}>Entregados</option>
-          <option value="maintenance" {{ 'selected' if status=='maintenance' }}>Mantenimiento</option>
-          <option value="workshop" {{ 'selected' if status=='workshop' }}>En taller</option>
-          <option value="sold" {{ 'selected' if status=='sold' }}>Vendidos</option>
+        <select name="kind" aria-label="Filtrar por tipo">
+          <option value="">Todos los tipos</option>
+          {% for value,label in [('car','Carros'),('motorcycle','Motores'),('phone','Celulares'),('computer','Computadoras'),('appliance','Electrodomésticos'),('other','Otros')] %}<option value="{{ value }}" {{ 'selected' if kind==value }}>{{ label }}</option>{% endfor %}
         </select>
         <select name="brand" aria-label="Filtrar por marca">
           <option value="">Todas las marcas</option>
           {% for item in brand_options %}<option value="{{ item }}" {{ 'selected' if brand==item }}>{{ item }}</option>{% endfor %}
         </select>
-        <button class="btn btn-secondary inventory-filter-submit-v74" type="submit">{{ icon('search',16) }} <span>Filtrar</span></button>
-        {% if has_filters %}<a class="btn btn-ghost inventory-clear-v74" href="{{ url_for('main.assets') }}">Limpiar</a>{% endif %}
+        <select name="status" aria-label="Filtrar por estado">
+          <option value="">Todos los estados</option>
+          <option value="available" {{ 'selected' if status=='available' }}>Disponibles</option>
+          <option value="on_loan" {{ 'selected' if status=='on_loan' }}>En acuerdo</option>
+          <option value="maintenance" {{ 'selected' if status=='maintenance' }}>Mantenimiento</option>
+          <option value="workshop" {{ 'selected' if status=='workshop' }}>En taller</option>
+          <option value="sold" {{ 'selected' if status=='sold' }}>Vendidos</option>
+        </select>
+        <button class="btn btn-secondary inventory-filter-button-v75" type="submit">{{ icon('search',15) }} <span>Filtrar</span></button>
+        {% if has_filters %}<a class="inventory-clear-link-v75" href="{{ url_for('main.assets') }}">Limpiar</a>{% endif %}
       </form>
-      <div class="inventory-filter-summary-v74">
-        <span><strong>{{ pagination.total }}</strong> registro{{ 's' if pagination.total != 1 }}</span>
-        {% if brand %}<span class="inventory-filter-chip-v74">{{ icon('box',14) }} {{ brand }}</span>{% endif %}
-        {% if status %}<span class="inventory-filter-chip-v74">{{ icon('shield',14) }} {{ asset_status_label(status) }}</span>{% endif %}
+      <div class="inventory-board-meta-v75">
+        <strong>{{ pagination.total }}</strong><span>registro{{ 's' if pagination.total != 1 }}</span>
       </div>
     </div>
 
     {% if assets %}
-    <div class="inventory-table-v74" role="table" aria-label="Inventario">
-      <div class="inventory-table-head-v74" role="row">
-        <span aria-hidden="true"></span>
-        <span>Producto</span>
-        <span>Estado</span>
-        <span>Referencia</span>
-        <span>Existencia</span>
-        <span>Costo</span>
-        <span>Venta</span>
-        <span>Potencial</span>
-        <span aria-hidden="true"></span>
+    <div class="inventory-list-v75" role="table" aria-label="Productos del inventario">
+      <div class="inventory-list-head-v75" role="row">
+        <span>Producto</span><span>Estado</span><span>Existencia</span><span>Costo</span><span>Venta</span><span>Potencial</span><span aria-hidden="true"></span>
       </div>
-      <div class="inventory-table-body-v74">
       {% for asset in assets %}
-        {% set is_vehicle = asset.kind in ['car','motorcycle'] %}
-        <a href="{{ url_for('main.asset_detail', asset_id=asset.id) }}" class="inventory-line-v74 inventory-state-{{ asset.status }}" role="row">
-          <span class="inventory-line-media-v74 {{ 'is-vehicle' if is_vehicle else 'is-device' if asset.kind=='phone' else 'is-generic' }}" role="cell">
-            {% if asset.image_mime %}<img src="{{ url_for('main.asset_image', asset_id=asset.id, thumb=1, v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}" loading="lazy" decoding="async">
-            {% else %}<span>{{ icon('car' if is_vehicle else 'phone' if asset.kind=='phone' else 'inventory',26) }}</span>{% endif %}
+      {% set is_vehicle = asset.kind in ['car','motorcycle'] %}
+      <a class="inventory-item-v75 inventory-state-{{ asset.status }}" href="{{ url_for('main.asset_detail',asset_id=asset.id) }}" role="row">
+        <span class="inventory-product-v75" role="cell">
+          <span class="inventory-thumb-v75 {{ 'is-vehicle' if is_vehicle else 'is-device' if asset.kind=='phone' else 'is-generic' }}">
+            {% if asset.image_mime %}<img src="{{ url_for('main.asset_image',asset_id=asset.id,thumb=1,v=(asset.image_updated_at.strftime('%Y%m%d%H%M%S') if asset.image_updated_at else 'legacy')) }}" alt="{{ asset.name }}" loading="lazy" decoding="async">
+            {% else %}{{ icon('car' if is_vehicle else 'phone' if asset.kind=='phone' else 'inventory',25) }}{% endif %}
           </span>
-
-          <span class="inventory-line-product-v74" role="cell">
+          <span class="inventory-product-copy-v75">
             <strong>{{ asset.name }}</strong>
-            <small>{{ asset_kind_label(asset.kind) }}{% if asset.brand %} · {{ asset.brand }}{% endif %}{% if asset.model and asset.model|lower not in asset.name|lower %} · {{ asset.model }}{% endif %}{% if is_vehicle and asset.vehicle_year %} · {{ asset.vehicle_year }}{% endif %}</small>
+            <small>{{ asset.brand or asset_kind_label(asset.kind) }}{% if asset.model and asset.model|lower not in asset.name|lower %} · {{ asset.model }}{% endif %}{% if is_vehicle and asset.vehicle_year %} · {{ asset.vehicle_year }}{% endif %}</small>
+            <em>{% if is_vehicle %}{% if asset.identifier %}Placa {{ asset.identifier }}{% endif %}{% if asset.serial_number %}{{ ' · ' if asset.identifier else '' }}VIN {{ asset.serial_number }}{% endif %}{% if asset.mileage is not none %} · {{ '{:,.0f}'.format(asset.mileage) }} km{% endif %}{% else %}{{ asset.identifier or asset.serial_number or 'Sin identificador' }}{% endif %}</em>
           </span>
-
-          <span class="inventory-line-status-v74" role="cell"><span class="vehicle-status vehicle-status-{{ asset.status }}">{{ asset_status_label(asset.status) }}</span></span>
-
-          <span class="inventory-line-reference-v74" role="cell">
-            <small>{{ 'Placa' if is_vehicle else 'ID / Serial' }}</small>
-            <strong>{{ asset.identifier or asset.serial_number or '—' }}</strong>
-            {% if is_vehicle and asset.serial_number %}<em>{{ asset.serial_number }}</em>{% elif not is_vehicle and asset.identifier and asset.serial_number %}<em>{{ asset.serial_number }}</em>{% endif %}
-          </span>
-
-          <span class="inventory-line-stock-v74" role="cell">
-            <strong>{{ asset.available_quantity }}</strong>
-            <small>de {{ asset.quantity_total or 1 }}</small>
-            {% if is_vehicle and asset.mileage is not none %}<em>{{ '{:,.0f}'.format(asset.mileage) }} km</em>{% endif %}
-          </span>
-
-          <span class="inventory-line-money-v74" role="cell"><small>Costo</small><strong>{{ money(asset.estimated_value) }}</strong></span>
-          <span class="inventory-line-money-v74 is-sale" role="cell"><small>Venta</small><strong>{{ money(asset.sale_price if asset.sale_price else asset.estimated_value) }}</strong></span>
-          <span class="inventory-line-money-v74 is-profit" role="cell"><small>Potencial</small><strong>{{ money(asset.expected_profit_per_unit if asset.sale_price else 0) }}</strong></span>
-          <span class="inventory-line-open-v74" role="cell" aria-hidden="true">{{ icon('sales-arrow',17) }}</span>
-        </a>
+        </span>
+        <span class="inventory-status-v75" role="cell"><span class="vehicle-status vehicle-status-{{ asset.status }}">{{ asset_status_label(asset.status) }}</span></span>
+        <span class="inventory-stock-v75" role="cell"><strong>{{ asset.available_quantity }}</strong><small>de {{ asset.quantity_total or 1 }}</small></span>
+        <span class="inventory-money-v75" role="cell"><small>Costo</small><strong>{{ money(asset.estimated_value) }}</strong></span>
+        <span class="inventory-money-v75 is-sale" role="cell"><small>Venta</small><strong>{{ money(asset.sale_price if asset.sale_price else asset.estimated_value) }}</strong></span>
+        <span class="inventory-money-v75 is-profit" role="cell"><small>Potencial</small><strong>{% if asset.status == 'available' and asset.sale_price %}{{ money(asset.expected_profit_per_unit) }}{% else %}—{% endif %}</strong></span>
+        <span class="inventory-open-v75" role="cell" aria-hidden="true">{{ icon('sales-arrow',16) }}</span>
+      </a>
       {% endfor %}
-      </div>
     </div>
     {% else %}
-      <div class="empty-state inventory-empty-v74"><span class="empty-icon">{{ icon('home-inventory', 34) }}</span><h3>{% if has_filters %}No hay coincidencias{% else %}Inventario vacío{% endif %}</h3><p>{% if has_filters %}Prueba otra marca, estado o término de búsqueda.{% else %}Registra el primer vehículo o producto para comenzar a controlar costos, ventas y existencias.{% endif %}</p>{% if can('inventory.manage') and not has_filters %}<a class="btn btn-primary" href="{{ url_for('main.asset_new') }}">{{ icon('plus',16) }} Registrar producto</a>{% endif %}</div>
+    <div class="inventory-empty-v75"><span>{{ icon('home-inventory',32) }}</span><h2>{% if has_filters %}No encontramos productos{% else %}Inventario vacío{% endif %}</h2><p>{% if has_filters %}Cambia la búsqueda o los filtros para ver otros registros.{% else %}Registra tu primer vehículo o producto para comenzar.{% endif %}</p>{% if can('inventory.manage') and not has_filters %}<a class="btn btn-primary" href="{{ url_for('main.asset_new') }}">{{ icon('plus',16) }} Registrar producto</a>{% endif %}</div>
     {% endif %}
   </section>
 
-  {% if pagination.pages > 1 %}<nav class="simple-pagination-v16 inventory-pagination-v74" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.assets', page=pagination.prev_num, q=q, status=status, brand=brand) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.assets', page=pagination.next_num, q=q, status=status, brand=brand) }}"{% endif %}>Siguiente</a></nav>{% endif %}
+  {% if pagination.pages > 1 %}<nav class="simple-pagination-v16 inventory-pagination-v75" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.assets',page=pagination.prev_num,q=q,status=status,brand=brand,kind=kind) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.assets',page=pagination.next_num,q=q,status=status,brand=brand,kind=kind) }}"{% endif %}>Siguiente</a></nav>{% endif %}
 </section>
 {% endblock %}

@@ -1,256 +1,295 @@
 /* --------------------------------------------------------------------------
-   CuotaGo v1.26.4 / ui-v74
-   Workbench layout inspired by business-app workspaces: Home remains the
-   spacious launcher; every internal module uses the available viewport.
+   CuotaGo v1.26.5 / ui-v75 · dealer workbench
+   Home stays as the spacious app launcher. Internal modules use a compact,
+   consistent workspace: thin app bar, dense controls and purpose-sized views.
    -------------------------------------------------------------------------- */
-body.workbench-shell-v74 {
-  --ws-gutter: 12px;
-  --ws-gap: 10px;
-  --ws-radius: 18px;
-  --ws-radius-sm: 13px;
-  --ws-header-h: 46px;
+body.workbench-shell-v75{
+  --ws-topbar-h:42px;
+  --ws-page-max:1600px;
+  --ws-detail-max:1460px;
+  --ws-form-max:1180px;
+  --ws-gutter:14px;
+  --ws-gap:10px;
+  --ws-radius:14px;
+  --ws-control-h:36px;
+  background:var(--bg);
+}
+body.workbench-shell-v75 .page-shell{min-height:calc(100dvh - var(--ws-topbar-h));padding:0!important;background:var(--bg);}
+
+/* Thin application bar: deliberately quiet, similar to a business workspace. */
+.workspace-topbar-v75{
+  position:sticky;
+  top:0;
+  z-index:70;
+  min-height:var(--ws-topbar-h);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:0 max(var(--ws-gutter),var(--safe-right)) 0 max(var(--ws-gutter),var(--safe-left));
+  border-bottom:1px solid color-mix(in srgb,var(--line) 78%,transparent);
+  background:color-mix(in srgb,var(--surface) 94%,transparent);
+  color:var(--text-strong);
+}
+.workspace-topbar-left-v75,.workspace-topbar-tools-v75{display:flex;align-items:center;min-width:0;}
+.workspace-topbar-left-v75{gap:8px;flex:1;overflow:hidden;}
+.workspace-launcher-v75{
+  width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;border-radius:8px;
+  color:var(--text-strong);text-decoration:none;
+}
+.workspace-launcher-v75:hover{background:var(--surface-2);}
+.workspace-launcher-v75 img{width:24px;height:24px;object-fit:contain;}
+.workspace-module-mark-v75{width:28px;height:28px;flex:0 0 28px;display:grid;place-items:center;color:var(--primary);}
+.workspace-module-name-v75{font-size:13px;line-height:1;font-weight:760;white-space:nowrap;}
+.workspace-module-nav-v75{display:flex;align-items:stretch;min-width:0;height:var(--ws-topbar-h);margin-left:6px;overflow-x:auto;scrollbar-width:none;}
+.workspace-module-nav-v75::-webkit-scrollbar{display:none;}
+.workspace-module-nav-v75 a{
+  position:relative;display:flex;align-items:center;min-height:100%;padding:0 11px;color:var(--text);font-size:11.5px;font-weight:560;white-space:nowrap;text-decoration:none;
+}
+.workspace-module-nav-v75 a:hover{background:color-mix(in srgb,var(--primary) 4%,transparent);color:var(--text-strong);}
+.workspace-module-nav-v75 a[aria-current="page"]{font-weight:730;color:var(--text-strong);}
+.workspace-module-nav-v75 a[aria-current="page"]::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:2px;border-radius:999px;background:var(--primary);}
+.workspace-topbar-tools-v75{gap:2px;flex:0 0 auto;}
+.workspace-tool-v75{
+  position:relative;width:34px;height:34px;border:0;border-radius:9px;background:transparent;color:var(--text);display:grid;place-items:center;cursor:pointer;text-decoration:none;
+}
+.workspace-tool-v75:hover,.workspace-tool-v75:active{background:var(--surface-2);}
+.workspace-profile-v75{
+  min-height:34px;display:flex;align-items:center;gap:7px;margin-left:3px;padding:2px 5px 2px 3px;border:0;border-radius:10px;background:transparent;color:var(--text-strong);cursor:pointer;
+}
+.workspace-profile-v75:hover,.workspace-profile-v75[aria-expanded="true"]{background:var(--surface-2);}
+.workspace-profile-v75 .avatar{width:28px;height:28px;flex:0 0 28px;font-size:10px;}
+.workspace-profile-copy-v75{display:flex;flex-direction:column;min-width:0;text-align:left;}
+.workspace-profile-copy-v75 strong{max-width:130px;font-size:10.5px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.workspace-profile-copy-v75 small{margin-top:1px;color:var(--muted);font-size:8.5px;line-height:1.15;}
+.workspace-topbar-v75 .notification-badge-v61{top:1px;right:1px;}
+
+/* The page itself: use the screen, but never stretch business cards pointlessly. */
+html.is-browser-app body.workbench-shell-v75 :is(.content-page,.sls-workspace){
+  width:calc(100% - (var(--ws-gutter) * 2))!important;
+  max-width:var(--ws-page-max)!important;
+  margin:0 auto!important;
+  padding:10px 0 24px!important;
+}
+html.is-browser-app body.workbench-shell-v75 .content-page.narrow-page{max-width:var(--ws-form-max)!important;}
+html.is-browser-app body.workbench-shell-v75 .dealer-page{max-width:var(--ws-detail-max)!important;padding:10px 0 24px!important;}
+html.is-browser-app body.workbench-shell-v75.sales-module .sls-workspace{max-width:1540px!important;}
+
+/* Module heading: no card around a title. It is navigation, not content. */
+body.workbench-shell-v75 :is(.page-head,.sls-header,.dlr-header){
+  min-height:44px!important;
+  margin:0 0 8px!important;
+  padding:2px 0 7px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  gap:10px!important;
+  align-items:center!important;
+}
+body.workbench-shell-v75 :is(.page-head-left,.sls-heading){gap:8px!important;align-items:center!important;}
+body.workbench-shell-v75 :is(.page-head h1,.sls-heading h1,.dlr-heading-copy h1){font-size:20px!important;line-height:1.1!important;margin:0!important;letter-spacing:-.03em!important;font-weight:760!important;}
+body.workbench-shell-v75 :is(.page-head p,.sls-heading p,.dlr-heading-copy p){margin:2px 0 0!important;font-size:10px!important;line-height:1.3!important;color:var(--muted)!important;}
+body.workbench-shell-v75 :is(.page-head .eyebrow,.sls-eyebrow,.dlr-heading-copy .eyebrow){font-size:7.8px!important;letter-spacing:.08em!important;}
+body.workbench-shell-v75 :is(.page-head .icon-btn,.sls-icon-button,.dlr-header .icon-btn){width:34px!important;height:34px!important;flex-basis:34px!important;border-radius:9px!important;box-shadow:none!important;}
+body.workbench-shell-v75 :is(.module-context-icon,.dlr-heading-icon){width:34px!important;height:34px!important;flex-basis:34px!important;border-radius:10px!important;box-shadow:none!important;}
+body.workbench-shell-v75 :is(.module-context-icon,.dlr-heading-icon) .ui-icon{width:19px!important;height:19px!important;}
+body.workbench-shell-v75 :is(.page-head>.btn,.sls-header-actions .sls-button,.dlr-header-actions .btn){min-height:34px!important;padding:6px 11px!important;border-radius:9px!important;font-size:10.5px!important;}
+
+/* Shared business surfaces and controls. */
+body.workbench-shell-v75 :is(.surface,.dlr-panel,.sls-register-shell,.sls-sale-card,.sls-product,.sls-sale-fields,.sls-review){
+  border-radius:var(--ws-radius)!important;
+  border-color:color-mix(in srgb,var(--line) 92%,transparent)!important;
+  box-shadow:0 2px 9px rgba(15,23,42,.025)!important;
+}
+body.workbench-shell-v75 :is(.btn,.sls-button){min-height:var(--ws-control-h);border-radius:9px;font-size:11px;padding:7px 12px;box-shadow:none;}
+body.workbench-shell-v75 :is(.field input,.field select,.field textarea,.filter-row select,.sls-filter-form select,.sls-search,.dlr-search){border-radius:9px!important;}
+body.workbench-shell-v75 :is(.field input,.field select,.sls-filter-form select){min-height:var(--ws-control-h)!important;}
+body.workbench-shell-v75 :is(.field textarea){min-height:72px;}
+body.workbench-shell-v75 :is(.clients-toolbar-v23,.agreements-toolbar-v23,.calendar-filterbar,.collection-toolbar-v20,.expense-toolbar-v19,.purchase-toolbar-v23,.report-filter-v19,.notifications-toolbar-v61){border-radius:12px!important;box-shadow:none!important;}
+
+/* Kanban/directory modules use useful card widths instead of stretched cards. */
+@media (min-width:900px){
+  body.workbench-shell-v75 .client-directory-grid-v23{grid-template-columns:repeat(auto-fill,minmax(300px,370px))!important;justify-content:start;gap:10px!important;}
+  body.workbench-shell-v75 .agreement-grid-v23{grid-template-columns:repeat(auto-fill,minmax(330px,400px))!important;justify-content:start;gap:10px!important;}
+  body.workbench-shell-v75 .sls-sales-grid{grid-template-columns:repeat(auto-fill,minmax(320px,390px))!important;justify-content:start;gap:12px!important;}
+  body.workbench-shell-v75 .sls-sale-card{max-width:390px;}
+  body.workbench-shell-v75 .purchases-grid-v23,body.workbench-shell-v75 .expense-grid-v19{gap:10px!important;}
+  body.workbench-shell-v75 .calendar-workspace{grid-template-columns:minmax(0,1.7fr) minmax(300px,.65fr)!important;gap:10px!important;}
+  body.workbench-shell-v75 .dlr-grid-two,body.workbench-shell-v75 .dlr-client-layout{gap:10px!important;}
+  body.workbench-shell-v75 .dlr-panel{margin-bottom:10px!important;}
+  body.workbench-shell-v75 .dlr-section-nav{margin-bottom:8px!important;padding-bottom:2px!important;}
+  body.workbench-shell-v75 .dlr-section-nav a{min-height:34px!important;padding:7px 10px!important;border-radius:9px!important;font-size:10.5px!important;}
+  body.workbench-shell-v75 .sls-stats{margin-bottom:10px!important;border-radius:12px!important;box-shadow:none!important;}
+  body.workbench-shell-v75 .sls-stats article{padding:14px 20px!important;}
+  body.workbench-shell-v75 .sls-register-shell{padding:16px!important;}
+  body.workbench-shell-v75 .sls-toolbar-panel{padding:10px!important;border-radius:11px!important;}
 }
 
-body.workbench-shell-v74 .page-shell {
-  width: 100%;
-  max-width: none;
+/* Inventory: proper dealer register, not oversized product cards. */
+.inventory-page-v75{max-width:var(--ws-page-max)!important;}
+.inventory-summary-strip-v75{
+  min-height:50px;display:flex;align-items:stretch;gap:0;margin:0 0 8px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;
+}
+.inventory-summary-strip-v75 article{min-width:0;flex:1;display:flex;align-items:center;gap:9px;padding:8px 13px;border-right:1px solid var(--line);}
+.inventory-summary-strip-v75 article:last-child{border-right:0;}
+.inventory-summary-icon-v75{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;border-radius:9px;background:var(--surface-2);color:var(--muted);}
+.inventory-summary-icon-v75.is-green{color:var(--success);background:color-mix(in srgb,var(--success) 9%,var(--surface));}
+.inventory-summary-icon-v75.is-amber{color:var(--warning);background:color-mix(in srgb,var(--warning) 9%,var(--surface));}
+.inventory-summary-icon-v75.is-blue{color:var(--primary);background:color-mix(in srgb,var(--primary) 9%,var(--surface));}
+.inventory-summary-strip-v75 article>div{min-width:0;display:flex;flex-direction:column;}
+.inventory-summary-strip-v75 strong{font-size:14px;line-height:1.15;color:var(--text-strong);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inventory-summary-strip-v75 small{margin-top:2px;font-size:8.5px;color:var(--muted);white-space:nowrap;}
+
+.inventory-board-v75{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;}
+.inventory-board-toolbar-v75{min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--surface);}
+.inventory-controls-v75{min-width:0;flex:1;display:flex;align-items:center;gap:6px;}
+.inventory-search-v75{min-width:240px;max-width:520px;flex:1;min-height:36px;display:flex;align-items:center;gap:8px;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--muted);}
+.inventory-search-v75:focus-within{border-color:color-mix(in srgb,var(--primary) 55%,var(--line));box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 8%,transparent);}
+.inventory-search-v75 input{min-width:0;width:100%;border:0;outline:0;background:transparent;color:var(--text-strong);font:inherit;font-size:12px;}
+.inventory-controls-v75 select{min-width:128px;min-height:36px;border:1px solid var(--line);border-radius:9px;padding:0 9px;background:var(--surface);color:var(--text-strong);font-size:10.5px;}
+.inventory-filter-button-v75{min-height:36px!important;white-space:nowrap;}
+.inventory-clear-link-v75{font-size:10px;color:var(--primary);padding:8px 5px;white-space:nowrap;}
+.inventory-board-meta-v75{display:flex;align-items:baseline;gap:4px;color:var(--muted);font-size:9.5px;white-space:nowrap;}
+.inventory-board-meta-v75 strong{font-size:12px;color:var(--text-strong);}
+
+.inventory-list-v75{width:100%;min-width:0;}
+.inventory-list-head-v75,.inventory-item-v75{display:grid;grid-template-columns:minmax(300px,1.8fr) 108px 92px minmax(110px,.72fr) minmax(118px,.76fr) minmax(105px,.68fr) 26px;align-items:center;gap:10px;}
+.inventory-list-head-v75{min-height:32px;padding:0 11px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--surface-2) 66%,var(--surface));color:var(--muted);font-size:8px;font-weight:800;letter-spacing:.065em;text-transform:uppercase;}
+.inventory-item-v75{min-height:76px;padding:8px 11px;border-bottom:1px solid color-mix(in srgb,var(--line) 90%,transparent);color:var(--text-strong);text-decoration:none;background:var(--surface);transition:background .1s ease;}
+.inventory-item-v75:last-child{border-bottom:0;}
+.inventory-item-v75:hover{background:color-mix(in srgb,var(--primary) 2.5%,var(--surface));}
+.inventory-product-v75{min-width:0;display:grid;grid-template-columns:76px minmax(0,1fr);gap:10px;align-items:center;}
+.inventory-thumb-v75{width:76px;height:56px;border:1px solid var(--line);border-radius:9px;display:grid;place-items:center;overflow:hidden;background:var(--surface-2);color:var(--muted);}
+.inventory-thumb-v75 img{width:100%;height:100%;display:block;object-position:center;}
+.inventory-thumb-v75.is-vehicle img{object-fit:cover;}
+.inventory-thumb-v75.is-device img{object-fit:contain;padding:3px;}
+.inventory-product-copy-v75{min-width:0;display:flex;flex-direction:column;gap:2px;}
+.inventory-product-copy-v75>strong{font-size:12px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inventory-product-copy-v75>small{font-size:9.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inventory-product-copy-v75>em{font-size:8.5px;font-style:normal;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inventory-status-v75 .vehicle-status{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inventory-stock-v75{display:flex;align-items:baseline;gap:4px;}
+.inventory-stock-v75 strong{font-size:13px;}
+.inventory-stock-v75 small{font-size:9px;color:var(--muted);}
+.inventory-money-v75{min-width:0;display:flex;flex-direction:column;gap:2px;}
+.inventory-money-v75 small{display:none;font-size:8px;color:var(--muted);}
+.inventory-money-v75 strong{font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inventory-money-v75.is-sale strong{font-size:12.5px;}
+.inventory-money-v75.is-profit strong{color:var(--success);}
+.inventory-open-v75{display:grid;place-items:center;color:var(--muted);}
+.inventory-item-v75:hover .inventory-open-v75{color:var(--primary);}
+.inventory-empty-v75{min-height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;}
+.inventory-empty-v75>span{width:50px;height:50px;border-radius:14px;background:var(--surface-2);display:grid;place-items:center;color:var(--muted);}
+.inventory-empty-v75 h2{margin:11px 0 4px;font-size:16px;}
+.inventory-empty-v75 p{margin:0 0 13px;max-width:420px;color:var(--muted);font-size:10.5px;}
+.inventory-pagination-v75{margin-top:8px;}
+
+/* Detail/form surfaces are allowed to breathe, but the media/form columns have limits. */
+body.workbench-shell-v75 .dlr-unit-hero{grid-template-columns:minmax(360px,.9fr) minmax(480px,1.1fr)!important;gap:8px!important;padding:8px!important;}
+body.workbench-shell-v75 .dlr-unit-copy{padding:12px 16px 8px!important;}
+body.workbench-shell-v75 .dlr-photo.is-large.is-vehicle-large{max-height:520px;}
+body.workbench-shell-v75 .dlr-photo.is-large.is-device-large{max-height:560px;}
+
+@media (max-width:1180px) and (min-width:900px){
+  .workspace-profile-copy-v75{display:none;}
+  .inventory-list-head-v75,.inventory-item-v75{grid-template-columns:minmax(280px,1.7fr) 100px 80px minmax(105px,.75fr) minmax(112px,.8fr) 26px;}
+  .inventory-list-head-v75>span:nth-child(6),.inventory-item-v75>.inventory-money-v75.is-profit{display:none;}
+  .inventory-controls-v75 select{min-width:112px;}
 }
 
-/* Internal modules share one visual language. */
-body.workbench-shell-v74 :is(
-  .surface,
-  .dlr-panel,
-  .sls-register-shell,
-  .sls-sale-card,
-  .sls-product,
-  .sls-sale-fields,
-  .sls-review
-) {
-  border-radius: var(--ws-radius);
+@media (max-width:899px){
+  body.workbench-shell-v75{--ws-topbar-h:46px;--ws-gutter:10px;}
+  .workspace-topbar-v75{padding-top:var(--safe-top);min-height:calc(var(--ws-topbar-h) + var(--safe-top));background:var(--surface);}
+  .workspace-module-nav-v75{display:none;}
+  .workspace-module-name-v75{font-size:12.5px;}
+  .workspace-profile-copy-v75{display:none;}
+  .workspace-profile-v75{padding:2px;margin-left:1px;}
+  .workspace-module-mark-v75{width:26px;height:26px;flex-basis:26px;}
+  .workspace-tool-v75{width:32px;height:32px;}
+  html.is-standalone-app body.workbench-shell-v75 .page-shell{min-height:calc(100svh - var(--ws-topbar-h) - var(--safe-top));padding-top:0!important;padding-bottom:calc(var(--safe-bottom) + 12px)!important;}
+  html.is-standalone-app body.workbench-shell-v75 .pwa-utility-dock-v61,html.is-standalone-app body.workbench-shell-v75 .pwa-utility-rail-v62{display:none!important;}
+  html.is-standalone-app body.workbench-shell-v75 .profile-dialog[open]{display:block!important;}
+  html.is-standalone-app body.workbench-shell-v75 .profile-sheet-v72{left:max(10px,var(--safe-left));right:max(10px,var(--safe-right));top:auto;bottom:max(10px,var(--safe-bottom));width:auto;}
+
+  body.workbench-shell-v75 :is(.content-page,.sls-workspace,.dealer-page){width:calc(100% - 20px)!important;max-width:none!important;margin:0 auto!important;padding:8px 0 18px!important;}
+  body.workbench-shell-v75 :is(.page-head,.sls-header,.dlr-header){min-height:40px!important;margin-bottom:7px!important;padding-bottom:5px!important;}
+  body.workbench-shell-v75 :is(.page-head h1,.sls-heading h1,.dlr-heading-copy h1){font-size:18px!important;}
+  body.workbench-shell-v75 :is(.page-head p,.sls-heading p,.dlr-heading-copy p){display:none!important;}
+
+  .inventory-summary-strip-v75{display:grid;grid-template-columns:1fr 1fr;border-radius:11px;}
+  .inventory-summary-strip-v75 article{min-height:48px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 9px;}
+  .inventory-summary-strip-v75 article:nth-child(2n){border-right:0;}
+  .inventory-summary-strip-v75 article:nth-last-child(-n+2){border-bottom:0;}
+  .inventory-summary-strip-v75 strong{font-size:12px;}
+  .inventory-summary-strip-v75 small{font-size:7.8px;}
+  .inventory-board-toolbar-v75{display:block;padding:8px;}
+  .inventory-controls-v75{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .inventory-search-v75{grid-column:1/-1;max-width:none;min-width:0;min-height:40px;}
+  .inventory-controls-v75 select{min-width:0;min-height:40px;font-size:10px;}
+  .inventory-filter-button-v75{min-height:40px!important;}
+  .inventory-clear-link-v75{display:flex;align-items:center;justify-content:center;min-height:40px;}
+  .inventory-board-meta-v75{margin-top:7px;padding-left:2px;}
+  .inventory-list-head-v75{display:none;}
+  .inventory-list-v75{display:grid;gap:7px;padding:7px;background:var(--surface-2);}
+  .inventory-item-v75{
+    min-height:0;grid-template-columns:78px minmax(0,1fr) auto;grid-template-areas:"product product status" "product product status" "stock sale open";gap:7px 9px;padding:9px;border:1px solid var(--line);border-radius:12px;background:var(--surface);
+  }
+  .inventory-product-v75{grid-area:product;grid-template-columns:70px minmax(0,1fr);gap:9px;}
+  .inventory-thumb-v75{width:70px;height:62px;}
+  .inventory-product-copy-v75>strong{font-size:11.5px;}
+  .inventory-product-copy-v75>small{font-size:8.8px;}
+  .inventory-product-copy-v75>em{font-size:8px;}
+  .inventory-status-v75{grid-area:status;align-self:start;}
+  .inventory-stock-v75{grid-area:stock;align-self:end;}
+  .inventory-stock-v75:before{content:"Stock";font-size:8px;color:var(--muted);margin-right:3px;}
+  .inventory-money-v75{display:none;}
+  .inventory-money-v75.is-sale{grid-area:sale;display:flex;align-self:end;}
+  .inventory-money-v75.is-sale small{display:block;}
+  .inventory-money-v75.is-profit{display:none;}
+  .inventory-open-v75{grid-area:open;align-self:end;}
+  body.workbench-shell-v75 .dlr-unit-hero{display:block!important;}
 }
 
-body.workbench-shell-v74 :is(
-  .page-head,
-  .sls-header,
-  .dlr-header
-) {
-  min-width: 0;
+@media (max-width:520px){
+  .workspace-module-mark-v75{display:none;}
+  .workspace-module-name-v75{max-width:120px;overflow:hidden;text-overflow:ellipsis;}
+  .workspace-launcher-v75{width:28px;height:28px;flex-basis:28px;}
+  .inventory-summary-strip-v75 article:nth-child(3) strong,.inventory-summary-strip-v75 article:nth-child(4) strong{font-size:11px;}
+  .inventory-controls-v75{grid-template-columns:1fr 1fr;}
+  .inventory-filter-button-v75,.inventory-clear-link-v75{font-size:10px!important;}
 }
 
-@media (min-width: 900px) {
-  body.workbench-shell-v74 {
-    --topbar-h: var(--ws-header-h);
-  }
+html[data-theme="dark"] .workspace-topbar-v75{background:rgba(11,16,22,.96);border-bottom-color:rgba(148,163,184,.12);}
+html[data-theme="dark"] .inventory-board-v75,html[data-theme="dark"] .inventory-summary-strip-v75{background:var(--surface);}
+html[data-theme="dark"] .inventory-list-head-v75{background:rgba(255,255,255,.025);}
 
-  /* Thin app chrome. Home keeps the larger launcher/header treatment. */
-  body.workbench-shell-v74 .topbar.topbar-v72 {
-    min-height: var(--ws-header-h);
-  }
-  body.workbench-shell-v74 .topbar.topbar-v72 .topbar-inner-v72 {
-    height: var(--ws-header-h) !important;
-    max-width: none !important;
-    padding: 4px var(--ws-gutter) !important;
-  }
-  body.workbench-shell-v74 .brand-compact-v72 {
-    min-height: 36px;
-    padding: 0 8px;
-    border-radius: 13px;
-    box-shadow: none;
-  }
-  body.workbench-shell-v74 .brand-compact-v72 .brand-word-shell {
-    display: none;
-  }
-  body.workbench-shell-v74 .brand-compact-v72 .brand-mark-shell,
-  body.workbench-shell-v74 .brand-compact-v72 .brand-mark {
-    width: 28px !important;
-    height: 28px !important;
-    max-width: 28px !important;
-    max-height: 28px !important;
-  }
-  body.workbench-shell-v74 .app-menu-trigger-v72 {
-    min-height: 36px;
-    padding: 3px 5px;
-    border-radius: 13px;
-    box-shadow: none;
-  }
-  body.workbench-shell-v74 .app-menu-trigger-shell-v72 {
-    width: 28px;
-    height: 28px;
-    border-radius: 10px;
-  }
-  body.workbench-shell-v74 .app-menu-copy-v72 {
-    display: none;
-  }
-  body.workbench-shell-v74 .app-menu-user-v72 {
-    gap: 5px;
-  }
-  body.workbench-shell-v74 .app-menu-user-v72 .avatar {
-    width: 28px;
-    height: 28px;
-    flex-basis: 28px;
-    font-size: 10px;
-  }
+/* Compact KPI language shared across operational modules. */
+body.workbench-shell-v75 :is(.agreements-overview-v23,.purchase-dashboard-v23,.report-executive-grid-v22,.kpi-grid.three-kpi){gap:6px!important;margin-bottom:8px!important;}
+body.workbench-shell-v75 :is(.agreements-overview-v23>article,.purchase-dashboard-v23>article,.report-executive-grid-v22>article,.kpi-grid.three-kpi>.kpi-card){
+  min-height:58px!important;padding:9px 12px!important;border-radius:11px!important;box-shadow:none!important;
+}
+body.workbench-shell-v75 :is(.agreements-overview-v23>article,.purchase-dashboard-v23>article,.report-executive-grid-v22>article,.kpi-grid.three-kpi>.kpi-card)>span{font-size:8.5px!important;}
+body.workbench-shell-v75 :is(.agreements-overview-v23>article,.purchase-dashboard-v23>article,.report-executive-grid-v22>article,.kpi-grid.three-kpi>.kpi-card)>strong{font-size:16px!important;line-height:1.1!important;margin:4px 0 2px!important;}
+body.workbench-shell-v75 :is(.agreements-overview-v23>article,.purchase-dashboard-v23>article,.report-executive-grid-v22>article,.kpi-grid.three-kpi>.kpi-card)>small{font-size:8px!important;}
+body.workbench-shell-v75 .purchase-insights-v23{gap:6px!important;margin-bottom:8px!important;}
+body.workbench-shell-v75 .purchase-insight-card-v23{min-height:62px!important;padding:9px 11px!important;border-radius:11px!important;box-shadow:none!important;}
+body.workbench-shell-v75 .purchase-history-v23{padding:14px!important;}
+body.workbench-shell-v75 .collection-section{padding:13px 14px!important;margin-bottom:8px!important;}
+body.workbench-shell-v75 .sls-stats{min-height:60px!important;padding:0!important;}
+body.workbench-shell-v75 .sls-stats article{padding:10px 18px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;}
+body.workbench-shell-v75 .sls-stats strong{font-size:19px!important;margin:3px 0 1px!important;}
+body.workbench-shell-v75 .sls-stats article>span{font-size:9px!important;}
+body.workbench-shell-v75 .sls-stats small{font-size:8.5px!important;}
+body.workbench-shell-v75 .sls-register-head{margin-bottom:8px!important;}
+body.workbench-shell-v75 .sls-register-head h2{font-size:15px!important;}
 
-  body.workbench-shell-v74 .page-shell {
-    min-height: calc(100dvh - var(--ws-header-h));
-    padding: 0 !important;
-  }
-
-  /* Remove the old document-width feeling. Internal modules are workspaces. */
-  html.is-browser-app body.workbench-shell-v74 :is(
-    .content-page,
-    .content-page.narrow-page,
-    .sls-workspace
-  ) {
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 9px var(--ws-gutter) 18px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 .dealer-page {
-    max-width: none !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 .page-shell > :first-child {
-    margin-top: 0 !important;
-  }
-
-  /* One compact module heading across legacy + new views. */
-  html.is-browser-app body.workbench-shell-v74 .page-head,
-  html.is-browser-app body.workbench-shell-v74 .sls-header,
-  html.is-browser-app body.workbench-shell-v74 .dlr-header {
-    min-height: 46px !important;
-    margin: 0 0 9px !important;
-    padding: 5px 7px !important;
-    gap: 9px !important;
-    align-items: center !important;
-    border: 1px solid var(--line) !important;
-    border-radius: 16px !important;
-    background: var(--surface) !important;
-    box-shadow: 0 4px 16px rgba(15,23,42,.025) !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 :is(.page-head-left,.sls-heading) {
-    gap: 8px !important;
-    align-items: center !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 :is(.page-head h1,.sls-heading h1,.dlr-heading-copy h1) {
-    font-size: 20px !important;
-    line-height: 1.08 !important;
-    margin: 0 !important;
-    letter-spacing: -.035em !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 :is(.page-head p,.sls-heading p,.dlr-heading-copy p) {
-    font-size: 10px !important;
-    line-height: 1.3 !important;
-    margin-top: 2px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 :is(.page-head .eyebrow,.sls-eyebrow,.dlr-heading-copy .eyebrow) {
-    font-size: 8px !important;
-    letter-spacing: .09em !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 :is(.page-head .icon-btn,.sls-icon-button,.dlr-header .icon-btn) {
-    width: 36px !important;
-    height: 36px !important;
-    flex-basis: 36px !important;
-    border-radius: 12px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 .module-context-icon,
-  html.is-browser-app body.workbench-shell-v74 .dlr-heading-icon {
-    width: 36px !important;
-    height: 36px !important;
-    flex-basis: 36px !important;
-    border-radius: 12px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 .module-context-icon .ui-icon,
-  html.is-browser-app body.workbench-shell-v74 .dlr-heading-icon .ui-icon {
-    width: 21px !important;
-    height: 21px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 :is(.page-head .btn,.sls-header-actions .sls-button,.dlr-header-actions .btn) {
-    min-height: 36px !important;
-    padding: 7px 11px !important;
-    border-radius: 12px !important;
-    font-size: 10.5px !important;
-  }
-
-  /* Common work surfaces: low shadow, denser spacing, same radius. */
-  html.is-browser-app body.workbench-shell-v74 .surface {
-    border-radius: var(--ws-radius) !important;
-    box-shadow: 0 5px 18px rgba(15,23,42,.035) !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 :is(
-    .clients-toolbar-v23,
-    .agreements-toolbar-v23,
-    .calendar-filterbar,
-    .collection-toolbar-v20,
-    .expense-toolbar-v19,
-    .purchase-toolbar-v23,
-    .report-filter-v19,
-    .notifications-toolbar-v61
-  ) {
-    border-radius: var(--ws-radius) !important;
-  }
-
-  /* Directories make use of wide monitors instead of leaving dead side gutters. */
-  html.is-browser-app body.workbench-shell-v74 .client-directory-grid-v23 {
-    grid-template-columns: repeat(auto-fit,minmax(285px,1fr)) !important;
-    gap: 10px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 .agreement-grid-v23 {
-    grid-template-columns: repeat(auto-fit,minmax(330px,1fr)) !important;
-    gap: 10px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 .purchases-grid-v23,
-  html.is-browser-app body.workbench-shell-v74 .expense-grid-v19 {
-    gap: 10px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 .calendar-workspace {
-    grid-template-columns: minmax(0,1.75fr) minmax(290px,.65fr) !important;
-    gap: 10px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 .reports-v23,
-  html.is-browser-app body.workbench-shell-v74 .reports-v22 {
-    max-width: none !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 .dlr-grid-two,
-  html.is-browser-app body.workbench-shell-v74 .dlr-client-layout {
-    gap: 10px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 .dlr-panel {
-    margin-bottom: 10px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74 .dlr-section-nav {
-    margin-bottom: 9px !important;
-    padding-bottom: 3px !important;
-  }
-
-  /* Sales was its own 1440px island; it now follows the same module canvas. */
-  html.is-browser-app body.workbench-shell-v74.sales-module .sls-workspace {
-    padding-top: 9px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74.sales-module .sls-stats {
-    margin-bottom: 10px !important;
-  }
-  html.is-browser-app body.workbench-shell-v74.sales-module .sls-register-shell {
-    margin-top: 0 !important;
-  }
+@media(max-width:899px){
+  body.workbench-shell-v75 :is(.agreements-overview-v23,.purchase-dashboard-v23,.report-executive-grid-v22,.kpi-grid.three-kpi){grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  body.workbench-shell-v75 .sls-stats{grid-template-columns:1fr 1fr!important;}
+  body.workbench-shell-v75 .sls-stats article:first-child{grid-column:1/-1!important;}
 }
 
-@media (max-width: 899px) {
-  body.workbench-shell-v74 {
-    --ws-gutter: 10px;
-  }
-  body.workbench-shell-v74 :is(.content-page,.sls-workspace) {
-    width: 100% !important;
-    max-width: none !important;
-  }
-}
-
-/* Installed PWA already hides the desktop topbar; just normalize module gutters. */
-@media (max-width: 719px) {
-  html.is-standalone-app body.workbench-shell-v74 .page-shell {
-    width: 100% !important;
-  }
-  html.is-standalone-app body.workbench-shell-v74 :is(.content-page,.sls-workspace) {
-    max-width: none !important;
-  }
-}
+/* Sales kanban sits on the workspace canvas instead of inside one giant card. */
+body.workbench-shell-v75.sales-module .sls-register-shell{padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;}
+body.workbench-shell-v75.sales-module .sls-toolbar-panel{background:var(--surface)!important;border:1px solid var(--line)!important;box-shadow:none!important;}
