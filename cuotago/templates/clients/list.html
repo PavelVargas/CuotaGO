@@ -1,76 +1,46 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
 {% block title %}Clientes · {{ app_name }}{% endblock %}
-
-{% block scripts %}
-<script>
-(() => {
-  document.querySelectorAll('[data-client-url]').forEach((card) => {
-    const open = () => { window.location.href = card.dataset.clientUrl; };
-    card.addEventListener('click', (event) => {
-      if (event.target.closest('a,button,input,select,textarea,form')) return;
-      open();
-    });
-    card.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); }
-    });
-  });
-})();
-</script>
-{% endblock %}
-
 {% block content %}
-<section class="content-page clients-page-v23">
-  <div class="page-head clients-head-v23">
-    <div class="page-head-left">
-      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <span class="module-context-icon accent-cyan" aria-hidden="true">{{ icon('home-clients', 24) }}</span>
-      <div><span class="eyebrow">CLIENTES</span><h1>Clientes</h1><p>Contactos, acuerdos e historial de cada persona.</p></div>
+<section class="content-page ops-page-v76 clients-page-v76">
+  {% set has_filters = q or status != 'all' %}
+  <div class="ops-command-v76">
+    <div class="ops-command-left-v76">
+      {% if can('clients.manage') %}<a class="btn btn-primary ops-new-v76" href="{{ url_for('main.client_new') }}">{{ icon('plus',16) }} Nuevo cliente</a>{% endif %}
+      <div class="ops-title-v76"><h1>Clientes</h1><span>{{ pagination.total }} cliente{{ 's' if pagination.total != 1 }}</span></div>
     </div>
-    {% if can('clients.manage') %}<a class="btn btn-primary clients-new-v23" href="{{ url_for('main.client_new') }}">{{ icon('plus',17) }} Nuevo cliente</a>{% endif %}
-  </div>
-
-  <section class="surface clients-toolbar-v23">
-    <form class="clients-search-v23" method="get">
-      {{ icon('search', 19) }}
-      <input name="q" value="{{ q }}" placeholder="Buscar por nombre, teléfono o documento" autocomplete="off">
-      {% if q %}<a href="{{ url_for('main.clients') }}" aria-label="Limpiar búsqueda">×</a>{% endif %}
+    <form class="ops-filterbar-v76 clients-filterbar-v76" method="get">
+      <label class="ops-search-v76">{{ icon('search',17) }}<input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre, teléfono, correo o documento" autocomplete="off"></label>
+      <select name="status" aria-label="Estado del cliente"><option value="all" {{ 'selected' if status=='all' }}>Todos los clientes</option><option value="active" {{ 'selected' if status=='active' }}>Con acuerdo activo</option><option value="inactive" {{ 'selected' if status=='inactive' }}>Sin acuerdo activo</option></select>
+      <button class="ops-filter-submit-v76" type="submit">{{ icon('search',16) }}<span>Filtrar</span></button>
+      {% if has_filters %}<a class="ops-clear-v76" href="{{ url_for('main.clients') }}">Limpiar</a>{% endif %}
     </form>
-    <div class="clients-toolbar-count-v23"><strong>{{ pagination.total }}</strong><span>cliente{{ 's' if pagination.total != 1 }}</span></div>
-  </section>
+  </div>
 
   {% if clients %}
-  <div class="client-directory-grid-v23">
-    {% for client in clients %}
+  <section class="ops-table-shell-v76 client-register-v76">
+    <div class="ops-table-head-v76 client-row-v76" role="row"><span>Cliente</span><span>Teléfono</span><span>Correo</span><span>Documento</span><span>Acuerdos</span><span>Ventas</span><span>Estado</span><span></span></div>
+    <div class="ops-table-body-v76">
+      {% for client in clients %}
       {% set active_contracts = client.contracts|selectattr('status','equalto','active')|list %}
-      <article class="surface client-directory-card-v23" data-client-url="{{ url_for('main.client_detail', client_id=client.id) }}" tabindex="0" role="link" aria-label="Abrir cliente {{ client.full_name }}">
-        <div class="client-directory-top-v23">
-          <span class="client-directory-avatar-v23">{{ client.full_name[:1]|upper }}</span>
-          <div class="client-directory-name-v23">
-            <strong>{{ client.full_name }}</strong>
-            <small>{{ client.document_id or 'Documento no registrado' }}</small>
-          </div>
-          {% if active_contracts %}<span class="client-directory-status-v23 is-active">Activo</span>{% else %}<span class="client-directory-status-v23">Sin acuerdo activo</span>{% endif %}
-        </div>
-
-        <div class="client-directory-contact-v23">
-          <div><span>Teléfono</span><strong>{{ client.phone or '—' }}</strong></div>
-          <div><span>Correo</span><strong>{{ client.email or '—' }}</strong></div>
-        </div>
-
-        <div class="client-directory-footer-v23">
-          <div><span>Acuerdos</span><strong>{{ client.contracts|length }}</strong></div>
-          <div><span>Activos</span><strong>{{ active_contracts|length }}</strong></div>
-          <span class="client-directory-open-v23">Abrir cliente <b>›</b></span>
-          {% if can('clients.manage') %}<a class="client-directory-edit-v23" href="{{ url_for('main.client_edit', client_id=client.id) }}" aria-label="Editar {{ client.full_name }}">{{ icon('edit',16) }}</a>{% endif %}
-        </div>
-      </article>
-    {% endfor %}
-  </div>
+      {% set completed_sales = client.sales|selectattr('status','equalto','completed')|list %}
+      <a class="ops-table-row-v76 client-row-v76" href="{{ url_for('main.client_detail',client_id=client.id) }}">
+        <span class="ops-person-v76 client-primary-v76" data-label="Cliente"><span class="client-avatar-v76">{{ client.full_name[:1]|upper }}</span><span><strong>{{ client.full_name }}</strong><small>{{ client.address or 'Sin dirección registrada' }}</small></span></span>
+        <span data-label="Teléfono"><strong>{{ client.phone or '—' }}</strong></span>
+        <span data-label="Correo"><strong>{{ client.email or '—' }}</strong></span>
+        <span data-label="Documento"><strong>{{ client.document_id or '—' }}</strong></span>
+        <span data-label="Acuerdos"><strong>{{ client.contracts|length }}</strong><small>{{ active_contracts|length }} activo{{ 's' if active_contracts|length != 1 }}</small></span>
+        <span data-label="Ventas"><strong>{{ completed_sales|length }}</strong><small>de contado</small></span>
+        <span data-label="Estado"><span class="ops-status-v76 {{ 'is-success' if active_contracts else 'is-neutral' }}">{{ 'Activo' if active_contracts else 'Sin acuerdo activo' }}</span></span>
+        <span class="client-row-actions-v76">{% if can('clients.manage') %}<span class="ops-mini-icon-v76" title="Editar">{{ icon('edit',14) }}</span>{% endif %}{{ icon('sales-arrow',15) }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
   {% else %}
-    <section class="surface empty-state clients-empty-v23"><span class="empty-icon">{{ icon('home-clients', 36) }}</span><h3>{% if q %}No encontramos ese cliente{% else %}Aún no hay clientes{% endif %}</h3><p>{% if q %}Prueba con otro nombre, teléfono o documento.{% else %}Agrega una persona para comenzar a crear acuerdos.{% endif %}</p>{% if can('clients.manage') and not q %}<a class="btn btn-primary" href="{{ url_for('main.client_new') }}">Crear cliente</a>{% endif %}</section>
+  <section class="ops-empty-v76"><span>{{ icon('home-clients',30) }}</span><h2>{% if q %}No encontramos ese cliente{% else %}Aún no hay clientes{% endif %}</h2><p>{% if q %}Prueba con otro nombre, teléfono, correo o documento.{% else %}Agrega un cliente para comenzar a vender o crear acuerdos.{% endif %}</p>{% if can('clients.manage') and not q %}<a class="btn btn-primary" href="{{ url_for('main.client_new') }}">{{ icon('plus',16) }} Nuevo cliente</a>{% endif %}</section>
   {% endif %}
 
-  {% if pagination.pages > 1 %}<nav class="simple-pagination-v16 clients-pagination-v23" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.clients', page=pagination.prev_num, q=q) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.clients', page=pagination.next_num, q=q) }}"{% endif %}>Siguiente</a></nav>{% endif %}
+  {% if pagination.pages > 1 %}<nav class="simple-pagination-v16 clients-pagination-v23" aria-label="Páginas"><a class="btn btn-secondary btn-sm {% if not pagination.has_prev %}is-disabled{% endif %}" {% if pagination.has_prev %}href="{{ url_for('main.clients', page=pagination.prev_num, q=q, status=status) }}"{% endif %}>Anterior</a><span>{{ pagination.page }} / {{ pagination.pages }}</span><a class="btn btn-secondary btn-sm {% if not pagination.has_next %}is-disabled{% endif %}" {% if pagination.has_next %}href="{{ url_for('main.clients', page=pagination.next_num, q=q, status=status) }}"{% endif %}>Siguiente</a></nav>{% endif %}
 </section>
 {% endblock %}

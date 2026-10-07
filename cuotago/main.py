@@ -974,20 +974,37 @@ def notifications_api():
 @login_required
 @permission_required("clients.view")
 def clients():
-    q = request.args.get("q", "").strip()
-    query = Client.query.options(selectinload(Client.contracts)).filter_by(organization_id=current_user.organization_id)
+    q = request.args.get("q", "").strip()[:120]
+    status = (request.args.get("status") or "all").strip().lower()
+    if status not in {"all", "active", "inactive"}:
+        status = "all"
+    query = Client.query.options(
+        selectinload(Client.contracts),
+        selectinload(Client.sales),
+    ).filter_by(organization_id=current_user.organization_id)
     if q:
         pattern = f"%{q}%"
         query = query.filter(
             or_(
                 Client.full_name.ilike(pattern),
                 Client.phone.ilike(pattern),
+                Client.email.ilike(pattern),
                 Client.document_id.ilike(pattern),
             )
         )
+    if status == "active":
+        query = query.filter(Client.contracts.any(Contract.status == "active"))
+    elif status == "inactive":
+        query = query.filter(~Client.contracts.any(Contract.status == "active"))
     page = max(request.args.get("page", 1, type=int) or 1, 1)
     pagination = query.order_by(Client.full_name.asc()).paginate(page=page, per_page=60, error_out=False)
-    return render_template("clients/list.html", clients=pagination.items, q=q, pagination=pagination)
+    return render_template(
+        "clients/list.html",
+        clients=pagination.items,
+        q=q,
+        status=status,
+        pagination=pagination,
+    )
 
 
 @main_bp.route("/clients/new", methods=["GET", "POST"])
@@ -1842,6 +1859,8 @@ def asset_edit(asset_id):
 @login_required
 @permission_required("purchases.view")
 def purchases():
+    q = (request.args.get("q") or "").strip()[:120]
+    supplier_filter = (request.args.get("supplier") or "").strip()[:140]
     items = (
         Purchase.query.options(joinedload(Purchase.asset), joinedload(Purchase.supplier_record))
         .filter_by(organization_id=current_user.organization_id)
@@ -1878,6 +1897,23 @@ def purchases():
 
     orders = list(grouped.values())
     orders.sort(key=lambda order: (order["purchase_date"], order["created_at"] or datetime.min), reverse=True)
+    supplier_options = sorted({order["supplier"] for order in orders if order["supplier"]}, key=str.casefold)
+    if supplier_filter and supplier_filter not in supplier_options:
+        supplier_filter = ""
+    if q or supplier_filter:
+        q_folded = q.casefold()
+        filtered_orders = []
+        for order in orders:
+            if supplier_filter and order["supplier"] != supplier_filter:
+                continue
+            if q_folded:
+                parts = [order["code"], order["supplier"], order["reference"]]
+                parts.extend(line.asset.name if line.asset else "" for line in order["lines"])
+                if q_folded not in " ".join(parts).casefold():
+                    continue
+            filtered_orders.append(order)
+    else:
+        filtered_orders = orders
     supplier_ids = {item.supplier_id for item in items if item.supplier_id}
     legacy_suppliers = {
         (item.supplier or "").strip().casefold()
@@ -1903,7 +1939,11 @@ def purchases():
 
     return render_template(
         "purchases/list.html",
-        orders=orders,
+        orders=filtered_orders,
+        filtered_order_count=len(filtered_orders),
+        q=q,
+        supplier=supplier_filter,
+        supplier_options=supplier_options,
         invested=money_decimal(invested),
         units=units,
         order_count=order_count,
@@ -2407,7 +2447,7 @@ def sales():
         ))
 
     page = max(request.args.get("page", 1, type=int) or 1, 1)
-    pagination = query.order_by(Sale.sale_date.desc(), Sale.created_at.desc()).paginate(page=page, per_page=24, error_out=False)
+    pagination = query.order_by(Sale.sale_date.desc(), Sale.created_at.desc()).paginate(page=page, per_page=50, error_out=False)
     items = pagination.items
 
     month_start = today_value.replace(day=1)
@@ -2420,9 +2460,20 @@ def sales():
     month_units = sum((max(int(item.quantity or 1), 1) for item in month_sales), 0)
     today_revenue = money_decimal(sum((money_decimal(item.total_amount) for item in today_sales), Decimal("0.00")))
     margin = money_decimal((month_profit / month_revenue * Decimal("100")) if month_revenue > 0 else 0)
+    creator_ids = {item.created_by_user_id for item in items if item.created_by_user_id}
+    sale_creators = {}
+    if creator_ids:
+        sale_creators = {
+            user.id: user.name
+            for user in User.query.filter(
+                User.organization_id == org_id,
+                User.id.in_(creator_ids),
+            ).all()
+        }
 
     return render_template(
         "sales/list.html", sales=items, pagination=pagination, q=q, period=period, method=method, status=status,
+        sale_creators=sale_creators,
         month_revenue=month_revenue, month_profit=month_profit, month_units=month_units,
         today_count=len(today_sales), today_revenue=today_revenue, month_margin=margin,
         available_preview=_sale_inventory_query().limit(4).all() if not items and has_permission(current_user, "sales.manage") else [],

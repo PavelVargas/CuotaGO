@@ -1,67 +1,67 @@
 {% extends 'sales/base.html' %}
 {% from 'macros/icons.html' import icon %}
-{% from 'sales/_components.html' import heading, media with context %}
+{% from 'sales/_components.html' import media with context %}
 {% from 'macros/pagination.html' import pagination_links %}
 {% block title %}Ventas · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="sls-workspace">
+<section class="sls-workspace ops-page-v76 sales-register-v76">
   {% set has_filters = q or method or status != 'completed' or period != 'month' %}
-  {{ heading('Ventas', 'Registro de operaciones al contado.', url_for('main.dashboard'), create=true) }}
-  <section class="sls-stats" aria-label="Resumen del mes, independiente de los filtros">
-    <article><span>{{ icon('wallet',15) }}Vendido este mes</span><strong>{{ money(month_revenue) }}</strong><small>{{ month_units }} unidad{{ 'es' if month_units != 1 }} vendida{{ 's' if month_units != 1 }}</small></article>
-    <article><span>{{ icon('chart',15) }}Utilidad del mes</span><strong class="{{ 'sls-positive' if month_profit >= 0 else 'sls-negative' }}">{{ money(month_profit) }}</strong><small>{{ '%.2f'|format(month_margin) }}% sobre ventas</small></article>
-    <article><span>{{ icon('calendar',15) }}Vendido hoy</span><strong>{{ money(today_revenue) }}</strong><small>{{ today_count }} operaci{{ 'ones' if today_count != 1 else 'ón' }}</small></article>
-  </section>
-  <section class="sls-register-shell">
-    <div class="sls-register-head"><h2>Registro de ventas <span class="sls-count">{{ pagination.total }}</span></h2><span class="sls-subtle">Venta directa</span></div>
-    <div class="sls-toolbar-panel">
-      <div class="sls-toolbar">
-        <nav class="sls-tabs" aria-label="Estado de las ventas">
-          {% for value,label in [('completed','Completadas'),('voided','Anuladas'),('all','Todas')] %}<a href="{{ url_for('main.sales',status=value,q=q,period=period,method=method) }}" {% if status==value %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
-        </nav>
-        <form class="sls-filter-form" method="get">
-          <input type="hidden" name="status" value="{{ status }}">
-          <label class="sls-search"><span class="sls-sr-only">Buscar ventas</span>{{ icon('search',18) }}<input type="search" name="q" value="{{ q }}" placeholder="Vehículo, placa o comprador" aria-label="Buscar por vehículo, placa, artículo o comprador"></label>
-          <select name="period" aria-label="Período" data-sales-filter>{% for value,label in [('today','Hoy'),('7d','Últimos 7 días'),('month','Este mes'),('all','Todo el historial')] %}<option value="{{ value }}" {{ 'selected' if period==value }}>{{ label }}</option>{% endfor %}</select>
-          <select name="method" aria-label="Método de pago" data-sales-filter><option value="">Todos los pagos</option>{% for value,label in [('cash','Efectivo'),('transfer','Transferencia'),('deposit','Depósito'),('card','Tarjeta'),('other','Otro')] %}<option value="{{ value }}" {{ 'selected' if method==value }}>{{ label }}</option>{% endfor %}</select>
-          <button class="sls-icon-button" type="submit" aria-label="Aplicar filtros">{{ icon('sales-arrow',18) }}</button>
-        </form>
-      </div>
-      <div class="sls-toolbar-meta">
-        <span>{{ pagination.total }} operación{{ 'es' if pagination.total != 1 }} registrad{{ 'as' if pagination.total != 1 else 'a' }}{% if q %} · búsqueda activa{% endif %}</span>
-        {% if has_filters %}<a class="sls-clear-filters" href="{{ url_for('main.sales') }}">Limpiar filtros</a>{% endif %}
-      </div>
+  <div class="ops-command-v76">
+    <div class="ops-command-left-v76">
+      {% if can('sales.manage') %}<a class="btn btn-primary ops-new-v76" href="{{ url_for('main.sale_new') }}">{{ icon('plus',16) }} Nueva venta</a>{% endif %}
+      <div class="ops-title-v76"><h1>Ventas</h1><span>{{ pagination.total }} registro{{ 's' if pagination.total != 1 }}</span></div>
     </div>
-    {% if sales %}
-    <div class="sls-sales-grid">
-    {% for sale in sales %}
-    <a class="sls-sale-card {{ 'is-voided' if sale.status=='voided' }}" href="{{ url_for('main.sale_detail',sale_id=sale.id) }}">
-      <div class="sls-card-photo">{{ media(sale.asset) }}<span class="sls-badge {{ 'is-voided' if sale.status=='voided' }}">{{ 'Anulada' if sale.status=='voided' else 'Vendida' }}</span></div>
-      <div class="sls-card-content">
-        <div class="sls-card-caption">{{ asset_kind_label(sale.asset.kind) }}{% if sale.asset.vehicle_year %} · {{ sale.asset.vehicle_year }}{% endif %}<span>{{ sale.sale_date.strftime('%d/%m/%Y') }}</span></div>
-        <h3>{{ sale.asset.name }}</h3><p class="sls-card-id">{{ sale.asset.identifier or sale.asset.serial_number or 'Sin identificador' }}</p>
-        <div class="sls-card-buyer">{{ icon('users',16) }}<span>{{ sale.buyer_display }}</span><small>{{ sale.code }}</small></div>
-        <div class="sls-card-money"><div><span>Total vendido</span><strong>{{ money(sale.total_amount) }}</strong></div><div><span>Utilidad</span><b class="{{ 'sls-positive' if sale.profit_amount >= 0 else 'sls-negative' }}">{{ money(sale.profit_amount) }}</b></div></div>
-        <div class="sls-card-footer"><span>{{ payment_method_label(sale.payment_method) }} · {{ sale.quantity }} ud.</span><span>Ver operación {{ icon('sales-arrow',15) }}</span></div>
-      </div>
-    </a>
-    {% endfor %}
+    <form class="ops-filterbar-v76 sales-filterbar-v76" method="get">
+      <input type="hidden" name="status" value="{{ status }}">
+      <label class="ops-search-v76">{{ icon('search',17) }}<input type="search" name="q" value="{{ q }}" placeholder="Buscar venta, cliente, vehículo, placa o serial" autocomplete="off"></label>
+      <select name="period" aria-label="Período">{% for value,label in [('today','Hoy'),('7d','Últimos 7 días'),('month','Este mes'),('all','Todo el historial')] %}<option value="{{ value }}" {{ 'selected' if period==value }}>{{ label }}</option>{% endfor %}</select>
+      <select name="method" aria-label="Método de pago"><option value="">Todos los pagos</option>{% for value,label in [('cash','Efectivo'),('transfer','Transferencia'),('deposit','Depósito'),('card','Tarjeta'),('other','Otro')] %}<option value="{{ value }}" {{ 'selected' if method==value }}>{{ label }}</option>{% endfor %}</select>
+      <button class="ops-filter-submit-v76" type="submit" aria-label="Aplicar filtros">{{ icon('search',16) }}<span>Filtrar</span></button>
+      {% if has_filters %}<a class="ops-clear-v76" href="{{ url_for('main.sales') }}">Limpiar</a>{% endif %}
+    </form>
+    <div class="ops-view-tools-v76" aria-label="Vista de ventas">
+      <a class="ops-icon-v76" href="{{ url_for('main.sales',status='completed',period='month') }}" aria-label="Actualizar">{{ icon('refresh',16) }}</a>
     </div>
-    {{ pagination_links(pagination, 'main.sales', q=q, period=period, method=method, status=status) if pagination.pages > 1 else '' }}
-    {% else %}
-    <section class="sls-empty">
-    <span class="sls-empty-icon">{{ icon('home-sales',44) }}</span>
-    <h2>{{ 'No hay coincidencias' if q or method or status!='completed' or period!='month' else 'Aún no hay ventas este mes' }}</h2>
-    <p>{{ 'Prueba otro período o cambia los filtros de búsqueda.' if q or method or status!='completed' or period!='month' else 'Selecciona una unidad del inventario para registrar tu primera operación.' }}</p>
-    <div class="sls-empty-actions">{% if can('sales.manage') %}<a class="sls-button sls-primary" href="{{ url_for('main.sale_new') }}">{{ icon('plus',17) }}Registrar venta</a>{% endif %}<a class="sls-button sls-secondary" href="{{ url_for('main.sales',period='all',status='all') }}">Ver todo el historial</a></div>
-    </section>
-    {% endif %}
-  </section>
-  {% if available_preview and can('sales.manage') %}
-  <div class="sls-register-head sls-stock-heading"><h2>Disponibles para vender</h2><a class="sls-text-link" href="{{ url_for('main.sale_new') }}">Ver inventario {{ icon('sales-arrow',16) }}</a></div>
-  <div class="sls-stock-preview">
-    {% for asset in available_preview %}<a class="sls-stock-card" href="{{ url_for('main.sale_new',asset_id=asset.id) }}">{{ media(asset) }}<div><h3>{{ asset.name }}</h3><p>{{ asset.vehicle_year or asset_kind_label(asset.kind) }}{% if asset.identifier %} · {{ asset.identifier }}{% endif %}</p><strong>{{ money(asset.sale_price) if asset.sale_price else 'Precio por definir' }}</strong></div>{{ icon('sales-arrow',18) }}</a>{% endfor %}
   </div>
+
+  <div class="ops-tabs-v76" role="navigation" aria-label="Estado de las ventas">
+    {% for value,label in [('completed','Completadas'),('voided','Anuladas'),('all','Todas')] %}<a href="{{ url_for('main.sales',status=value,q=q,period=period,method=method) }}" {% if status==value %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+  </div>
+
+  <section class="ops-metrics-v76 sales-metrics-v76" aria-label="Resumen de ventas">
+    <article><span>{{ icon('wallet',15) }} Vendido este mes</span><strong>{{ money(month_revenue) }}</strong><small>{{ month_units }} unidad{{ 'es' if month_units != 1 }}</small></article>
+    <article><span>{{ icon('chart',15) }} Utilidad del mes</span><strong class="{{ 'text-success' if month_profit >= 0 else 'text-danger' }}">{{ money(month_profit) }}</strong><small>{{ '%.2f'|format(month_margin) }}% sobre ventas</small></article>
+    <article><span>{{ icon('calendar',15) }} Vendido hoy</span><strong>{{ money(today_revenue) }}</strong><small>{{ today_count }} operaci{{ 'ones' if today_count != 1 else 'ón' }}</small></article>
+  </section>
+
+  {% if sales %}
+  <section class="ops-table-shell-v76">
+    <div class="ops-table-head-v76 sales-row-v76" role="row">
+      <span>Venta</span><span>Fecha</span><span>Cliente</span><span>Producto / vehículo</span><span>Vendedor</span><span>Pago</span><span class="is-number">Total</span><span class="is-number">Utilidad</span><span>Estado</span><span></span>
+    </div>
+    <div class="ops-table-body-v76">
+      {% for sale in sales %}
+      <a class="ops-table-row-v76 sales-row-v76 {{ 'is-voided' if sale.status=='voided' }}" href="{{ url_for('main.sale_detail',sale_id=sale.id) }}" role="row">
+        <span class="ops-reference-v76" data-label="Venta"><strong>{{ sale.code }}</strong><small>{{ sale.quantity }} ud.</small></span>
+        <span data-label="Fecha"><strong>{{ sale.sale_date.strftime('%d/%m/%Y') }}</strong><small>{{ sale.created_at.strftime('%I:%M %p') if sale.created_at else '' }}</small></span>
+        <span class="ops-person-v76" data-label="Cliente">{{ icon('users',15) }}<span><strong>{{ sale.buyer_display }}</strong><small>{{ sale.buyer_phone or (sale.client.phone if sale.client else '') or 'Sin teléfono' }}</small></span></span>
+        <span class="ops-product-v76" data-label="Producto">
+          <span class="ops-thumb-v76">{% if sale.asset.image_mime %}<img src="{{ url_for('main.asset_image',asset_id=sale.asset.id,thumb=1,v=(sale.asset.image_updated_at.strftime('%Y%m%d%H%M%S') if sale.asset.image_updated_at else 'legacy')) }}" alt="" loading="lazy" decoding="async">{% else %}{{ icon('car' if sale.asset.kind in ['car','motorcycle'] else 'phone' if sale.asset.kind=='phone' else 'inventory',20) }}{% endif %}</span>
+          <span><strong>{{ sale.asset.name }}</strong><small>{{ sale.asset.identifier or sale.asset.serial_number or asset_kind_label(sale.asset.kind) }}</small></span>
+        </span>
+        <span data-label="Vendedor"><strong>{{ sale_creators.get(sale.created_by_user_id,'—') }}</strong></span>
+        <span data-label="Pago"><strong>{{ payment_method_label(sale.payment_method) }}</strong>{% if sale.reference %}<small>{{ sale.reference }}</small>{% endif %}</span>
+        <span class="is-number" data-label="Total"><strong>{{ money(sale.total_amount) }}</strong></span>
+        <span class="is-number {{ 'text-success' if sale.profit_amount >= 0 else 'text-danger' }}" data-label="Utilidad"><strong>{{ money(sale.profit_amount) }}</strong></span>
+        <span data-label="Estado"><span class="ops-status-v76 {{ 'is-danger' if sale.status=='voided' else 'is-success' }}">{{ 'Anulada' if sale.status=='voided' else 'Completada' }}</span></span>
+        <span class="ops-row-arrow-v76" aria-hidden="true">{{ icon('sales-arrow',15) }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {{ pagination_links(pagination, 'main.sales', q=q, period=period, method=method, status=status) if pagination.pages > 1 else '' }}
+  {% else %}
+  <section class="ops-empty-v76"><span>{{ icon('home-sales',30) }}</span><h2>No hay ventas para estos filtros</h2><p>Cambia el período, el estado o la búsqueda para ver otras operaciones.</p>{% if can('sales.manage') %}<a class="btn btn-primary" href="{{ url_for('main.sale_new') }}">{{ icon('plus',16) }} Registrar venta</a>{% endif %}</section>
   {% endif %}
 </section>
 {% endblock %}

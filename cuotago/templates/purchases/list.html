@@ -2,68 +2,55 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Compras · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page purchases-page-v23">
-  <div class="page-head purchases-head-v23">
-    <div class="page-head-left">
-      <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
-      <span class="module-context-icon accent-green" aria-hidden="true">{{ icon('home-purchases', 24) }}</span>
-      <div><span class="eyebrow">COMPRAS</span><h1>Compras</h1><p>Órdenes, proveedores y costo real de entrada del inventario.</p></div>
+<section class="content-page ops-page-v76 purchases-page-v76">
+  {% set has_filters = q or supplier %}
+  <div class="ops-command-v76">
+    <div class="ops-command-left-v76">
+      {% if can('purchases.manage') %}<a class="btn btn-primary ops-new-v76" href="{{ url_for('main.purchase_new') }}">{{ icon('plus',16) }} Nueva orden</a>{% endif %}
+      <div class="ops-title-v76"><h1>Compras</h1><span>{{ filtered_order_count }} de {{ order_count }} órdenes</span></div>
     </div>
-    {% if can('purchases.manage') %}<a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">{{ icon('plus',17) }} Nueva orden</a>{% endif %}
+    <form class="ops-filterbar-v76 purchases-filterbar-v76" method="get">
+      <label class="ops-search-v76">{{ icon('search',17) }}<input type="search" name="q" value="{{ q }}" placeholder="Buscar orden, proveedor, referencia o producto" autocomplete="off"></label>
+      <select name="supplier" aria-label="Proveedor"><option value="">Todos los proveedores</option>{% for item in supplier_options %}<option value="{{ item }}" {{ 'selected' if supplier==item }}>{{ item }}</option>{% endfor %}</select>
+      <button class="ops-filter-submit-v76" type="submit">{{ icon('search',16) }}<span>Filtrar</span></button>
+      {% if has_filters %}<a class="ops-clear-v76" href="{{ url_for('main.purchases') }}">Limpiar</a>{% endif %}
+    </form>
   </div>
 
-  <div class="purchase-dashboard-v23">
-    <article class="surface is-primary"><span>Invertido histórico</span><strong>{{ money(invested) }}</strong><small>{{ order_count }} orden{{ 'es' if order_count != 1 }}</small></article>
-    <article class="surface"><span>Este mes</span><strong>{{ money(month_invested) }}</strong><small>{{ month_order_count }} orden{{ 'es' if month_order_count != 1 }}</small></article>
-    <article class="surface"><span>Compra promedio</span><strong>{{ money(average_order) }}</strong><small>Por orden registrada</small></article>
-    <article class="surface"><span>Costo por unidad</span><strong>{{ money(average_unit_cost) }}</strong><small>{{ units }} unidad{{ 'es' if units != 1 }}</small></article>
-  </div>
+  <section class="ops-metrics-v76 purchases-metrics-v76" aria-label="Resumen de compras">
+    <article><span>{{ icon('wallet',15) }} Invertido histórico</span><strong>{{ money(invested) }}</strong><small>{{ order_count }} orden{{ 'es' if order_count != 1 }}</small></article>
+    <article><span>{{ icon('calendar',15) }} Este mes</span><strong>{{ money(month_invested) }}</strong><small>{{ month_order_count }} orden{{ 'es' if month_order_count != 1 }}</small></article>
+    <article><span>{{ icon('chart',15) }} Compra promedio</span><strong>{{ money(average_order) }}</strong><small>Por orden</small></article>
+    <article><span>{{ icon('users',15) }} Proveedor principal</span><strong>{{ top_supplier_name or '—' }}</strong><small>{% if top_supplier_name %}{{ money(top_supplier_total) }} acumulados{% else %}Sin datos todavía{% endif %}</small></article>
+  </section>
 
-  <div class="purchase-insights-v23">
-    <section class="surface purchase-insight-card-v23">
-      <span class="purchase-insight-icon-v23">{{ icon('home-purchases',22) }}</span>
-      <div><small>Proveedor principal</small><strong>{{ top_supplier_name or 'Sin datos' }}</strong><span>{% if top_supplier_name %}{{ money(top_supplier_total) }} acumulados{% else %}Registra compras para medirlo{% endif %}</span></div>
-    </section>
-    <section class="surface purchase-insight-card-v23">
-      <span class="purchase-insight-icon-v23">{{ icon('history',22) }}</span>
-      <div><small>Última compra</small><strong>{{ latest_order.code if latest_order else 'Sin órdenes' }}</strong><span>{% if latest_order %}{{ latest_order.supplier }} · {{ latest_order.purchase_date.strftime('%d/%m/%Y') }}{% else %}Aún no hay actividad{% endif %}</span></div>
-    </section>
-    <section class="surface purchase-insight-card-v23">
-      <span class="purchase-insight-icon-v23">{{ icon('users',22) }}</span>
-      <div><small>Proveedores</small><strong>{{ supplier_count }}</strong><span>Con historial de compra</span></div>
-    </section>
-  </div>
-
-  <section class="surface purchase-history-v23">
-    <div class="purchase-history-head-v23"><div><span class="eyebrow">HISTORIAL</span><h2>Órdenes de compra</h2><p>Abre una orden para revisar sus artículos y costos.</p></div><span>{{ order_count }} total</span></div>
-    {% if orders %}
-    <div class="purchase-order-list-v23">
+  {% if orders %}
+  <section class="ops-table-shell-v76 purchase-register-v76">
+    <div class="ops-table-head-v76 purchase-row-v76" role="row"><span>Orden</span><span>Fecha</span><span>Proveedor</span><span>Productos</span><span>Unidades</span><span>Referencia</span><span class="is-number">Total</span><span>Estado</span><span></span></div>
+    <div class="ops-table-body-v76">
       {% for order in orders %}
-      <details class="purchase-order-card-v23">
-        <summary>
-          <span class="purchase-order-badge-v23">{{ order.code }}</span>
-          <span class="purchase-order-main-v23"><strong>{{ order.supplier }}</strong><small>{{ order.purchase_date.strftime('%d/%m/%Y') }}{% if order.reference %} · Ref. {{ order.reference }}{% endif %}</small></span>
-          <span class="purchase-order-units-v23"><small>Artículos</small><strong>{{ order.lines|length }} · {{ order.units }} ud.</strong></span>
-          <span class="purchase-order-total-v23"><small>Total</small><strong>{{ money(order.total) }}</strong></span>
-          <b class="purchase-order-open-v23">⌄</b>
+      <details class="purchase-record-v76">
+        <summary class="ops-table-row-v76 purchase-row-v76">
+          <span class="ops-reference-v76" data-label="Orden"><strong>{{ order.code }}</strong></span>
+          <span data-label="Fecha"><strong>{{ order.purchase_date.strftime('%d/%m/%Y') }}</strong></span>
+          <span class="ops-person-v76" data-label="Proveedor">{{ icon('home-purchases',15) }}<span><strong>{{ order.supplier }}</strong><small>Proveedor</small></span></span>
+          <span data-label="Productos"><strong>{{ order.lines|length }}</strong><small>{% if order.lines %}{{ order.lines[0].asset.name }}{% if order.lines|length > 1 %} +{{ order.lines|length - 1 }} más{% endif %}{% endif %}</small></span>
+          <span data-label="Unidades"><strong>{{ order.units }}</strong></span>
+          <span data-label="Referencia"><strong>{{ order.reference or '—' }}</strong></span>
+          <span class="is-number" data-label="Total"><strong>{{ money(order.total) }}</strong></span>
+          <span data-label="Estado"><span class="ops-status-v76 is-success">Registrada</span></span>
+          <span class="ops-row-arrow-v76" aria-hidden="true">⌄</span>
         </summary>
-        <div class="purchase-order-lines-v23">
-          <div class="purchase-order-labels-v23"><span>Artículo</span><span>Cantidad</span><span>Costo unitario</span><span>Subtotal</span></div>
-          {% for purchase in order.lines %}
-          <div class="purchase-order-line-v23">
-            <span><strong>{{ purchase.asset.name }}</strong>{% if purchase.notes %}<small>{{ purchase.notes }}</small>{% endif %}</span>
-            <span>{{ purchase.quantity }}</span>
-            <span>{{ money(purchase.unit_cost) }}</span>
-            <span><strong>{{ money(purchase.total_cost) }}</strong></span>
-          </div>
-          {% endfor %}
+        <div class="purchase-lines-v76">
+          <div class="purchase-lines-head-v76"><span>Producto</span><span>Cantidad</span><span>Costo unitario</span><span>Subtotal</span></div>
+          {% for purchase in order.lines %}<div class="purchase-line-v76"><span><strong>{{ purchase.asset.name }}</strong><small>{{ [purchase.asset.brand,purchase.asset.model]|select|join(' ') or asset_kind_label(purchase.asset.kind) }}{% if purchase.notes %} · {{ purchase.notes }}{% endif %}</small></span><span>{{ purchase.quantity }}</span><span>{{ money(purchase.unit_cost) }}</span><span><strong>{{ money(purchase.total_cost) }}</strong></span></div>{% endfor %}
         </div>
       </details>
       {% endfor %}
     </div>
-    {% else %}
-      <div class="empty-state"><span class="empty-icon">{{ icon('home-purchases', 36) }}</span><h3>Aún no hay órdenes</h3><p>Registra una compra y CuotaGo actualizará costo y existencia del inventario.</p>{% if can('purchases.manage') %}<a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">Crear primera orden</a>{% endif %}</div>
-    {% endif %}
   </section>
+  {% else %}
+  <section class="ops-empty-v76"><span>{{ icon('home-purchases',30) }}</span><h2>No hay órdenes para esta búsqueda</h2><p>Prueba otro proveedor o limpia el filtro.</p>{% if can('purchases.manage') %}<a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">{{ icon('plus',16) }} Nueva orden</a>{% endif %}</section>
+  {% endif %}
 </section>
 {% endblock %}
