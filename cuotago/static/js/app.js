@@ -187,7 +187,7 @@
     if (installBtn) installBtn.hidden = true;
   });
 
-  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.26.1-ui-v71';
+  const APP_VERSION = document.querySelector('meta[name="cuotago-build-version"]')?.content || '1.26.2-ui-v72';
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const registerServiceWorker = async ({ forceFresh = false } = {}) => {
@@ -937,21 +937,28 @@
     if (!trigger || !dialog) return;
 
     const setExpanded = (expanded) => trigger.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    const isOpen = () => dialog.open || dialog.hasAttribute('open');
     const openMenu = () => {
-      if (dialog.open) return;
+      if (isOpen()) return;
       if (typeof dialog.showModal === 'function') dialog.showModal();
       else dialog.setAttribute('open', '');
       setExpanded(true);
     };
     const closeMenu = () => {
-      if (!dialog.open && !dialog.hasAttribute('open')) return;
+      if (!isOpen()) return;
       if (typeof dialog.close === 'function') dialog.close();
       else dialog.removeAttribute('open');
       setExpanded(false);
     };
 
-    trigger.addEventListener('click', openMenu);
+    trigger.addEventListener('click', () => {
+      if (isOpen()) closeMenu();
+      else openMenu();
+    });
     closeButton?.addEventListener('click', closeMenu);
+    dialog.querySelectorAll('[data-close-profile-menu]').forEach((item) => {
+      item.addEventListener('click', () => window.setTimeout(closeMenu, 24));
+    });
     dialog.addEventListener('click', (event) => {
       if (event.target === dialog) closeMenu();
     });

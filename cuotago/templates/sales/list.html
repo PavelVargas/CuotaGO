@@ -5,27 +5,35 @@
 {% block title %}Ventas · {{ app_name }}{% endblock %}
 {% block content %}
 <section class="sls-workspace">
+  {% set has_filters = q or method or status != 'completed' or period != 'month' %}
   {{ heading('Ventas', 'Registro de operaciones al contado.', url_for('main.dashboard'), create=true) }}
   <section class="sls-stats" aria-label="Resumen del mes, independiente de los filtros">
     <article><span>{{ icon('wallet',15) }}Vendido este mes</span><strong>{{ money(month_revenue) }}</strong><small>{{ month_units }} unidad{{ 'es' if month_units != 1 }} vendida{{ 's' if month_units != 1 }}</small></article>
     <article><span>{{ icon('chart',15) }}Utilidad del mes</span><strong class="{{ 'sls-positive' if month_profit >= 0 else 'sls-negative' }}">{{ money(month_profit) }}</strong><small>{{ '%.2f'|format(month_margin) }}% sobre ventas</small></article>
     <article><span>{{ icon('calendar',15) }}Vendido hoy</span><strong>{{ money(today_revenue) }}</strong><small>{{ today_count }} operaci{{ 'ones' if today_count != 1 else 'ón' }}</small></article>
   </section>
-  <div class="sls-register-head"><h2>Registro de ventas <span class="sls-count">{{ pagination.total }}</span></h2><span class="sls-subtle">Venta directa</span></div>
-  <div class="sls-toolbar">
-    <nav class="sls-tabs" aria-label="Estado de las ventas">
-      {% for value,label in [('completed','Completadas'),('voided','Anuladas'),('all','Todas')] %}<a href="{{ url_for('main.sales',status=value,q=q,period=period,method=method) }}" {% if status==value %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
-    </nav>
-    <form class="sls-filter-form" method="get">
-      <input type="hidden" name="status" value="{{ status }}">
-      <label class="sls-search"><span class="sls-sr-only">Buscar ventas</span>{{ icon('search',18) }}<input type="search" name="q" value="{{ q }}" placeholder="Vehículo, placa o comprador" aria-label="Buscar por vehículo, placa, artículo o comprador"></label>
-      <select name="period" aria-label="Período" data-sales-filter>{% for value,label in [('today','Hoy'),('7d','Últimos 7 días'),('month','Este mes'),('all','Todo el historial')] %}<option value="{{ value }}" {{ 'selected' if period==value }}>{{ label }}</option>{% endfor %}</select>
-      <select name="method" aria-label="Método de pago" data-sales-filter><option value="">Todos los pagos</option>{% for value,label in [('cash','Efectivo'),('transfer','Transferencia'),('deposit','Depósito'),('card','Tarjeta'),('other','Otro')] %}<option value="{{ value }}" {{ 'selected' if method==value }}>{{ label }}</option>{% endfor %}</select>
-      <button class="sls-icon-button" type="submit" aria-label="Aplicar filtros">{{ icon('sales-arrow',18) }}</button>
-    </form>
-  </div>
-  {% if sales %}
-  <div class="sls-sales-grid">
+  <section class="sls-register-shell">
+    <div class="sls-register-head"><h2>Registro de ventas <span class="sls-count">{{ pagination.total }}</span></h2><span class="sls-subtle">Venta directa</span></div>
+    <div class="sls-toolbar-panel">
+      <div class="sls-toolbar">
+        <nav class="sls-tabs" aria-label="Estado de las ventas">
+          {% for value,label in [('completed','Completadas'),('voided','Anuladas'),('all','Todas')] %}<a href="{{ url_for('main.sales',status=value,q=q,period=period,method=method) }}" {% if status==value %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+        </nav>
+        <form class="sls-filter-form" method="get">
+          <input type="hidden" name="status" value="{{ status }}">
+          <label class="sls-search"><span class="sls-sr-only">Buscar ventas</span>{{ icon('search',18) }}<input type="search" name="q" value="{{ q }}" placeholder="Vehículo, placa o comprador" aria-label="Buscar por vehículo, placa, artículo o comprador"></label>
+          <select name="period" aria-label="Período" data-sales-filter>{% for value,label in [('today','Hoy'),('7d','Últimos 7 días'),('month','Este mes'),('all','Todo el historial')] %}<option value="{{ value }}" {{ 'selected' if period==value }}>{{ label }}</option>{% endfor %}</select>
+          <select name="method" aria-label="Método de pago" data-sales-filter><option value="">Todos los pagos</option>{% for value,label in [('cash','Efectivo'),('transfer','Transferencia'),('deposit','Depósito'),('card','Tarjeta'),('other','Otro')] %}<option value="{{ value }}" {{ 'selected' if method==value }}>{{ label }}</option>{% endfor %}</select>
+          <button class="sls-icon-button" type="submit" aria-label="Aplicar filtros">{{ icon('sales-arrow',18) }}</button>
+        </form>
+      </div>
+      <div class="sls-toolbar-meta">
+        <span>{{ pagination.total }} operación{{ 'es' if pagination.total != 1 }} registrad{{ 'as' if pagination.total != 1 else 'a' }}{% if q %} · búsqueda activa{% endif %}</span>
+        {% if has_filters %}<a class="sls-clear-filters" href="{{ url_for('main.sales') }}">Limpiar filtros</a>{% endif %}
+      </div>
+    </div>
+    {% if sales %}
+    <div class="sls-sales-grid">
     {% for sale in sales %}
     <a class="sls-sale-card {{ 'is-voided' if sale.status=='voided' }}" href="{{ url_for('main.sale_detail',sale_id=sale.id) }}">
       <div class="sls-card-photo">{{ media(sale.asset) }}<span class="sls-badge {{ 'is-voided' if sale.status=='voided' }}">{{ 'Anulada' if sale.status=='voided' else 'Vendida' }}</span></div>
@@ -38,21 +46,22 @@
       </div>
     </a>
     {% endfor %}
-  </div>
-  {{ pagination_links(pagination, 'main.sales', q=q, period=period, method=method, status=status) if pagination.pages > 1 else '' }}
-  {% else %}
-  <section class="sls-empty">
+    </div>
+    {{ pagination_links(pagination, 'main.sales', q=q, period=period, method=method, status=status) if pagination.pages > 1 else '' }}
+    {% else %}
+    <section class="sls-empty">
     <span class="sls-empty-icon">{{ icon('home-sales',44) }}</span>
     <h2>{{ 'No hay coincidencias' if q or method or status!='completed' or period!='month' else 'Aún no hay ventas este mes' }}</h2>
     <p>{{ 'Prueba otro período o cambia los filtros de búsqueda.' if q or method or status!='completed' or period!='month' else 'Selecciona una unidad del inventario para registrar tu primera operación.' }}</p>
     <div class="sls-empty-actions">{% if can('sales.manage') %}<a class="sls-button sls-primary" href="{{ url_for('main.sale_new') }}">{{ icon('plus',17) }}Registrar venta</a>{% endif %}<a class="sls-button sls-secondary" href="{{ url_for('main.sales',period='all',status='all') }}">Ver todo el historial</a></div>
+    </section>
+    {% endif %}
   </section>
   {% if available_preview and can('sales.manage') %}
   <div class="sls-register-head sls-stock-heading"><h2>Disponibles para vender</h2><a class="sls-text-link" href="{{ url_for('main.sale_new') }}">Ver inventario {{ icon('sales-arrow',16) }}</a></div>
   <div class="sls-stock-preview">
     {% for asset in available_preview %}<a class="sls-stock-card" href="{{ url_for('main.sale_new',asset_id=asset.id) }}">{{ media(asset) }}<div><h3>{{ asset.name }}</h3><p>{{ asset.vehicle_year or asset_kind_label(asset.kind) }}{% if asset.identifier %} · {{ asset.identifier }}{% endif %}</p><strong>{{ money(asset.sale_price) if asset.sale_price else 'Precio por definir' }}</strong></div>{{ icon('sales-arrow',18) }}</a>{% endfor %}
   </div>
-  {% endif %}
   {% endif %}
 </section>
 {% endblock %}

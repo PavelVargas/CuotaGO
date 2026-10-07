@@ -9,7 +9,7 @@
   <meta name="cuotago-push-enabled" content="{{ '1' if config.get('PUSH_NOTIFICATIONS_ENABLED') and config.get('VAPID_PUBLIC_KEY') else '0' }}">
   <meta name="cuotago-vapid-key" content="{{ config.get('VAPID_PUBLIC_KEY', '') }}">
   <meta name="theme-color" content="#f6f8fc" id="themeColorMeta">
-  <meta name="cuotago-build-version" content="{{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}">
+  <meta name="cuotago-build-version" content="{{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}">
   <meta name="application-name" content="{{ app_name }}">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default" id="appleStatusMeta">
@@ -104,10 +104,10 @@
     html.show-boot .boot-splash{display:grid}.boot-splash-inner{display:flex;flex-direction:column;align-items:center;gap:13px;transform:translateY(-4vh)}.boot-splash-logo{display:block;width:min(236px,66vw);height:auto}.boot-splash small{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;line-height:1.25;color:#7b8491}.boot-splash.is-hidden{opacity:0;visibility:hidden;pointer-events:none}html[data-theme="dark"] .boot-splash small{color:#9da8b8}@media(prefers-reduced-motion:reduce){.boot-splash{transition:none}}
   </style>
 
-  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}?v={{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}">
-  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}?v={{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}">
-  <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='icons/favicon-64.png') }}?v={{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}">
-  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32.png') }}?v={{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}?v={{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}?v={{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}">
+  <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='icons/favicon-64.png') }}?v={{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32.png') }}?v={{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}">
 
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1320x2868-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='splash/1320x2868-dark.png') }}">
@@ -132,7 +132,7 @@
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-dark.png') }}">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}">
   {% block styles %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/ui.css',v=config['ASSET_VERSION']) }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/motion.css', v=config['ASSET_VERSION']) }}">
@@ -141,8 +141,8 @@
 <body data-notification-scope="{{ current_user.id|default('') if current_user.is_authenticated else '' }}" class="ui-v67 {% if current_user.is_authenticated and request.blueprint != 'auth' %}app-authenticated{% else %}auth-shell{% endif %} {% block body_class %}{% endblock %}" data-can-collect="{{ '1' if current_user.is_authenticated and request.blueprint != 'auth' and can('collections.view') else '0' }}">
   <div class="boot-splash" id="bootSplash" aria-hidden="true">
     <div class="boot-splash-inner">
-      <img class="boot-splash-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}" alt="{{ app_name }}">
-      <img class="boot-splash-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}" alt="{{ app_name }}">
+      <img class="boot-splash-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}" alt="{{ app_name }}">
+      <img class="boot-splash-logo brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}" alt="{{ app_name }}">
       <small>Cobros simples, sin enredos</small>
     </div>
   </div>
@@ -150,32 +150,27 @@
   <div class="network-banner" id="networkBanner" role="status" hidden>{{ icon('offline', 16) }} <span>Sin conexión</span></div>
 
   {% if current_user.is_authenticated and request.blueprint != 'auth' %}
-  <header class="topbar">
-    <div class="topbar-inner">
-      <a class="brand brand-modern brand-modern-v2" href="{{ url_for('admin.dashboard') if current_user.role == 'superadmin' else url_for('main.dashboard') }}" aria-label="Ir al inicio">
+  <header class="topbar topbar-v72">
+    <div class="topbar-inner topbar-inner-v72">
+      <a class="brand brand-modern brand-modern-v2 brand-compact-v72" href="{{ url_for('admin.dashboard') if current_user.role == 'superadmin' else url_for('main.dashboard') }}" aria-label="Ir al inicio">
         <span class="brand-mark-shell" aria-hidden="true">
-          <img class="brand-mark brand-logo-light" src="{{ url_for('static', filename='icons/logo-symbol-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}" alt="" width="32" height="32">
-          <img class="brand-mark brand-logo-dark" src="{{ url_for('static', filename='icons/logo-symbol-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}" alt="" width="32" height="32">
+          <img class="brand-mark brand-logo-light" src="{{ url_for('static', filename='icons/logo-symbol-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}" alt="" width="32" height="32">
+          <img class="brand-mark brand-logo-dark" src="{{ url_for('static', filename='icons/logo-symbol-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}" alt="" width="32" height="32">
         </span>
         <span class="brand-word-shell" aria-label="{{ app_name }}">
-          <img class="brand-wordmark brand-logo-light" src="{{ url_for('static', filename='icons/logo-word-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}" alt="{{ app_name }}" width="118" height="22">
-          <img class="brand-wordmark brand-logo-dark" src="{{ url_for('static', filename='icons/logo-word-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}" alt="{{ app_name }}" width="118" height="22">
+          <img class="brand-wordmark brand-logo-light" src="{{ url_for('static', filename='icons/logo-word-light.png') }}?v={{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}" alt="{{ app_name }}" width="118" height="22">
+          <img class="brand-wordmark brand-logo-dark" src="{{ url_for('static', filename='icons/logo-word-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}" alt="{{ app_name }}" width="118" height="22">
         </span>
-        {% if current_user.role == 'superadmin' %}<span class="brand-badge">v{{ config.get('APP_VERSION', '1.26.1') }}</span>{% endif %}
+        {% if current_user.role == 'superadmin' %}<span class="brand-badge">v{{ config.get('APP_VERSION', '1.26.2') }}</span>{% endif %}
       </a>
 
-      <div class="topbar-actions">
-        {% if current_user.role != 'superadmin' %}
-        {% if can('collections.view') %}<a class="topbar-notification-v61" href="{{ url_for('main.notifications') }}" aria-label="Notificaciones">
-          {{ icon('bell', 21) }}
-          <span class="notification-badge-v61" data-notification-badge hidden>0</span>
-        </a>{% endif %}
-        <a class="topbar-search-v16" href="{{ url_for('main.global_search') }}" aria-label="Buscar en CuotaGo" data-global-search-open>{{ icon('search', 21) }}</a>
-        {% endif %}
-        <button type="button" class="profile-trigger" id="profileMenuTrigger" aria-label="Abrir menú de cuenta" aria-haspopup="dialog" aria-controls="profileMenuDialog" aria-expanded="false">
-          <span class="avatar">{{ current_user.name[:1]|upper }}</span>
-          <span class="user-copy"><strong>{{ current_user.name }}</strong><small>{{ role_label(current_user.role) }}</small></span>
-          <span class="chevron">⌄</span>
+      <div class="topbar-actions topbar-actions-v72">
+        <button type="button" class="app-menu-trigger-v72" id="profileMenuTrigger" aria-label="Abrir menú" aria-haspopup="dialog" aria-controls="profileMenuDialog" aria-expanded="false">
+          <span class="app-menu-trigger-shell-v72" aria-hidden="true">{{ icon('sales-more', 18) }}</span>
+          <span class="app-menu-user-v72">
+            <span class="avatar">{{ current_user.name[:1]|upper }}</span>
+            <span class="app-menu-copy-v72"><strong>{{ current_user.name }}</strong><small>{{ role_label(current_user.role) }}</small></span>
+          </span>
         </button>
       </div>
     </div>
@@ -196,8 +191,8 @@
   </dialog>
   {% endif %}
 
-  <dialog class="profile-dialog" id="profileMenuDialog" aria-label="Menú de cuenta">
-    <section class="profile-sheet" role="document">
+  <dialog class="profile-dialog profile-dialog-v72" id="profileMenuDialog" aria-label="Menú de cuenta">
+    <section class="profile-sheet profile-sheet-v72" role="document">
       <div class="profile-sheet-handle" aria-hidden="true"></div>
       <div class="profile-sheet-head">
         <div class="profile-sheet-account">
@@ -209,10 +204,41 @@
         </div>
         <button type="button" class="profile-close" id="profileMenuClose" aria-label="Cerrar menú">×</button>
       </div>
+      <div class="drawer-shortcuts-v72">
+        {% if current_user.role != 'superadmin' %}
+        <button type="button" class="drawer-shortcut-v72" data-global-search-open data-close-profile-menu>
+          <span>{{ icon('search', 18) }}</span>
+          <strong>Buscar</strong>
+          <small>Cliente, acuerdo o artículo</small>
+        </button>
+        {% if can('collections.view') %}<a class="drawer-shortcut-v72" href="{{ url_for('main.notifications') }}" data-close-profile-menu>
+          <span>{{ icon('bell', 18) }}</span>
+          <strong>Notificaciones</strong>
+          <small>Pagos y avisos</small>
+        </a>{% endif %}
+        <a class="drawer-shortcut-v72" href="{{ url_for('main.dashboard') if current_user.role != 'superadmin' else url_for('admin.dashboard') }}" data-close-profile-menu>
+          <span>{{ icon('home', 18) }}</span>
+          <strong>Inicio</strong>
+          <small>Volver al panel</small>
+        </a>
+        {% if current_user.role != 'superadmin' %}<a class="drawer-shortcut-v72" href="{{ url_for('main.settings') }}" data-close-profile-menu>
+          <span>{{ icon('settings', 18) }}</span>
+          <strong>Configuración</strong>
+          <small>Preferencias y PWA</small>
+        </a>{% endif %}
+        {% else %}
+        <a class="drawer-shortcut-v72" href="{{ url_for('admin.dashboard') }}" data-close-profile-menu>
+          <span>{{ icon('shield', 18) }}</span>
+          <strong>Superadmin</strong>
+          <small>Empresas y planes</small>
+        </a>
+        {% endif %}
+      </div>
+      <div class="drawer-divider-v72" aria-hidden="true"></div>
       <div class="user-dropdown">
         <div class="dropdown-business"><span>{{ current_user.organization.name }}</span><small>{{ current_user.email }}</small></div>
         {% if current_user.role == 'superadmin' %}
-        <a href="{{ url_for('admin.dashboard') }}">{{ icon('shield', 18) }} <span>Superadmin</span></a>
+        <a href="{{ url_for('admin.dashboard') }}" data-close-profile-menu>{{ icon('shield', 18) }} <span>Superadmin</span></a>
         {% endif %}
         <div class="theme-inline" aria-label="Apariencia">
           <span>Tema</span>
@@ -223,7 +249,6 @@
           </div>
         </div>
         <button type="button" id="fullscreenToggleBtn" class="dropdown-link fullscreen-menu-action-v23" data-fullscreen-toggle hidden aria-pressed="false">{{ icon('fullscreen', 18) }} <span data-fullscreen-label>Pantalla completa</span></button>
-        {% if current_user.role != 'superadmin' %}<a href="{{ url_for('main.settings') }}">{{ icon('settings', 18) }} <span>Configuración</span></a>{% endif %}
         <button type="button" id="installAppBtn" class="dropdown-link" hidden>{{ icon('download', 18) }} <span>Instalar app</span></button>
         <form method="post" action="{{ url_for('auth.logout') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -260,7 +285,7 @@
   <footer class="footer"><span class="status-dot"></span><span>© 2026 {{ app_name }}</span>{% if current_user.role == 'superadmin' %}<a href="{{ url_for('admin.dashboard') }}">Superadmin</a>{% else %}<a href="{{ url_for('main.settings') }}">Configuración</a>{% endif %}</footer>
   {% endif %}
 
-  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('ASSET_VERSION', '1.26.1-ui-v71') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ config.get('ASSET_VERSION', '1.26.2-ui-v72') }}" defer></script>
   <script src="{{ url_for('static', filename='js/dealer.js', v=config['ASSET_VERSION']) }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>

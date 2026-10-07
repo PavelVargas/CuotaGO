@@ -339,3 +339,29 @@ html .page-shell .content-page.dealer-page { padding:22px 26px 46px!important; }
  .dlr-header-actions>.btn[aria-label]>span { display:none; }
  .dlr-header .icon-btn { width:40px; height:40px; }
 }
+
+
+/* v1.26.2 / ui-v72: detail hero media without cropping. */
+.dlr-photo.is-large{
+  aspect-ratio:1 / 1;
+  min-height:340px;
+  max-height:none;
+  padding:20px;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--surface-2) 92%,var(--surface)) 0%,color-mix(in srgb,var(--surface) 96%,white) 100%);
+}
+.dlr-photo.is-large img{
+  width:100%;
+  height:100%;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  object-position:center center;
+}
+@media (min-width:980px){
+  .dlr-unit-hero{grid-template-columns:minmax(360px,.96fr) minmax(0,1.04fr);}
+}
+@media (max-width:760px){
+  .dlr-photo.is-large{min-height:280px;padding:14px;}
+}

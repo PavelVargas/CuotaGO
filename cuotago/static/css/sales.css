@@ -515,3 +515,114 @@ html[data-theme="dark"] body.sales-module { --sls-action:var(--primary); --sls-a
   .sls-header-actions :is(.sls-new-sale,.sls-print)>span { display:none; }
   .sls-heading-copy h1 { font-size:20px; line-height:1.18; }
 }
+
+
+/* --------------------------------------------------------------------------
+   v1.26.2 ui-v72 · sales register refinement
+   -------------------------------------------------------------------------- */
+.sls-register-shell{
+  margin-top:4px;
+  padding:24px;
+  border:1px solid var(--sls-stroke);
+  border-radius:26px;
+  background:var(--surface);
+  box-shadow:0 14px 38px rgba(15,23,42,.05);
+}
+.sls-toolbar-panel{
+  margin-bottom:20px;
+  padding:14px;
+  border-radius:20px;
+  border:1px solid var(--sls-stroke);
+  background:color-mix(in srgb,var(--surface-2) 82%,var(--surface));
+}
+.sls-toolbar{
+  gap:16px;
+  margin-bottom:10px;
+}
+.sls-tabs{
+  gap:8px;
+  flex-wrap:wrap;
+  border-bottom:0;
+}
+.sls-tabs a{
+  min-height:42px;
+  padding:0 14px;
+  border:1px solid var(--sls-stroke);
+  border-radius:13px;
+  background:var(--surface);
+}
+.sls-tabs a[aria-current]{
+  background:color-mix(in srgb,var(--sls-action) 10%,var(--surface));
+  border-color:color-mix(in srgb,var(--sls-action) 20%,var(--sls-stroke));
+}
+.sls-toolbar-meta{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  font-size:11px;
+  color:var(--sls-muted);
+}
+.sls-clear-filters{
+  display:inline-flex;
+  align-items:center;
+  min-height:32px;
+  padding:0 12px;
+  border-radius:999px;
+  border:1px solid var(--sls-stroke);
+  background:var(--surface);
+  color:var(--text-strong);
+  font-weight:650;
+  text-decoration:none;
+}
+.sls-sales-grid{
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:18px;
+}
+.sls-sale-card{
+  border-radius:22px;
+  box-shadow:0 8px 24px rgba(15,23,42,.04);
+}
+.sls-sale-card:hover{
+  border-color:color-mix(in srgb,var(--sls-action) 14%,var(--line-strong));
+  box-shadow:0 18px 34px rgba(15,23,42,.08);
+  transform:translateY(-1px);
+}
+.sls-card-photo{
+  padding:12px 12px 0;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--surface-3) 82%,var(--surface)) 0%,transparent 100%);
+}
+.sls-media{
+  border-radius:18px;
+  background:color-mix(in srgb,var(--surface-3) 92%,var(--surface));
+}
+.sls-card-content{padding:18px 18px 16px;}
+.sls-card-caption{font-size:11px;letter-spacing:.01em;}
+.sls-card-buyer{
+  padding:10px 12px;
+  border:1px solid color-mix(in srgb,var(--sls-stroke) 88%,transparent);
+  border-radius:14px;
+  background:color-mix(in srgb,var(--surface-2) 86%,var(--surface));
+}
+.sls-card-money{
+  margin-top:14px;
+  padding-top:14px;
+}
+.sls-card-money strong{font-size:22px;}
+.sls-card-money b{font-size:13px;}
+.sls-card-footer{
+  margin-top:14px;
+  padding-top:13px;
+  border-top:1px dashed color-mix(in srgb,var(--sls-stroke) 92%,transparent);
+  font-size:10.5px;
+}
+@media (max-width:1180px){
+  .sls-register-shell{padding:20px;}
+}
+@media (max-width:760px){
+  .sls-register-shell{padding:18px;border-radius:22px;}
+  .sls-toolbar-panel{padding:10px;border-radius:18px;}
+  .sls-toolbar-meta{flex-direction:column;align-items:flex-start;}
+  .sls-sales-grid{grid-template-columns:1fr;gap:16px;}
+  .sls-card-photo{padding:10px 10px 0;}
+}
