@@ -7599,3 +7599,134 @@ button.drawer-shortcut-v72{font:inherit;text-align:left;cursor:pointer;}
 html[data-theme="dark"] .brand-compact-v72,
 html[data-theme="dark"] .app-menu-trigger-v72{background:rgba(14,20,28,.9);box-shadow:0 14px 34px rgba(0,0,0,.25);}
 html[data-theme="dark"] .drawer-shortcut-v72{background:rgba(20,27,37,.94);}
+
+
+/* ===== Workspace refresh v77 ===== */
+:root{
+  --font-ui:"Fredoka",Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --bg:#eef3f8;
+  --bg-elevated:#f5f8fb;
+  --surface:#ffffff;
+  --surface-2:#f6f9fc;
+  --surface-3:#eaf0f7;
+  --line:#d8e1ec;
+  --line-strong:#c9d4e3;
+  --text:#253041;
+  --text-strong:#17212f;
+  --muted:#6f7f95;
+  --primary:#3b82f6;
+  --primary-soft:rgba(59,130,246,.14);
+  --primary-strong:#165dcb;
+  --success:#23a55a;
+  --warning:#d08b1d;
+  --danger:#d64545;
+  --cg-radius-control:18px;
+  --cg-control-h:42px;
+  --cg-control-h-sm:36px;
+}
+:root[data-theme='dark']{
+  --bg:#0f1115;
+  --bg-elevated:#141821;
+  --surface:#1a1f28;
+  --surface-2:#202631;
+  --surface-3:#28303b;
+  --line:#2f3845;
+  --line-strong:#394454;
+  --text:#d9e0ea;
+  --text-strong:#f5f8fc;
+  --muted:#93a0b2;
+  --primary:#5a9bff;
+  --primary-soft:rgba(90,155,255,.17);
+  --primary-strong:#8fc0ff;
+  --success:#3fbf78;
+  --warning:#e5aa45;
+  --danger:#f27474;
+}
+html body,html button,html input,html select,html textarea{font-family:var(--font-ui)!important}
+html[data-theme='light'] body.app-authenticated{background:linear-gradient(180deg,#eef3f8 0,#f8fbfd 260px,#eef3f8 100%)}
+html[data-theme='dark'] body.app-authenticated{background:linear-gradient(180deg,#0f1115 0,#131923 220px,#0f1115 100%)}
+html[data-theme='dark'] .workspace-topbar-v75{background:rgba(19,25,35,.9)!important;border-bottom:1px solid color-mix(in srgb,var(--line) 88%,transparent)!important}
+html[data-theme='light'] .workspace-topbar-v75{background:rgba(255,255,255,.8)!important}
+html[data-theme='dark'] .surface,html[data-theme='dark'] .ops-table-shell-v76,html[data-theme='dark'] .ops-command-v76,html[data-theme='dark'] .ops-table-row-v76,html[data-theme='dark'] .payment-dialog-sheet,html[data-theme='dark'] .agreement-detail-grid-v77>.surface{box-shadow:none!important}
+.surface,.module-card,.form-surface,.payment-dialog-sheet,.ops-table-shell-v76,.ops-command-v76,.ops-table-row-v76,.workspace-topbar-v75,.agreement-detail-grid-v77>.surface{border-radius:22px}
+.btn,.icon-btn,.ops-filter-submit-v76,.ops-clear-v76,.ops-filterbar-v76 select,.ops-search-v76,.profile-trigger,.ops-status-v76{border-radius:18px!important}
+.btn{min-height:44px;padding:10px 15px;font-size:12px;font-weight:700}
+.btn-sm,.btn-small{min-height:36px;border-radius:14px!important}
+.btn-lg{border-radius:20px!important}
+.btn-primary{background:linear-gradient(180deg,#4a91ff,#1f6ff0)!important;box-shadow:0 10px 24px rgba(41,112,231,.18)!important}
+.btn-secondary,.btn-ghost{border-color:color-mix(in srgb,var(--line-strong) 85%,transparent)!important;background:color-mix(in srgb,var(--surface) 88%,var(--surface-2))!important}
+.field input,.field select,.field textarea,.search-box input{border-radius:16px!important;background:color-mix(in srgb,var(--surface) 82%,var(--surface-2));border-color:color-mix(in srgb,var(--line-strong) 84%,transparent)}
+.agreement-detail-grid-v77{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(320px,.95fr);gap:18px;align-items:start;margin-top:16px}
+.agreement-activity-card-v77{padding:20px;display:flex;flex-direction:column;gap:14px;min-height:100%}
+.agreement-activity-head-v77{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.agreement-activity-head-v77 h2{margin:3px 0 0;font-size:22px}
+.agreement-activity-count-v77{min-width:42px;height:42px;padding:0 12px;border-radius:14px;display:grid;place-items:center;background:var(--primary-soft);color:var(--primary);font-weight:700}
+.agreement-activity-copytop-v77{margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
+.agreement-note-compose-v77{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;background:color-mix(in srgb,var(--surface-2) 88%,var(--surface));border:1px solid color-mix(in srgb,var(--line) 85%,transparent)}
+.agreement-note-compose-v77 .field{margin:0}
+.agreement-note-compose-v77 textarea{min-height:92px;resize:vertical}
+.agreement-activity-list-v77{display:flex;flex-direction:column;gap:10px}
+.agreement-activity-row-v77{display:grid;grid-template-columns:38px minmax(0,1fr);gap:12px;padding:14px;border-radius:18px;background:color-mix(in srgb,var(--surface) 90%,var(--surface-2));border:1px solid color-mix(in srgb,var(--line) 84%,transparent)}
+.agreement-activity-mark-v77{width:38px;height:38px;border-radius:14px;display:grid;place-items:center;background:var(--primary-soft);color:var(--primary)}
+.agreement-activity-row-v77.is-payment .agreement-activity-mark-v77{background:rgba(35,165,90,.12);color:var(--success)}
+.agreement-activity-row-v77.is-note .agreement-activity-mark-v77{background:rgba(208,139,29,.12);color:var(--warning)}
+.agreement-activity-main-v77{min-width:0;display:flex;flex-direction:column;gap:4px}
+.agreement-activity-title-v77{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.agreement-activity-title-v77 strong{font-size:13px;color:var(--text-strong)}
+.agreement-activity-title-v77 b{font-size:12px;color:var(--text-strong)}
+.agreement-activity-main-v77 p{margin:0;font-size:12px;line-height:1.45;color:var(--text)}
+.agreement-activity-main-v77 small{font-size:10px;color:var(--muted)}
+.agreement-activity-empty-v77{padding:18px;border-radius:18px;background:color-mix(in srgb,var(--surface-2) 90%,var(--surface));color:var(--muted);font-size:12px;text-align:center}
+@media(max-width:1120px){.agreement-detail-grid-v77{grid-template-columns:1fr}}
+@media(max-width:720px){.agreement-detail-grid-v77{gap:14px}.agreement-activity-card-v77{padding:16px}.agreement-activity-head-v77 h2{font-size:19px}}
+
+/* ===== CuotaGo v1.26.7 · final palette and rounded-control overrides ===== */
+:root[data-theme='dark']{
+  --bg:#181818;
+  --bg-elevated:#1e1e1e;
+  --surface:#1f1f1f;
+  --surface-2:#252526;
+  --surface-3:#2d2d30;
+  --line:#343434;
+  --line-strong:#474747;
+  --text:#cccccc;
+  --text-strong:#f2f2f2;
+  --muted:#9d9d9d;
+  --muted-2:#7f7f7f;
+  --primary:#4c9aff;
+  --primary-deep:#8fc1ff;
+  --primary-soft:#20354d;
+  --success:#4ec98b;
+  --success-soft:#183228;
+  --warning:#d7a348;
+  --warning-soft:#332a1a;
+  --danger:#f07b7b;
+  --danger-soft:#3a2020;
+  --shadow:0 18px 46px rgba(0,0,0,.34);
+  --shadow-soft:0 8px 24px rgba(0,0,0,.22);
+}
+html[data-theme='dark'] body.app-authenticated{background:#181818!important;}
+html[data-theme='dark'] .workspace-topbar-v75{background:rgba(24,24,24,.96)!important;}
+html[data-theme='dark'] .profile-sheet,
+html[data-theme='dark'] .profile-sheet-v72{background:#1f1f1f!important;border-color:#3a3a3a!important;}
+
+/* Fredoka is the single application typeface. */
+html,body,button,input,select,textarea{font-family:"Fredoka",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;}
+
+/* Consistent modern radii without changing the Home launcher layout. */
+body.app-authenticated :is(.btn,.icon-btn,.profile-close,.payment-dialog-close,.quick-pay-button){border-radius:15px!important;}
+body.app-authenticated :is(.field input,.field select,.field textarea,.search-box,.calendar-search){border-radius:15px!important;}
+body.app-authenticated:not(.dashboard-home) :is(.surface,.form-surface,.payment-dialog-sheet,.advanced-options,.dlr-panel){border-radius:22px!important;}
+body.app-authenticated:not(.dashboard-home) .contract-payment-launch{border-radius:20px!important;}
+
+/* Agreement workspace uses the otherwise wasted desktop column. */
+@media(min-width:1121px){
+  html.is-browser-app body.workbench-shell-v75 .agreement-detail-v23{max-width:none!important;width:100%!important;}
+  .agreement-detail-grid-v77{grid-template-columns:minmax(620px,1.55fr) minmax(360px,.85fr);gap:16px;}
+  .agreement-activity-card-v77{position:sticky;top:56px;max-height:calc(100dvh - 74px);overflow:auto;}
+}
+@media(max-width:720px){
+  .agreement-activity-card-v77{border-radius:20px!important;}
+  .agreement-note-compose-v77 textarea{min-height:78px;}
+  .agreement-activity-row-v77{padding:12px;border-radius:16px;}
+}

@@ -25,14 +25,31 @@
       {% set active_contracts = client.contracts|selectattr('status','equalto','active')|list %}
       {% set completed_sales = client.sales|selectattr('status','equalto','completed')|list %}
       <a class="ops-table-row-v76 client-row-v76" href="{{ url_for('main.client_detail',client_id=client.id) }}">
-        <span class="ops-person-v76 client-primary-v76" data-label="Cliente"><span class="client-avatar-v76">{{ client.full_name[:1]|upper }}</span><span><strong>{{ client.full_name }}</strong><small>{{ client.address or 'Sin dirección registrada' }}</small></span></span>
-        <span data-label="Teléfono"><strong>{{ client.phone or '—' }}</strong></span>
-        <span data-label="Correo"><strong>{{ client.email or '—' }}</strong></span>
-        <span data-label="Documento"><strong>{{ client.document_id or '—' }}</strong></span>
-        <span data-label="Acuerdos"><strong>{{ client.contracts|length }}</strong><small>{{ active_contracts|length }} activo{{ 's' if active_contracts|length != 1 }}</small></span>
-        <span data-label="Ventas"><strong>{{ completed_sales|length }}</strong><small>de contado</small></span>
-        <span data-label="Estado"><span class="ops-status-v76 {{ 'is-success' if active_contracts else 'is-neutral' }}">{{ 'Activo' if active_contracts else 'Sin acuerdo activo' }}</span></span>
-        <span class="client-row-actions-v76">{% if can('clients.manage') %}<span class="ops-mini-icon-v76" title="Editar">{{ icon('edit',14) }}</span>{% endif %}{{ icon('sales-arrow',15) }}</span>
+        <div class="client-mobile-card-v77">
+          <div class="client-mobile-head-v77">
+            <span class="client-avatar-v76">{{ client.full_name[:1]|upper }}</span>
+            <span class="client-mobile-name-v77"><strong>{{ client.full_name }}</strong><small>{{ client.address or 'Sin dirección registrada' }}</small></span>
+            <span class="ops-status-v76 {{ 'is-success' if active_contracts else 'is-neutral' }}">{{ 'Activo' if active_contracts else 'Sin acuerdo' }}</span>
+          </div>
+          <div class="client-mobile-contact-v77">
+            <span>{{ icon('phone-call',15) }} <b>{{ client.phone or 'Sin teléfono' }}</b></span>
+            {% if client.email %}<span>{{ icon('contract',15) }} <b>{{ client.email }}</b></span>{% endif %}
+            {% if client.document_id %}<span>{{ icon('dealer-id',15) }} <b>{{ client.document_id }}</b></span>{% endif %}
+          </div>
+          <div class="client-mobile-stats-v77">
+            <span><small>Acuerdos</small><strong>{{ client.contracts|length }}</strong><em>{{ active_contracts|length }} activo{{ 's' if active_contracts|length != 1 }}</em></span>
+            <span><small>Ventas</small><strong>{{ completed_sales|length }}</strong><em>de contado</em></span>
+            <span class="client-mobile-open-v77">Ver ficha {{ icon('sales-arrow',16) }}</span>
+          </div>
+        </div>
+        <span class="ops-person-v76 client-primary-v76 client-desktop-cell-v77" data-label="Cliente"><span class="client-avatar-v76">{{ client.full_name[:1]|upper }}</span><span><strong>{{ client.full_name }}</strong><small>{{ client.address or 'Sin dirección registrada' }}</small></span></span>
+        <span class="client-desktop-cell-v77" data-label="Teléfono"><strong>{{ client.phone or '—' }}</strong></span>
+        <span class="client-desktop-cell-v77" data-label="Correo"><strong>{{ client.email or '—' }}</strong></span>
+        <span class="client-desktop-cell-v77" data-label="Documento"><strong>{{ client.document_id or '—' }}</strong></span>
+        <span class="client-desktop-cell-v77" data-label="Acuerdos"><strong>{{ client.contracts|length }}</strong><small>{{ active_contracts|length }} activo{{ 's' if active_contracts|length != 1 }}</small></span>
+        <span class="client-desktop-cell-v77" data-label="Ventas"><strong>{{ completed_sales|length }}</strong><small>de contado</small></span>
+        <span class="client-desktop-cell-v77" data-label="Estado"><span class="ops-status-v76 {{ 'is-success' if active_contracts else 'is-neutral' }}">{{ 'Activo' if active_contracts else 'Sin acuerdo activo' }}</span></span>
+        <span class="client-row-actions-v76 client-desktop-cell-v77">{% if can('clients.manage') %}<span class="ops-mini-icon-v76" title="Editar">{{ icon('edit',14) }}</span>{% endif %}{{ icon('sales-arrow',15) }}</span>
       </a>
       {% endfor %}
     </div>

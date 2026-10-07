@@ -1200,6 +1200,39 @@ def client_note_add(client_id):
     return redirect(url_for("main.client_detail", client_id=client.id, _anchor="notes"))
 
 
+
+
+@main_bp.post("/contracts/<int:contract_id>/notes")
+@login_required
+def contract_note_add(contract_id):
+    if not (has_permission(current_user, "clients.manage") or has_permission(current_user, "collections.manage")):
+        abort(403)
+    contract = scoped_contract(contract_id)
+    body = (request.form.get("body") or "").strip()
+    if len(body) < 2:
+        flash("Escribe una nota o mensaje interno.", "error")
+        return redirect(url_for("main.contract_detail", contract_id=contract.id, _anchor="notes"))
+
+    note = CollectionNote(
+        organization_id=current_user.organization_id,
+        client_id=contract.client_id,
+        contract_id=contract.id,
+        body=body[:2000],
+        created_by_user_id=current_user.id,
+    )
+    db.session.add(note)
+    db.session.flush()
+    tenant_audit(
+        "contract.note_added",
+        "contract",
+        contract.id,
+        f"Nota agregada al acuerdo {contract.code}.",
+        body[:500],
+    )
+    db.session.commit()
+    flash("Nota guardada en el acuerdo.", "success")
+    return redirect(url_for("main.contract_detail", contract_id=contract.id, _anchor="notes"))
+
 @main_bp.post("/clients/<int:client_id>/promises")
 @login_required
 @permission_required("collections.manage")
@@ -2993,7 +3026,108 @@ def contract_new():
 @permission_required("contracts.view")
 def contract_detail(contract_id):
     contract = scoped_contract(contract_id)
-    return render_template("contracts/detail.html", contract=contract, payment_request_key=uuid.uuid4().hex)
+
+    contract_notes = (
+        CollectionNote.query
+        .filter_by(
+            organization_id=current_user.organization_id,
+            client_id=contract.client_id,
+            contract_id=contract.id,
+        )
+        .order_by(CollectionNote.created_at.desc())
+        .limit(20)
+        .all()
+    )
+    actor_ids = {
+        actor_id
+        for actor_id in (
+            [note.created_by_user_id for note in contract_notes]
+            + [payment.created_by_user_id for payment in contract.payments]
+            + [change.created_by_user_id for change in contract.schedule_changes]
+            + [getattr(contract, "cancelled_by_user_id", None)]
+        )
+        if actor_id
+    }
+    note_actors = {}
+    if actor_ids:
+        note_actors = {
+            user.id: user.name
+            for user in User.query.filter(
+                User.id.in_(actor_ids),
+                User.organization_id == current_user.organization_id,
+            ).all()
+        }
+
+    agreement_activity = [{
+        "kind": "system",
+        "title": "Acuerdo creado",
+        "detail": f"{contract.code} quedó registrado para {contract.client.full_name}.",
+        "date": contract.created_at,
+        "actor": None,
+        "amount": contract.total_amount,
+    }]
+
+    for note in contract_notes:
+        agreement_activity.append({
+            "kind": "note",
+            "title": "Nota interna",
+            "detail": note.body,
+            "date": note.created_at,
+            "actor": note_actors.get(note.created_by_user_id),
+            "amount": None,
+        })
+
+    for payment in contract.payments:
+        extra_bits = [payment_method_label(payment.method)]
+        if payment.reference:
+            extra_bits.append(f"Ref. {payment.reference}")
+        if payment.note:
+            extra_bits.append(payment.note)
+        payment_title = (
+            "Inicial registrada" if payment.payment_kind == "down_payment"
+            else "Abono registrado" if payment.payment_kind == "advance"
+            else "Pago registrado"
+        )
+        agreement_activity.append({
+            "kind": "payment",
+            "title": payment_title,
+            "detail": " · ".join(bit for bit in extra_bits if bit),
+            "date": payment.paid_at,
+            "actor": note_actors.get(payment.created_by_user_id),
+            "amount": payment.amount,
+        })
+
+    for change in contract.schedule_changes:
+        agreement_activity.append({
+            "kind": "reschedule",
+            "title": "Fecha o cuotas reprogramadas",
+            "detail": f"{change.new_open_count} cuota{'s' if change.new_open_count != 1 else ''} {frequency_label(change.new_frequency).lower()} desde {change.new_next_due_date.strftime('%d/%m/%Y')}" + (f" · {change.reason}" if change.reason else ""),
+            "date": change.created_at,
+            "actor": note_actors.get(change.created_by_user_id),
+            "amount": None,
+        })
+
+    if contract.cancelled_at:
+        agreement_activity.append({
+            "kind": "system",
+            "title": "Acuerdo anulado",
+            "detail": contract.cancel_reason or "Se conservó el historial del acuerdo.",
+            "date": contract.cancelled_at,
+            "actor": note_actors.get(getattr(contract, "cancelled_by_user_id", None)),
+            "amount": None,
+        })
+
+    agreement_activity.sort(key=lambda item: item["date"] or datetime.min, reverse=True)
+
+    return render_template(
+        "contracts/detail.html",
+        contract=contract,
+        payment_request_key=uuid.uuid4().hex,
+        today=local_today(),
+        agreement_activity=agreement_activity[:16],
+        contract_notes=contract_notes,
+        note_actors=note_actors,
+    )
 
 
 @main_bp.post("/contracts/<int:contract_id>/late-fee")

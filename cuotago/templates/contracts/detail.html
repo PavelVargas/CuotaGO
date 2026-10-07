@@ -92,21 +92,55 @@
   </section>
   {% endif %}
 
-  <section class="surface schedule-card simple-schedule-card agreement-schedule-v23">
-    <div class="section-heading"><div><span class="eyebrow">CUOTAS</span><h2>Calendario</h2></div><span>{{ frequency_label(contract.frequency) }}</span></div>
-    <div class="installment-list">
-      {% for installment in contract.installments %}
-      <div class="installment-row {% if installment.is_paid %}is-paid{% elif installment.due_date < today %}is-overdue{% elif installment.due_date == today %}is-today{% endif %}">
-        <div class="installment-seq">{{ installment.sequence }}</div>
-        <div class="installment-date"><strong>{{ installment.due_date.strftime('%d/%m/%Y') }}</strong><small>{% if installment.is_paid %}Pagada{% elif installment.due_date < today %}Vencida{% elif installment.due_date == today %}Vence hoy{% else %}Pendiente{% endif %}</small></div>
-        <div class="installment-value"><strong>{{ money(installment.remaining if not installment.is_paid else installment.amount + installment.late_fee_amount) }}</strong>{% if installment.late_fee_remaining > 0 %}<small class="late-fee-copy">incluye {{ money(installment.late_fee_remaining) }} de interés</small>{% elif installment.paid_amount and installment.paid_amount > 0 and not installment.is_paid %}<small>abonado {{ money(installment.paid_amount) }}</small>{% endif %}</div>
-        {% if contract.status == 'active' and not installment.is_paid and can('payments.record') %}
-        <button class="btn btn-ghost btn-sm quick-pay-button" type="button" data-open-payment data-payment-kind="payment" data-payment-amount="{{ installment.remaining }}">{{ icon('wallet',16) }} Cobrar</button>
-        {% else %}<span class="paid-check">✓</span>{% endif %}
+  <div class="agreement-detail-grid-v77">
+    <section class="surface schedule-card simple-schedule-card agreement-schedule-v23">
+      <div class="section-heading"><div><span class="eyebrow">CUOTAS</span><h2>Calendario</h2></div><span>{{ frequency_label(contract.frequency) }}</span></div>
+      <div class="installment-list">
+        {% for installment in contract.installments %}
+        <div class="installment-row {% if installment.is_paid %}is-paid{% elif installment.due_date < today %}is-overdue{% elif installment.due_date == today %}is-today{% endif %}">
+          <div class="installment-seq">{{ installment.sequence }}</div>
+          <div class="installment-date"><strong>{{ installment.due_date.strftime('%d/%m/%Y') }}</strong><small>{% if installment.is_paid %}Pagada{% elif installment.due_date < today %}Vencida{% elif installment.due_date == today %}Vence hoy{% else %}Pendiente{% endif %}</small></div>
+          <div class="installment-value"><strong>{{ money(installment.remaining if not installment.is_paid else installment.amount + installment.late_fee_amount) }}</strong>{% if installment.late_fee_remaining > 0 %}<small class="late-fee-copy">incluye {{ money(installment.late_fee_remaining) }} de interés</small>{% elif installment.paid_amount and installment.paid_amount > 0 and not installment.is_paid %}<small>abonado {{ money(installment.paid_amount) }}</small>{% endif %}</div>
+          {% if contract.status == 'active' and not installment.is_paid and can('payments.record') %}
+          <button class="btn btn-ghost btn-sm quick-pay-button" type="button" data-open-payment data-payment-kind="payment" data-payment-amount="{{ installment.remaining }}">{{ icon('wallet',16) }} Cobrar</button>
+          {% else %}<span class="paid-check">✓</span>{% endif %}
+        </div>
+        {% else %}<div class="empty-inline">No hay cuotas pendientes.</div>{% endfor %}
       </div>
-      {% else %}<div class="empty-inline">No hay cuotas pendientes.</div>{% endfor %}
-    </div>
-  </section>
+    </section>
+
+    <aside class="surface agreement-activity-card-v77" id="notes">
+      <div class="agreement-activity-head-v77">
+        <div><span class="eyebrow">SEGUIMIENTO</span><h2>Notas y mensajes</h2></div>
+        <span class="agreement-activity-count-v77">{{ agreement_activity|length }}</span>
+      </div>
+      <p class="agreement-activity-copytop-v77">Usa este espacio para dejar constancia de cambios, mensajes del cliente y eventos importantes del acuerdo.</p>
+      {% if can('clients.manage') or can('collections.manage') %}
+      <form method="post" action="{{ url_for('main.contract_note_add', contract_id=contract.id) }}" class="agreement-note-compose-v77">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="field">
+          <span class="sr-only">Escribir nota del acuerdo</span>
+          <textarea name="body" rows="3" maxlength="2000" placeholder="Ej. El cliente pidió mover la fecha de pago para el viernes." required></textarea>
+        </label>
+        <button class="btn btn-primary" type="submit">{{ icon('plus',16) }} Guardar nota</button>
+      </form>
+      {% endif %}
+      <div class="agreement-activity-list-v77">
+        {% for item in agreement_activity %}
+        <article class="agreement-activity-row-v77 is-{{ item.kind }}">
+          <span class="agreement-activity-mark-v77">{{ icon('wallet',15) if item.kind=='payment' else icon('calendar',15) if item.kind=='reschedule' else icon('edit',15) if item.kind=='note' else icon('home-agreements',15) }}</span>
+          <div class="agreement-activity-main-v77">
+            <div class="agreement-activity-title-v77"><strong>{{ item.title }}</strong>{% if item.amount is not none %}<b>{{ money(item.amount) }}</b>{% endif %}</div>
+            <p>{{ item.detail }}</p>
+            <small>{{ item.date.strftime('%d/%m/%Y %H:%M') if item.date else '' }}{% if item.actor %} · {{ item.actor }}{% endif %}</small>
+          </div>
+        </article>
+        {% else %}
+        <div class="agreement-activity-empty-v77">Todavía no hay mensajes ni notas en este acuerdo.</div>
+        {% endfor %}
+      </div>
+    </aside>
+  </div>
 
   <details class="surface advanced-options detail-more agreement-more-v23">
     <summary>Detalles del acuerdo</summary>
