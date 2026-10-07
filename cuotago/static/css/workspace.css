@@ -1,0 +1,256 @@
+/* --------------------------------------------------------------------------
+   CuotaGo v1.26.4 / ui-v74
+   Workbench layout inspired by business-app workspaces: Home remains the
+   spacious launcher; every internal module uses the available viewport.
+   -------------------------------------------------------------------------- */
+body.workbench-shell-v74 {
+  --ws-gutter: 12px;
+  --ws-gap: 10px;
+  --ws-radius: 18px;
+  --ws-radius-sm: 13px;
+  --ws-header-h: 46px;
+}
+
+body.workbench-shell-v74 .page-shell {
+  width: 100%;
+  max-width: none;
+}
+
+/* Internal modules share one visual language. */
+body.workbench-shell-v74 :is(
+  .surface,
+  .dlr-panel,
+  .sls-register-shell,
+  .sls-sale-card,
+  .sls-product,
+  .sls-sale-fields,
+  .sls-review
+) {
+  border-radius: var(--ws-radius);
+}
+
+body.workbench-shell-v74 :is(
+  .page-head,
+  .sls-header,
+  .dlr-header
+) {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  body.workbench-shell-v74 {
+    --topbar-h: var(--ws-header-h);
+  }
+
+  /* Thin app chrome. Home keeps the larger launcher/header treatment. */
+  body.workbench-shell-v74 .topbar.topbar-v72 {
+    min-height: var(--ws-header-h);
+  }
+  body.workbench-shell-v74 .topbar.topbar-v72 .topbar-inner-v72 {
+    height: var(--ws-header-h) !important;
+    max-width: none !important;
+    padding: 4px var(--ws-gutter) !important;
+  }
+  body.workbench-shell-v74 .brand-compact-v72 {
+    min-height: 36px;
+    padding: 0 8px;
+    border-radius: 13px;
+    box-shadow: none;
+  }
+  body.workbench-shell-v74 .brand-compact-v72 .brand-word-shell {
+    display: none;
+  }
+  body.workbench-shell-v74 .brand-compact-v72 .brand-mark-shell,
+  body.workbench-shell-v74 .brand-compact-v72 .brand-mark {
+    width: 28px !important;
+    height: 28px !important;
+    max-width: 28px !important;
+    max-height: 28px !important;
+  }
+  body.workbench-shell-v74 .app-menu-trigger-v72 {
+    min-height: 36px;
+    padding: 3px 5px;
+    border-radius: 13px;
+    box-shadow: none;
+  }
+  body.workbench-shell-v74 .app-menu-trigger-shell-v72 {
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+  }
+  body.workbench-shell-v74 .app-menu-copy-v72 {
+    display: none;
+  }
+  body.workbench-shell-v74 .app-menu-user-v72 {
+    gap: 5px;
+  }
+  body.workbench-shell-v74 .app-menu-user-v72 .avatar {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+    font-size: 10px;
+  }
+
+  body.workbench-shell-v74 .page-shell {
+    min-height: calc(100dvh - var(--ws-header-h));
+    padding: 0 !important;
+  }
+
+  /* Remove the old document-width feeling. Internal modules are workspaces. */
+  html.is-browser-app body.workbench-shell-v74 :is(
+    .content-page,
+    .content-page.narrow-page,
+    .sls-workspace
+  ) {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 9px var(--ws-gutter) 18px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 .dealer-page {
+    max-width: none !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 .page-shell > :first-child {
+    margin-top: 0 !important;
+  }
+
+  /* One compact module heading across legacy + new views. */
+  html.is-browser-app body.workbench-shell-v74 .page-head,
+  html.is-browser-app body.workbench-shell-v74 .sls-header,
+  html.is-browser-app body.workbench-shell-v74 .dlr-header {
+    min-height: 46px !important;
+    margin: 0 0 9px !important;
+    padding: 5px 7px !important;
+    gap: 9px !important;
+    align-items: center !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 16px !important;
+    background: var(--surface) !important;
+    box-shadow: 0 4px 16px rgba(15,23,42,.025) !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 :is(.page-head-left,.sls-heading) {
+    gap: 8px !important;
+    align-items: center !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 :is(.page-head h1,.sls-heading h1,.dlr-heading-copy h1) {
+    font-size: 20px !important;
+    line-height: 1.08 !important;
+    margin: 0 !important;
+    letter-spacing: -.035em !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 :is(.page-head p,.sls-heading p,.dlr-heading-copy p) {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+    margin-top: 2px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 :is(.page-head .eyebrow,.sls-eyebrow,.dlr-heading-copy .eyebrow) {
+    font-size: 8px !important;
+    letter-spacing: .09em !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 :is(.page-head .icon-btn,.sls-icon-button,.dlr-header .icon-btn) {
+    width: 36px !important;
+    height: 36px !important;
+    flex-basis: 36px !important;
+    border-radius: 12px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 .module-context-icon,
+  html.is-browser-app body.workbench-shell-v74 .dlr-heading-icon {
+    width: 36px !important;
+    height: 36px !important;
+    flex-basis: 36px !important;
+    border-radius: 12px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 .module-context-icon .ui-icon,
+  html.is-browser-app body.workbench-shell-v74 .dlr-heading-icon .ui-icon {
+    width: 21px !important;
+    height: 21px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 :is(.page-head .btn,.sls-header-actions .sls-button,.dlr-header-actions .btn) {
+    min-height: 36px !important;
+    padding: 7px 11px !important;
+    border-radius: 12px !important;
+    font-size: 10.5px !important;
+  }
+
+  /* Common work surfaces: low shadow, denser spacing, same radius. */
+  html.is-browser-app body.workbench-shell-v74 .surface {
+    border-radius: var(--ws-radius) !important;
+    box-shadow: 0 5px 18px rgba(15,23,42,.035) !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 :is(
+    .clients-toolbar-v23,
+    .agreements-toolbar-v23,
+    .calendar-filterbar,
+    .collection-toolbar-v20,
+    .expense-toolbar-v19,
+    .purchase-toolbar-v23,
+    .report-filter-v19,
+    .notifications-toolbar-v61
+  ) {
+    border-radius: var(--ws-radius) !important;
+  }
+
+  /* Directories make use of wide monitors instead of leaving dead side gutters. */
+  html.is-browser-app body.workbench-shell-v74 .client-directory-grid-v23 {
+    grid-template-columns: repeat(auto-fit,minmax(285px,1fr)) !important;
+    gap: 10px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 .agreement-grid-v23 {
+    grid-template-columns: repeat(auto-fit,minmax(330px,1fr)) !important;
+    gap: 10px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 .purchases-grid-v23,
+  html.is-browser-app body.workbench-shell-v74 .expense-grid-v19 {
+    gap: 10px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 .calendar-workspace {
+    grid-template-columns: minmax(0,1.75fr) minmax(290px,.65fr) !important;
+    gap: 10px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 .reports-v23,
+  html.is-browser-app body.workbench-shell-v74 .reports-v22 {
+    max-width: none !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 .dlr-grid-two,
+  html.is-browser-app body.workbench-shell-v74 .dlr-client-layout {
+    gap: 10px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 .dlr-panel {
+    margin-bottom: 10px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74 .dlr-section-nav {
+    margin-bottom: 9px !important;
+    padding-bottom: 3px !important;
+  }
+
+  /* Sales was its own 1440px island; it now follows the same module canvas. */
+  html.is-browser-app body.workbench-shell-v74.sales-module .sls-workspace {
+    padding-top: 9px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74.sales-module .sls-stats {
+    margin-bottom: 10px !important;
+  }
+  html.is-browser-app body.workbench-shell-v74.sales-module .sls-register-shell {
+    margin-top: 0 !important;
+  }
+}
+
+@media (max-width: 899px) {
+  body.workbench-shell-v74 {
+    --ws-gutter: 10px;
+  }
+  body.workbench-shell-v74 :is(.content-page,.sls-workspace) {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
+/* Installed PWA already hides the desktop topbar; just normalize module gutters. */
+@media (max-width: 719px) {
+  html.is-standalone-app body.workbench-shell-v74 .page-shell {
+    width: 100% !important;
+  }
+  html.is-standalone-app body.workbench-shell-v74 :is(.content-page,.sls-workspace) {
+    max-width: none !important;
+  }
+}

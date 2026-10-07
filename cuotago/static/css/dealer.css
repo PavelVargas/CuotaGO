@@ -651,3 +651,252 @@ html .page-shell .content-page.dealer-page { padding:22px 26px 46px!important; }
   .inventory-row-side-v73{ padding: 0; background: transparent; border: 0; }
   .inventory-money-stack-v73 strong{ font-size: 24px; }
 }
+
+/* --------------------------------------------------------------------------
+   v1.26.4 ui-v74 · dense dealer inventory + natural vehicle hero ratio
+   -------------------------------------------------------------------------- */
+/* Vehicle photos use their real 1169:780 frame. The right column must not
+   stretch the media vertically; this removes the huge blank area seen on cars. */
+.dlr-unit-hero > .dlr-hero-media{
+  align-self:start;
+}
+.dlr-photo.is-large.is-vehicle-large{
+  width:100%;
+  height:auto;
+  min-height:0;
+  max-height:none;
+  aspect-ratio:1169 / 780;
+  padding:0;
+  background:var(--surface-2);
+}
+.dlr-photo.is-large.is-vehicle-large img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center center;
+}
+.dlr-photo.is-large.is-device-large{
+  width:100%;
+  height:auto;
+  min-height:360px;
+  aspect-ratio:1 / 1;
+  padding:18px;
+}
+
+.inventory-page-v74{
+  --inv-grid: 96px minmax(210px,1.55fr) 112px minmax(150px,1fr) 90px minmax(125px,.8fr) minmax(135px,.88fr) minmax(120px,.78fr) 28px;
+}
+.inventory-overview-v74{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-bottom:8px;
+}
+.inventory-overview-item-v74{
+  min-width:0;
+  min-height:62px;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  align-items:center;
+  gap:9px;
+  padding:8px 11px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--surface);
+}
+.inventory-overview-icon-v74{
+  width:34px;height:34px;border-radius:11px;display:grid;place-items:center;
+  background:var(--surface-2);color:var(--muted);
+}
+.inventory-overview-item-v74.is-available .inventory-overview-icon-v74{color:var(--success);background:color-mix(in srgb,var(--success) 9%,var(--surface));}
+.inventory-overview-item-v74.is-maintenance .inventory-overview-icon-v74{color:var(--warning);background:color-mix(in srgb,var(--warning) 9%,var(--surface));}
+.inventory-overview-item-v74.is-workshop .inventory-overview-icon-v74{color:#dc762f;background:color-mix(in srgb,#dc762f 9%,var(--surface));}
+.inventory-overview-item-v74.is-money .inventory-overview-icon-v74{color:var(--primary);background:color-mix(in srgb,var(--primary) 9%,var(--surface));}
+.inventory-overview-item-v74>div{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;column-gap:8px;}
+.inventory-overview-item-v74 small{font-size:8px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inventory-overview-item-v74 strong{font-size:17px;line-height:1.05;color:var(--text-strong);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.inventory-overview-item-v74 em{grid-column:1/-1;margin-top:2px;font-size:8.5px;font-style:normal;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.inventory-workbench-v74{
+  overflow:hidden;
+  padding:0;
+  border-radius:18px!important;
+}
+.inventory-toolbar-v74{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  padding:9px 10px;
+  border-bottom:1px solid var(--line);
+  background:var(--surface);
+}
+.inventory-filter-row-v74{
+  min-width:0;
+  display:grid;
+  grid-template-columns:minmax(240px,1.55fr) minmax(145px,.6fr) minmax(145px,.6fr) auto auto;
+  align-items:center;
+  gap:7px;
+}
+.inventory-search-v74{
+  min-width:0;
+  min-height:38px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 11px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--surface-2);
+  color:var(--muted);
+}
+.inventory-search-v74 input{
+  min-width:0;width:100%;border:0;outline:0;background:transparent;color:var(--text-strong);font:inherit;font-size:12px;
+}
+.inventory-filter-row-v74 select{
+  min-width:0;
+  min-height:38px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:0 10px;
+  background:var(--surface);
+  color:var(--text-strong);
+  font-size:11px;
+}
+.inventory-filter-submit-v74,.inventory-clear-v74{
+  min-height:38px!important;
+  padding:6px 11px!important;
+  border-radius:12px!important;
+  font-size:10.5px!important;
+}
+.inventory-filter-summary-v74{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  color:var(--muted);
+  font-size:10px;
+  white-space:nowrap;
+}
+.inventory-filter-summary-v74>span:first-child strong{color:var(--text-strong);font-size:12px;}
+.inventory-filter-chip-v74{
+  display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:0 9px;border:1px solid var(--line);border-radius:999px;background:var(--surface-2);
+}
+
+.inventory-table-v74{width:100%;min-width:0;}
+.inventory-table-head-v74,
+.inventory-line-v74{
+  display:grid;
+  grid-template-columns:var(--inv-grid);
+  align-items:center;
+  gap:10px;
+}
+.inventory-table-head-v74{
+  min-height:34px;
+  padding:0 12px;
+  border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface-2) 76%,var(--surface));
+  color:var(--muted);
+  font-size:8.5px;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+.inventory-table-body-v74{display:grid;}
+.inventory-line-v74{
+  min-width:0;
+  min-height:88px;
+  padding:9px 12px;
+  border-bottom:1px solid color-mix(in srgb,var(--line) 88%,transparent);
+  color:var(--text-strong);
+  text-decoration:none;
+  background:var(--surface);
+  transition:background .12s ease,border-color .12s ease;
+}
+.inventory-line-v74:last-child{border-bottom:0;}
+.inventory-line-v74:hover{background:color-mix(in srgb,var(--primary) 2.8%,var(--surface));}
+.inventory-line-media-v74{
+  width:96px;height:68px;border:1px solid var(--line);border-radius:13px;overflow:hidden;background:var(--surface-2);display:grid;place-items:center;color:var(--muted);
+}
+.inventory-line-media-v74 img{width:100%;height:100%;display:block;object-position:center;}
+.inventory-line-media-v74.is-vehicle img{object-fit:cover;}
+.inventory-line-media-v74.is-device img{object-fit:contain;padding:5px;}
+.inventory-line-product-v74{min-width:0;display:flex;flex-direction:column;gap:4px;}
+.inventory-line-product-v74 strong{font-size:12.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inventory-line-product-v74 small{font-size:9.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inventory-line-status-v74{min-width:0;}
+.inventory-line-status-v74 .vehicle-status{display:inline-flex;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inventory-line-reference-v74,.inventory-line-stock-v74,.inventory-line-money-v74{min-width:0;display:flex;flex-direction:column;gap:3px;}
+.inventory-line-reference-v74 small,.inventory-line-stock-v74 small,.inventory-line-money-v74 small{font-size:8.5px;color:var(--muted);}
+.inventory-line-reference-v74 strong,.inventory-line-stock-v74 strong,.inventory-line-money-v74 strong{font-size:11.5px;color:var(--text-strong);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
+.inventory-line-reference-v74 em,.inventory-line-stock-v74 em{font-size:8.5px;font-style:normal;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inventory-line-money-v74.is-sale strong{font-size:13px;}
+.inventory-line-money-v74.is-profit strong{color:var(--success);}
+.inventory-line-open-v74{display:grid;place-items:center;color:var(--muted);}
+.inventory-line-v74:hover .inventory-line-open-v74{color:var(--primary);}
+.inventory-empty-v74{padding:42px 20px;text-align:center;}
+.inventory-pagination-v74{margin-top:9px;}
+
+@media (max-width:1280px) and (min-width:900px){
+  .inventory-page-v74{--inv-grid:84px minmax(190px,1.45fr) 102px minmax(125px,.9fr) 76px minmax(112px,.75fr) minmax(120px,.8fr) 26px;}
+  .inventory-table-head-v74>span:nth-child(8),.inventory-line-v74>.inventory-line-money-v74.is-profit{display:none;}
+  .inventory-filter-summary-v74 .inventory-filter-chip-v74{display:none;}
+  .inventory-line-media-v74{width:84px;height:60px;}
+}
+
+@media (max-width:899px){
+  .inventory-overview-v74{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .inventory-toolbar-v74{grid-template-columns:1fr;}
+  .inventory-filter-row-v74{grid-template-columns:1fr 1fr;}
+  .inventory-search-v74{grid-column:1/-1;}
+  .inventory-filter-summary-v74{justify-content:flex-start;}
+  .inventory-table-head-v74{display:none;}
+  .inventory-table-body-v74{gap:8px;padding:8px;background:var(--surface-2);}
+  .inventory-line-v74{
+    min-height:0;
+    grid-template-columns:88px minmax(0,1fr) auto;
+    grid-template-areas:
+      "media product status"
+      "media reference reference"
+      "media stock stock"
+      "money money open";
+    gap:7px 10px;
+    padding:10px;
+    border:1px solid var(--line);
+    border-radius:16px;
+  }
+  .inventory-line-media-v74{grid-area:media;width:88px;height:88px;align-self:start;}
+  .inventory-line-product-v74{grid-area:product;}
+  .inventory-line-status-v74{grid-area:status;align-self:start;}
+  .inventory-line-reference-v74{grid-area:reference;display:block;}
+  .inventory-line-reference-v74 small{display:none;}
+  .inventory-line-reference-v74 strong,.inventory-line-reference-v74 em{display:inline;font-size:9px;}
+  .inventory-line-reference-v74 em:before{content:" · ";}
+  .inventory-line-stock-v74{grid-area:stock;display:flex;flex-direction:row;gap:4px;align-items:baseline;}
+  .inventory-line-stock-v74 small{display:none;}
+  .inventory-line-stock-v74 em{margin-left:6px;}
+  .inventory-line-money-v74{display:none;}
+  .inventory-line-money-v74.is-sale{grid-area:money;display:flex;}
+  .inventory-line-open-v74{grid-area:open;align-self:end;}
+}
+
+@media (max-width:640px){
+  .dlr-photo.is-large.is-vehicle-large{aspect-ratio:1169/780;min-height:0;padding:0;}
+  .dlr-photo.is-large.is-device-large{min-height:250px;padding:12px;}
+  .inventory-overview-v74{gap:6px;margin-bottom:7px;}
+  .inventory-overview-item-v74{min-height:58px;padding:7px 9px;grid-template-columns:30px minmax(0,1fr);gap:7px;border-radius:14px;}
+  .inventory-overview-icon-v74{width:30px;height:30px;border-radius:10px;}
+  .inventory-overview-item-v74 strong{font-size:14px;}
+  .inventory-overview-item-v74 em{font-size:7.5px;}
+  .inventory-filter-row-v74{grid-template-columns:1fr 1fr;gap:6px;}
+  .inventory-filter-row-v74 select{min-height:40px;font-size:10.5px;}
+  .inventory-search-v74{min-height:42px;}
+  .inventory-filter-submit-v74{min-height:40px!important;}
+  .inventory-clear-v74{min-height:40px!important;}
+  .inventory-filter-summary-v74{overflow:auto;scrollbar-width:none;}
+  .inventory-filter-summary-v74::-webkit-scrollbar{display:none;}
+  .inventory-line-v74{grid-template-columns:76px minmax(0,1fr) auto;}
+  .inventory-line-media-v74{width:76px;height:82px;}
+  .inventory-line-product-v74 strong{font-size:12px;}
+  .inventory-line-status-v74 .vehicle-status{font-size:8px!important;padding-inline:7px!important;}
+}
