@@ -1,0 +1,2 @@
+{% extends 'operations/base.html' %}{% block title %}Segundo factor activado{% endblock %}{% block operation %}<div class="op-panel"><h2>Guarda estos códigos de recuperacion</h2><p>Se muestran una sola vez. Cada código permite un acceso y queda invalidado al usarse. Guárdalos fuera de este teléfono, en un lugar privado.</p><pre>{% for code in codes %}{{ code }}
+{% endfor %}</pre><a class="op-button" href="{{ url_for('security.index') }}">Ya guarde mis códigos</a></div>{% endblock %}

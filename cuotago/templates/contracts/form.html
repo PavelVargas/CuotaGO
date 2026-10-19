@@ -201,10 +201,12 @@
 
       </div><div>
       <div class="wizard-label wizard-label-spaced">Frecuencia</div>
-      <div class="choice-buttons three radio-buttons frequency-pills">
+      <div class="choice-buttons radio-buttons frequency-pills">
         {% set freq = form.get('frequency','monthly') %}
         <label><input type="radio" name="frequency" value="weekly" {{ 'checked' if freq=='weekly' }}><span>Semanal</span></label>
-        <label><input type="radio" name="frequency" value="biweekly" {{ 'checked' if freq=='biweekly' }}><span>Quincenal</span></label>
+        <label><input type="radio" name="frequency" value="biweekly" {{ 'checked' if freq=='biweekly' }}><span>Cada 14 dias</span></label>
+        <label><input type="radio" name="frequency" value="every15" {{ 'checked' if freq=='every15' }}><span>Cada 15 dias</span></label>
+        <label><input type="radio" name="frequency" value="semi_monthly" {{ 'checked' if freq=='semi_monthly' }}><span>15 y fin de mes</span></label>
         <label><input type="radio" name="frequency" value="monthly" {{ 'checked' if freq=='monthly' }}><span>Mensual</span></label>
       </div>
 

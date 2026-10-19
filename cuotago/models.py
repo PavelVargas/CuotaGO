@@ -40,12 +40,20 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(30), nullable=False, default="owner")
     is_enabled = db.Column(db.Boolean, nullable=False, default=True, index=True)
     last_login_at = db.Column(db.DateTime)
+    auth_version = db.Column(db.Integer, nullable=False, default=1, server_default="1")
     created_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False)
 
     organization = db.relationship("Organization", back_populates="users")
 
+    def get_id(self):
+        from flask import has_request_context, session
+        if has_request_context() and session.get("auth_sid"):
+            return f"{self.id}:{self.auth_version or 1}:{session['auth_sid']}"
+        return f"{self.id}:{self.auth_version or 1}"
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+        self.auth_version = (self.auth_version or 0) + 1
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -57,13 +65,8 @@ class User(UserMixin, db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    try:
-        return db.session.get(
-            User, int(user_id),
-            options=[joinedload(User.organization).joinedload(Organization.subscription)],
-        )
-    except (TypeError, ValueError):
-        return None
+    from .secure_sessions import resolve_login_id
+    return resolve_login_id(user_id)
 
 
 class SubscriptionPlan(db.Model):
@@ -125,7 +128,8 @@ class OrganizationSubscription(db.Model):
         status = (self.status or "pending").strip().lower()
         if status in {"suspended", "cancelled"}:
             return status
-        today = date.today()
+        from .business_time import business_date, utcnow
+        today = business_date(utcnow())
         if self.current_period_end and self.current_period_end < today:
             if self.grace_ends_at and self.grace_ends_at >= today:
                 return "past_due"
@@ -136,7 +140,8 @@ class OrganizationSubscription(db.Model):
     def days_remaining(self):
         if not self.current_period_end:
             return None
-        return (self.current_period_end - date.today()).days
+        from .business_time import business_date, utcnow
+        return (self.current_period_end - business_date(utcnow())).days
 
 
 class SubscriptionPayment(db.Model):
@@ -185,6 +190,9 @@ class Client(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False, index=True)
     full_name = db.Column(db.String(140), nullable=False)
+    assigned_collector_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
+    import_key = db.Column(db.String(64), nullable=True, unique=True)
+    assigned_collector = db.relationship("User", foreign_keys=[assigned_collector_id])
     phone = db.Column(db.String(40))
     email = db.Column(db.String(160))
     document_id = db.Column(db.String(80))
@@ -221,6 +229,7 @@ class Asset(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False, index=True)
     kind = db.Column(db.String(40), nullable=False, default="otro")
+    is_virtual = db.Column(db.Boolean, nullable=False, default=False, server_default="false")
     name = db.Column(db.String(140), nullable=False)
     brand = db.Column(db.String(80))
     model = db.Column(db.String(100))
@@ -284,6 +293,8 @@ class Asset(db.Model):
     def committed_quantity(self):
         total = self.direct_sold_quantity
         for contract in self.contracts:
+            if getattr(contract, "inventory_released", False):
+                continue
             qty = max(int(contract.quantity or 1), 1)
             if contract.status == "active" or (contract.status == "completed" and contract.deal_type == "credit_sale"):
                 total += qty
@@ -291,7 +302,7 @@ class Asset(db.Model):
 
     @property
     def available_quantity(self):
-        return max(int(self.quantity_total or 1) - self.committed_quantity, 0)
+        return max(int(self.quantity_total if self.quantity_total is not None else 1) - self.committed_quantity, 0)
 
 
 class AssetInvestment(db.Model):
@@ -413,6 +424,10 @@ class Contract(db.Model):
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False, index=True)
     client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True)
     asset_id = db.Column(db.Integer, db.ForeignKey("assets.id"), nullable=False, index=True)
+    inventory_unit_cost = db.Column(db.Numeric(12, 2), nullable=True)
+    inventory_released = db.Column(db.Boolean, nullable=False, default=False, server_default="false")
+    opening_paid = db.Column(db.Numeric(12, 2), nullable=False, default=0, server_default="0")
+    imported_on = db.Column(db.Date, nullable=True)
     code = db.Column(db.String(40), unique=True, index=True)
     request_key = db.Column(db.String(64), unique=True, index=True)
     deal_type = db.Column(db.String(30), nullable=False, default="credit_sale")
@@ -466,11 +481,15 @@ class Contract(db.Model):
 
     @property
     def payments_total(self):
-        return sum((Decimal(str(p.amount or 0)) for p in self.payments), Decimal("0.00"))
+        if hasattr(self, "_report_payment_totals"):
+            return self._report_payment_totals[0]
+        return sum((Decimal(str(p.amount or 0)) for p in self.payments if not getattr(p, "voided_at", None)), Decimal("0.00"))
 
     @property
     def interest_paid_total(self):
-        return sum((Decimal(str(p.late_fee_amount or 0)) for p in self.payments), Decimal("0.00"))
+        if hasattr(self, "_report_payment_totals"):
+            return self._report_payment_totals[1]
+        return sum((Decimal(str(p.late_fee_amount or 0)) for p in self.payments if not getattr(p, "voided_at", None)), Decimal("0.00"))
 
     @property
     def principal_payments_total(self):
@@ -481,7 +500,7 @@ class Contract(db.Model):
         # Since v1.16 the initial payment is a real Payment row.  The schema
         # upgrader backfills legacy initials, so every received peso follows
         # the same receipt/audit path.
-        return self.principal_payments_total
+        return self.principal_payments_total + Decimal(str(self.opening_paid or 0))
 
     @property
     def paid_total(self):
@@ -529,6 +548,7 @@ class Installment(db.Model):
     late_fee_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     late_fee_base_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     late_fee_paid = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    late_fee_reset_on = db.Column(db.Date, nullable=True)
     principal_paid_at = db.Column(db.DateTime)
     paid_at = db.Column(db.DateTime)
 
@@ -574,6 +594,10 @@ class Payment(db.Model):
     receipt_code = db.Column(db.String(60), unique=True, index=True)
     request_key = db.Column(db.String(64), unique=True, index=True)
     created_by_user_id = db.Column(db.Integer, nullable=True, index=True)
+    voided_at = db.Column(db.DateTime, nullable=True, index=True)
+    voided_by_user_id = db.Column(db.Integer, nullable=True)
+    void_reason = db.Column(db.String(240), nullable=True)
+    allocation_version = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     note = db.Column(db.String(240))
     paid_at = db.Column(db.DateTime, default=now_utc_naive, nullable=False, index=True)
 

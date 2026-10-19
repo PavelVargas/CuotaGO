@@ -17,7 +17,7 @@ if os.getenv('CUOTAGO_RUN_PG_TESTS') != '1':
     pytest.skip('Opt-in PostgreSQL races: set CUOTAGO_RUN_PG_TESTS=1 on staging only.', allow_module_level=True)
 pytest.importorskip('flask')
 from sqlalchemy import create_engine, text
-from sqlalchemy.engine import make_url
+from tools.testing_safety import require_test_database
 from cuotago import create_app
 from cuotago.extensions import db
 from cuotago.models import Asset, Client, Contract, Installment, Organization, Sale, User, Payment
@@ -25,16 +25,12 @@ from cuotago.models import Asset, Client, Contract, Installment, Organization, S
 
 @pytest.fixture
 def app_data():
-    dsn=os.getenv('TEST_DATABASE_URL')
-    if not dsn:pytest.skip('A separate TEST_DATABASE_URL is required.')
-    parsed=make_url(dsn)
-    if parsed.get_backend_name()!='postgresql':pytest.fail('PostgreSQL required; SQLite cannot test FOR UPDATE.')
-    if parsed.drivername=='postgresql': parsed=parsed.set(drivername='postgresql+psycopg')
+    parsed=require_test_database()
     schema='cuotago_qa_'+uuid.uuid4().hex
     admin=create_engine(parsed)
     with admin.begin() as connection:connection.execute(text(f'CREATE SCHEMA "{schema}"'))
     try:
-        app=create_app({'TESTING':True,'WTF_CSRF_ENABLED':False,'SECRET_KEY':uuid.uuid4().hex,
+        app=create_app({'APP_ENV':'test','TESTING':True,'WTF_CSRF_ENABLED':False,'SECRET_KEY':uuid.uuid4().hex,
             'SQLALCHEMY_DATABASE_URI':parsed,'AUTO_CREATE_DB':False,
             'SQLALCHEMY_ENGINE_OPTIONS':{'connect_args':{'options':f'-c search_path={schema} -c lock_timeout=8000 -c statement_timeout=20000'}},
             'PUSH_NOTIFICATIONS_ENABLED':False,'PUSH_SCHEDULER_ENABLED':False})
@@ -42,6 +38,7 @@ def app_data():
             db.create_all()
             org=Organization(name='Isolated concurrency QA');db.session.add(org);db.session.flush()
             user=User(organization_id=org.id,name='QA Owner',email='owner@example.invalid',role='owner',password_hash='unused')
+            user.set_password('QA-owner-password-83')
             person=Client(organization_id=org.id,full_name='QA Client')
             asset=Asset(organization_id=org.id,kind='car',name='QA stock',quantity_total=1,estimated_value=800,sale_price=1000,status='available')
             db.session.add_all([user,person,asset]);db.session.commit()
@@ -59,8 +56,8 @@ def race(app,user_id,requests):
     def run(item):
         endpoint,data=item
         with app.test_client() as client:
-            with client.session_transaction() as session:
-                session['_user_id']=str(user_id);session['_fresh']=True
+            login=client.post('/login',data={'email':'owner@example.invalid','password':'QA-owner-password-83'})
+            assert login.status_code in (302,303)
             barrier.wait()
             response=client.post(endpoint,data=data,follow_redirects=False)
             assert response.status_code in {200,302,303}, (response.status_code,response.data[:200])

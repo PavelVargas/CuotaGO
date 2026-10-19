@@ -168,7 +168,7 @@
   {% if contract.payments %}
   <details class="surface advanced-options detail-more agreement-more-v23">
     <summary>Historial de pagos ({{ contract.payments|length }})</summary>
-    <div class="advanced-options-body payment-history">{% for payment in contract.payments[:12] %}<div><span><strong>{{ money(payment.amount) }}</strong><small>{{ payment_method_label(payment.method) }}{% if payment.reference %} · Ref. {{ payment.reference }}{% endif %}{% if payment.note %} · {{ payment.note }}{% endif %}{% if payment.late_fee_amount > 0 %} · {{ money(payment.late_fee_amount) }} interés{% endif %}</small></span><span class="payment-history-actions-v15"><a class="text-link" href="{{ url_for('main.payment_receipt', payment_id=payment.id) }}">Recibo</a><time>{{ payment.paid_at.strftime('%d/%m/%Y') }}</time></span></div>{% endfor %}</div>
+    <div class="advanced-options-body payment-history">{% for payment in contract.payments[:12] %}<div><span><strong>{{ money(payment.amount) }}{% if payment.voided_at %} / REVERTIDO{% endif %}</strong><small>{{ payment_method_label(payment.method) }}{% if payment.reference %} · Ref. {{ payment.reference }}{% endif %}{% if payment.note %} · {{ payment.note }}{% endif %}{% if payment.late_fee_amount > 0 %} · {{ money(payment.late_fee_amount) }} interés{% endif %}</small></span><span class="payment-history-actions-v15"><a class="text-link" href="{{ url_for('main.payment_receipt', payment_id=payment.id) }}">Recibo</a><time>{{ business_datetime(payment.paid_at).strftime('%d/%m/%Y') }}</time></span></div>{% endfor %}</div>
   </details>
   {% endif %}
 
@@ -226,7 +226,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{{ origin_fields() }}
         <div class="reschedule-grid-v15">
           <label class="field"><span>Próxima fecha</span><input type="date" name="first_due_date" min="{{ today.isoformat() }}" value="{{ contract.next_installment.due_date.isoformat() if contract.next_installment.due_date >= today else today.isoformat() }}" required></label>
-          <label class="field"><span>Frecuencia</span><select name="frequency"><option value="weekly" {{ 'selected' if contract.frequency=='weekly' }}>Semanal</option><option value="biweekly" {{ 'selected' if contract.frequency=='biweekly' }}>Quincenal</option><option value="monthly" {{ 'selected' if contract.frequency=='monthly' }}>Mensual</option></select></label>
+          <label class="field"><span>Frecuencia</span><select name="frequency"><option value="weekly" {{ 'selected' if contract.frequency=='weekly' }}>Semanal</option><option value="biweekly" {{ 'selected' if contract.frequency=='biweekly' }}>Cada 14 d&iacute;as</option><option value="every15" {{ 'selected' if contract.frequency=='every15' }}>Cada 15 d&iacute;as</option><option value="semi_monthly" {{ 'selected' if contract.frequency=='semi_monthly' }}>15 y fin de mes</option><option value="monthly" {{ 'selected' if contract.frequency=='monthly' }}>Mensual</option></select></label>
           <label class="field"><span>Cuotas pendientes</span><input type="number" name="installment_count" min="1" max="120" value="{{ contract.installments|rejectattr('is_paid')|list|length }}" required></label>
           <label class="field"><span>Motivo</span><input name="reason" maxlength="240" placeholder="Ej. ajuste acordado con el cliente"></label>
         </div>
@@ -268,7 +268,8 @@
       <form method="post" action="{{ url_for('main.contract_delete', contract_id=contract.id) }}" class="form-stack">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{{ origin_fields() }}
         <div class="delete-contract-note"><strong>{{ contract.client.full_name }}</strong><span>{{ contract.asset.name }} · {{ contract.code }}</span></div>
-        {% if contract.payments %}<label class="field"><span>Motivo de la anulación</span><input name="reason" maxlength="240" required placeholder="Ej. cliente devolvió el artículo"></label>{% endif %}
+        {% if contract.payments or contract.imported_on %}<label class="field"><span>Motivo de la anulación</span><input name="reason" maxlength="240" required placeholder="Ej. cliente devolvió el artículo"></label>{% endif %}
+        {% if contract.deal_type == 'credit_sale' and not contract.inventory_released and contract.inventory_unit_cost is none %}<label class="field"><span>Costo unitario original comprobado</span><input type="number" name="return_unit_cost" min="0" step="0.01" required><small>Este acuerdo anterior no conserva el costo del inventario. Usa el costo de adquisicion, no el precio de venta ni un margen estimado.</small></label>{% endif %}
         <div class="payment-dialog-actions"><button class="btn btn-secondary" type="button" data-contract-dialog-close>{{ icon('back',16) }} Volver</button><button class="btn btn-danger" type="submit">{{ 'Anular acuerdo' if contract.payments else 'Eliminar acuerdo' }}</button></div>
       </form>
     </div>

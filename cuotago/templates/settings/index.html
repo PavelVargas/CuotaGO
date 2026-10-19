@@ -94,6 +94,10 @@
   </section>
   {% endif %}
 
+  <section class="settings-business-tools-v16">
+    <a class="surface settings-audit-link-v15" href="{{ url_for('ops.index') }}"><span class="settings-row-icon">{{ icon('wallet',20) }}</span><span><strong>Control operativo</strong><small>Caja, ordenes, importacion y conciliacion.</small></span><b>&rsaquo;</b></a>
+    <a class="surface settings-audit-link-v15" href="{{ url_for('security.index') }}"><span class="settings-row-icon">{{ icon('shield',20) }}</span><span><strong>Seguridad y dispositivos</strong><small>Segundo factor y revocacion de sesiones.</small></span><b>&rsaquo;</b></a>
+  </section>
   <form method="post" class="surface settings-account-card">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="settings-section-heading">

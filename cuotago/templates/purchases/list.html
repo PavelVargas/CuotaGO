@@ -6,8 +6,8 @@
   {% set has_filters = q or supplier %}
   <div class="ops-command-v76">
     <div class="ops-command-left-v76">
-      {% if can('purchases.manage') %}<a class="btn btn-primary ops-new-v76" href="{{ url_for('main.purchase_new') }}">{{ icon('plus',16) }} Nueva orden</a>{% endif %}
-      <div class="ops-title-v76"><h1>Compras</h1><span>{{ filtered_order_count }} de {{ order_count }} órdenes</span></div>
+      {% if can('purchases.manage') %}<a class="btn btn-primary ops-new-v76" href="{{ url_for('ops.order_new') }}">{{ icon('plus',16) }} Nueva orden</a>{% endif %}
+      <a class="btn btn-secondary" href="{{ url_for('ops.orders') }}">Ordenes y recepciones</a><a class="text-link" href="{{ url_for('main.purchase_new') }}">Registrar compra recibida</a><div class="ops-title-v76"><h1>Compras</h1><span>{{ filtered_order_count }} de {{ order_count }} órdenes</span></div>
     </div>
     <form class="ops-filterbar-v76 purchases-filterbar-v76" method="get">
       <label class="ops-search-v76">{{ icon('search',17) }}<input type="search" name="q" value="{{ q }}" placeholder="Buscar orden, proveedor, referencia o producto" autocomplete="off"></label>
@@ -50,7 +50,7 @@
     </div>
   </section>
   {% else %}
-  <section class="ops-empty-v76"><span>{{ icon('home-purchases',30) }}</span><h2>No hay órdenes para esta búsqueda</h2><p>Prueba otro proveedor o limpia el filtro.</p>{% if can('purchases.manage') %}<a class="btn btn-primary" href="{{ url_for('main.purchase_new') }}">{{ icon('plus',16) }} Nueva orden</a>{% endif %}</section>
+  <section class="ops-empty-v76"><span>{{ icon('home-purchases',30) }}</span><h2>No hay órdenes para esta búsqueda</h2><p>Prueba otro proveedor o limpia el filtro.</p>{% if can('purchases.manage') %}<a class="btn btn-primary" href="{{ url_for('ops.order_new') }}">{{ icon('plus',16) }} Nueva orden</a>{% endif %}</section>
   {% endif %}
 </section>
 {% endblock %}

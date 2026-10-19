@@ -1,10 +1,13 @@
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for, session
 from datetime import datetime, timedelta
 import hashlib
 
 from flask_login import confirm_login, current_user, login_fresh, login_user, logout_user
 
 from .extensions import db
+from .business_time import business_date, utcnow
+from .secure_sessions import start_session, mfa_enabled, check_mfa
+from .security_primitives import safe_next
 from .models import AuthRateLimit, Organization, OrganizationSubscription, User
 
 auth_bp = Blueprint("auth", __name__)
@@ -16,7 +19,7 @@ LOGIN_BLOCK_MINUTES = 15
 
 
 def _login_rate_key(email):
-    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown").split(",", 1)[0].strip()
+    ip = "account"  # Account-wide: spoofed X-Forwarded-For cannot reset the counter.
     secret = current_app.config.get("SECRET_KEY", "")
     raw = f"{email.lower()}|{ip}|{secret}".encode("utf-8", "ignore")
     return hashlib.sha256(raw).hexdigest()
@@ -42,7 +45,11 @@ def _login_rate_state(email):
 def _record_login_failure(email):
     now = datetime.utcnow()
     key_hash = _login_rate_key(email)
-    row = AuthRateLimit.query.filter_by(key_hash=key_hash).first()
+    # Serialize failures for the same account across worker processes.
+    if db.engine.dialect.name == "postgresql":
+        from sqlalchemy import text
+        db.session.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": int(key_hash[:15], 16)})
+    row = AuthRateLimit.query.filter_by(key_hash=key_hash).populate_existing().with_for_update(of=AuthRateLimit).first()
     if row is None:
         row = AuthRateLimit(key_hash=key_hash, attempts=0, window_started_at=now)
         db.session.add(row)
@@ -63,12 +70,50 @@ def _clear_login_failures(email):
 
 
 def _safe_next(default_endpoint="main.dashboard"):
-    next_url = (request.values.get("next") or "").strip()
-    if next_url.startswith("/") and not next_url.startswith("//"):
-        return next_url
-    if current_user.is_authenticated and getattr(current_user, "role", "") == "superadmin":
-        return url_for("admin.dashboard")
-    return url_for(default_endpoint)
+    default = url_for("admin.dashboard" if current_user.is_authenticated and current_user.role == "superadmin" else default_endpoint)
+    return safe_next(request.values.get("next"), default)
+
+
+def _finish_or_challenge(user, target):
+    if mfa_enabled(user.id):
+        session.clear()
+        session["mfa_pending_user"] = user.id
+        session["mfa_pending_version"] = user.auth_version
+        session["mfa_pending_until"] = (utcnow() + timedelta(minutes=5)).isoformat()
+        session["mfa_next"] = target
+        return redirect(url_for("auth.mfa"))
+    start_session(user)
+    return redirect(target)
+
+
+@auth_bp.route("/mfa", methods=["GET", "POST"])
+def mfa():
+    uid = session.get("mfa_pending_user")
+    deadline = session.get("mfa_pending_until", "")
+    try:
+        valid = bool(uid and datetime.fromisoformat(deadline) > utcnow())
+    except (ValueError, TypeError):
+        valid = False
+    user = db.session.get(User, uid) if valid else None
+    if not user or not user.is_enabled or user.auth_version != session.get("mfa_pending_version"):
+        session.clear()
+        return redirect(url_for("auth.login"))
+    if request.method == "POST":
+        key = "mfa:" + user.email
+        allowed, minutes = _login_rate_state(key)
+        if not allowed:
+            flash("Demasiados intentos. Intenta mas tarde.", "error")
+            return render_template("auth/mfa.html"), 429
+        if not check_mfa(user.id, request.form.get("code")):
+            _record_login_failure(key)
+            flash("Codigo incorrecto, vencido o ya utilizado.", "error")
+            return render_template("auth/mfa.html"), 400
+        db.session.commit()
+        _clear_login_failures(key)
+        target = safe_next(session.get("mfa_next"))
+        start_session(user)
+        return redirect(target)
+    return render_template("auth/mfa.html")
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -95,16 +140,9 @@ def login():
             flash("Esta cuenta fue deshabilitada. Contacta al administrador.", "error")
             return render_template("auth/login.html", email=email)
 
-        user.last_login_at = datetime.utcnow()
-        db.session.commit()
         _clear_login_failures(email)
-        login_user(user, remember=True, duration=current_app.config.get("REMEMBER_COOKIE_DURATION"))
-        next_url = request.args.get("next", "")
-        if next_url.startswith("/") and not next_url.startswith("//"):
-            separator = "&" if "?" in next_url else "?"
-            return redirect(f"{next_url}{separator}entered=1")
-        endpoint = "admin.dashboard" if user.role == "superadmin" else "main.dashboard"
-        return redirect(url_for(endpoint, entered=1))
+        target = safe_next(request.args.get("next"), url_for("admin.dashboard" if user.role == "superadmin" else "main.dashboard", entered=1))
+        return _finish_or_challenge(user, target)
 
     return render_template("auth/login.html")
 
@@ -115,17 +153,25 @@ def resume():
         return redirect(url_for("auth.login", next=request.args.get("next", "")))
 
     if request.method == "POST":
-        # UX confirmation for a trusted remembered session. No password is requested by design.
-        confirm_login()
-        target = _safe_next()
-        separator = "&" if "?" in target else "?"
-        return redirect(f"{target}{separator}entered=1")
+        key = "resume:" + current_user.email
+        allowed, minutes = _login_rate_state(key)
+        if not allowed:
+            flash("Demasiados intentos. Intenta mas tarde.", "error")
+            return render_template("auth/resume.html", next_url=request.args.get("next", "")), 429
+        if not current_user.check_password(request.form.get("password", "")):
+            _record_login_failure(key)
+            flash("La contrasena no coincide.", "error")
+            return render_template("auth/resume.html", next_url=request.form.get("next", "")), 400
+        _clear_login_failures(key)
+        return _finish_or_challenge(current_user._get_current_object(), _safe_next())
 
     return render_template("auth/resume.html", next_url=request.args.get("next", ""))
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
+    if not current_app.config.get("REGISTRATION_ENABLED", True):
+        return render_template("auth/login.html"), 403
     if current_user.is_authenticated:
         return redirect(url_for("admin.dashboard" if current_user.role == "superadmin" else "main.dashboard"))
 
@@ -163,10 +209,13 @@ def register():
         org = Organization(name=business_name, currency="DOP")
         user = User(organization=org, name=name, email=email, role="owner", is_enabled=True, last_login_at=datetime.utcnow())
         user.set_password(password)
-        subscription = OrganizationSubscription(organization=org, status="pending")
+        first_day = business_date(utcnow(), current_app.config.get("APP_TIMEZONE", "America/Santo_Domingo"))
+        trial_days = max(1, min(int(current_app.config.get("TRIAL_DAYS", 14)), 90))
+        subscription = OrganizationSubscription(organization=org, status="trial",
+            current_period_start=first_day, current_period_end=first_day + timedelta(days=trial_days - 1))
         db.session.add_all([org, user, subscription])
         db.session.commit()
-        login_user(user, remember=True, duration=current_app.config.get("REMEMBER_COOKIE_DURATION"))
+        start_session(user)
         flash("Tu cuenta está lista. Ya puedes empezar.", "success")
         return redirect(url_for("main.dashboard", entered=1))
 
@@ -175,5 +224,11 @@ def register():
 
 @auth_bp.post("/logout")
 def logout():
+    from flask import g
+    record = getattr(g, "auth_session_record", None)
+    if record is not None:
+        record.revoked_at = utcnow()
+        db.session.commit()
     logout_user()
+    session.clear()
     return redirect(url_for("auth.login"))

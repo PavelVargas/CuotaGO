@@ -37,6 +37,7 @@
     <div class="billing-lock-safe">{{ icon('shield', 18) }}<p><strong>Tus datos están seguros.</strong><span>No se eliminó nada. Cuando la mensualidad sea renovada podrás continuar exactamente donde estabas.</span></p></div>
 
     <p class="billing-lock-help">Contacta al administrador de CuotaGo para registrar o confirmar tu renovación.</p>
+    {% if can('data.export') %}<p><a class="btn btn-secondary" href="{{ url_for('main.export_business_data') }}">Exportar mis datos</a></p>{% endif %}
     <form method="post" action="{{ url_for('auth.logout') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn btn-secondary" type="submit">Cerrar sesión</button>

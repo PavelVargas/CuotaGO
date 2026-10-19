@@ -14,6 +14,7 @@
   </div>
 
   <form method="post" class="purchase-order-form purchase-order-form-v23" id="purchaseForm">
+    <input type="hidden" name="request_key" value="{{ form.get('request_key') or new_request_key() }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <section class="surface purchase-order-sheet">

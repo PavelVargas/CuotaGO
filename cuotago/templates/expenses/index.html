@@ -31,7 +31,7 @@
     <section class="surface expense-entry-v15 expense-entry-v19">
       <div class="section-heading"><div><span class="eyebrow">NUEVO</span><h2>Registrar gasto</h2><small>{% if selected_asset %}Se asociará a {{ selected_asset.name }}.{% else %}Puede ser general o de un producto.{% endif %}</small></div></div>
       <form method="post" class="expense-form-v15 expense-form-v19">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="request_key" value="{{ new_request_key() }}">
         <label class="field expense-asset-field-v19"><span>Producto / vehículo</span><select name="asset_id"><option value="">Gasto general del negocio</option>{% for asset in assets %}<option value="{{ asset.id }}" {{ 'selected' if selected_asset_id == asset.id }}>{{ asset.name }}{% if asset.vehicle_year %} · {{ asset.vehicle_year }}{% endif %}</option>{% endfor %}</select><small>Si eliges un producto, también aparecerá en su historial de inversiones.</small></label>
         <label class="field"><span>Monto</span><input type="number" name="amount" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
         <label class="field"><span>Fecha</span><input type="date" name="expense_date" value="{{ today_value.isoformat() }}" required></label>
@@ -62,7 +62,7 @@
         <span class="expense-symbol-v15">−</span>
         <span class="expense-row-copy-v19"><strong>{{ expense_category_label(expense.category) }}</strong><small>{{ expense.expense_date.strftime('%d/%m/%Y') }} · {{ payment_method_label(expense.method) }}{% if expense.note %} · {{ expense.note }}{% endif %}</small>{% if expense.asset %}<a href="{{ url_for('main.asset_detail', asset_id=expense.asset.id) }}" class="expense-product-link-v19">{{ icon('inventory',14) }} {{ expense.asset.name }}</a>{% else %}<em>Gasto general</em>{% endif %}</span>
         <b>{{ money(expense.amount) }}</b>
-        {% if can('expenses.manage') %}<form method="post" action="{{ url_for('main.expense_delete', expense_id=expense.id) }}" onsubmit="return confirm('¿Anular este gasto? Si está ligado a un producto también se retirará de su historial de inversiones.')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="period" value="{{ period }}"><input type="hidden" name="asset_id" value="{{ selected_asset_id or '' }}"><button class="icon-action" type="submit" aria-label="Eliminar">{{ icon('trash',16) }}</button></form>{% endif %}
+        {% if can('expenses.manage') %}<form method="post" action="{{ url_for('main.expense_delete', expense_id=expense.id) }}" onsubmit="return confirm('¿Anular este gasto? Si está ligado a un producto también se retirará de su historial de inversiones.')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="request_key" value="{{ new_request_key() }}"><input type="hidden" name="period" value="{{ period }}"><input type="hidden" name="asset_id" value="{{ selected_asset_id or '' }}"><button class="icon-action" type="submit" aria-label="Eliminar">{{ icon('trash',16) }}</button></form>{% endif %}
       </div>
       {% else %}<div class="empty-inline">No hay gastos para mostrar.</div>{% endfor %}
     </div>

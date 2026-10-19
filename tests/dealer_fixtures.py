@@ -85,6 +85,7 @@ def template_env(*, real_base=False, permissions=None):
         'active':'Activo','completed':'Completada','voided':'Anulada','maintenance':'Mantenimiento','transfer':'Transferencia','cash':'Efectivo'}.get(value,value or 'Sin definir')
     env.globals.update(url_for=route_url,can=lambda p: permissions is None or p in permissions,csrf_token=lambda:'test-csrf',
         money=lambda v:'RD$'+format(D(str(v or 0)),',.2f'),config={'ASSET_VERSION':'1.26.0-ui-v70','APP_VERSION':'1.26.0'},
+        new_request_key=lambda:'test-request-1234567890',business_datetime=lambda value:value,
         app_name='CuotaGo',today=date(2026,10,5),dealer_context=None,statement_wa_link=lambda c:'',wa_link=lambda *a:'',
         asset_kind_label=label,asset_status_label=label,acquisition_type_label=label,investment_category_label=label,
         payment_method_label=label,contract_status_label=label,sale_status_label=label,deal_type_label=label,

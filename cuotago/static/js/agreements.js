@@ -113,6 +113,13 @@
     const freq = selectedFrequency();
     if (freq === 'weekly') d.setDate(d.getDate() + 7);
     else if (freq === 'biweekly') d.setDate(d.getDate() + 14);
+    else if (freq === 'every15') d.setDate(d.getDate() + 15);
+    else if (freq === 'semi_monthly') {
+      const last = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+      if (d.getDate() < 15) d.setDate(15);
+      else if (d.getDate() < last) d.setDate(last);
+      else {d.setDate(15);d.setMonth(d.getMonth()+1);}
+    }
     else {
       const originalDay = d.getDate();
       d.setDate(1);
@@ -158,7 +165,7 @@
     if (!calc.unit || !calc.count) {
       preview.innerHTML = '<span>Plan calculado</span><strong>Completa precio y cuotas.</strong>';
     } else {
-      const labels = {weekly:'semanales', biweekly:'quincenales', monthly:'mensuales'};
+      const labels = {weekly:'semanales', biweekly:'cada 14 dias', every15:'cada 15 dias', semi_monthly:'el 15 y fin de mes', monthly:'mensuales'};
       const initialCopy = calc.initial > 0 ? ` &middot; inicial ${money.format(calc.initial)}` : '';
       const marginCopy = calc.marginPercent > 0 ? ` &middot; ganancia ${calc.marginPercent.toLocaleString('es-DO', {maximumFractionDigits:2})}%` : '';
       const lateCopy = late > 0 ? ` &middot; atraso ${money.format(late)}/dia` : '';
@@ -181,7 +188,7 @@
 
   const updateReview = () => {
     const calc = calculation();
-    const labels = {weekly:'semanales', biweekly:'quincenales', monthly:'mensuales'};
+    const labels = {weekly:'semanales', biweekly:'cada 14 dias', every15:'cada 15 dias', semi_monthly:'el 15 y fin de mes', monthly:'mensuales'};
     const reviewClient = document.getElementById('reviewClient');
     const reviewAsset = document.getElementById('reviewAsset');
     const reviewPlan = document.getElementById('reviewPlan');
@@ -439,7 +446,7 @@
     }
     text('agreementOverviewClient', (clientMode === 'existing' ? !!clientSelect?.value : !!clientName?.value.trim()) ? clientDisplay() : 'Por seleccionar');
     text('agreementOverviewQuantity', hasItem ? `${calc.qty} unidad${calc.qty === 1 ? '' : 'es'}` : '\u2014');
-    const frequency = {weekly:'semanales',biweekly:'quincenales',monthly:'mensuales'}[selectedFrequency()];
+    const frequency = {weekly:'semanales',biweekly:'cada 14 dias', every15:'cada 15 dias', semi_monthly:'el 15 y fin de mes',monthly:'mensuales'}[selectedFrequency()];
     const hasPlan = hasItem && calc.unit > 0;
     text('agreementOverviewPlan', hasPlan ? `${calc.count} cuotas ${frequency} de aprox. ${money.format(calc.perPayment)}` : 'Por definir');
     text('agreementOverviewDown', hasPlan ? money.format(calc.initial) : '\u2014');

@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block styles %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='css/operations-v83.css',v=config.get('ASSET_VERSION','v83')) }}">{% endblock %}
+{% block content %}<section class="op">
+<header class="op-header"><div><a href="{{ url_for('main.settings') }}">Configuración</a><span> / </span><a href="{{ url_for('ops.index') }}">Operaciones</a><h1>{% block title %}Operaciones{% endblock %}</h1></div></header>
+{% block operation %}{% endblock %}</section>{% endblock %}
+{% block scripts %}{{ super() }}<script src="{{ url_for('static',filename='js/operations-v83.js',v=config.get('ASSET_VERSION','v83')) }}" defer></script>{% endblock %}

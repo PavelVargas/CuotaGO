@@ -1,0 +1,13 @@
+{% extends 'operations/base.html' %}{% block title %}Control operativo{% endblock %}{% block operation %}
+<p class="op-muted">Gestiona el dinero, el inventario y los accesos de tu negocio.</p><div class="op-grid">
+{% for endpoint, permission, title, description in [
+('ops.cash','cash.own','Caja y arqueos','Apertura, movimientos y cierre por usuario.'),
+('ops.orders','purchases.view','Órdenes de compra','Proveedor, artículos, recepciones y pagos.'),
+('ops.imports','data.import','Importar datos','Revisar clientes, saldos iniciales o extractos antes de confirmar.'),
+('ops.bank','bank.reconcile','Conciliación bancaria','Comparar manualmente extractos con movimientos registrados.'),
+('ops.collectors','collectors.manage','Carteras de cobradores','Asignar clientes y limitar acceso de forma opcional.'),
+('security.index',none,'Seguridad y dispositivos','Segundo factor y sesiones revocables.'),
+('ops.controls','team.manage','Controles del negocio','Caja obligatoria y cartera restringida.'),
+('ops.readiness','team.manage','Antes de producción','Verificación de esquema y conexiones pendientes.') ] %}
+{% if not permission or can(permission) %}<a class="op-panel op-link" href="{{ url_for(endpoint) }}"><strong>{{ title }}</strong><span>{{ description }}</span></a>{% endif %}{% endfor %}</div>
+{% endblock %}

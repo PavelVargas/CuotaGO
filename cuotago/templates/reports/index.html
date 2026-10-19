@@ -19,13 +19,15 @@
   <details class="report-filter-disclosure-v37 report-filter-disclosure-v22" {% if report_period != 'month' or selected_client_id or report_status != 'all' %}open{% endif %}>
     <summary>{{ icon('sliders', 17) }}<span>Filtros</span><small>{{ period_label }}{% if selected_client_id %} · cliente seleccionado{% endif %}{% if report_status != 'all' %} · {{ report_status }}{% endif %}</small><b>+</b></summary>
     <form class="report-filters-v19" method="get" action="{{ url_for('main.reports') }}">
-      <label><span>Periodo</span><select name="period"><option value="today" {% if report_period == 'today' %}selected{% endif %}>Hoy</option><option value="7d" {% if report_period == '7d' %}selected{% endif %}>Últimos 7 días</option><option value="month" {% if report_period == 'month' %}selected{% endif %}>Este mes</option><option value="all" {% if report_period == 'all' %}selected{% endif %}>Histórico</option></select></label>
+      <label><span>Periodo</span><select name="period"><option value="today" {% if report_period == 'today' %}selected{% endif %}>Hoy</option><option value="7d" {% if report_period == '7d' %}selected{% endif %}>Últimos 7 días</option><option value="month" {% if report_period == 'month' %}selected{% endif %}>Este mes</option><option value="custom" {% if report_period == 'custom' %}selected{% endif %}>Fechas personalizadas</option><option value="all" {% if report_period == 'all' %}selected{% endif %}>Histórico</option></select></label>
       <label><span>Cliente</span><select name="client_id"><option value="">Todos</option>{% for client in report_clients %}<option value="{{ client.id }}" {% if selected_client_id == client.id %}selected{% endif %}>{{ client.full_name }}</option>{% endfor %}</select></label>
       <label><span>Estado</span><select name="status"><option value="all" {% if report_status == 'all' %}selected{% endif %}>Todos</option><option value="active" {% if report_status == 'active' %}selected{% endif %}>Activos</option><option value="overdue" {% if report_status == 'overdue' %}selected{% endif %}>Con atraso</option><option value="completed" {% if report_status == 'completed' %}selected{% endif %}>Completados</option></select></label>
+      <label><span>Desde (fechas personalizadas)</span><input type="date" name="from" value="{{ request.args.get('from','') }}"></label><label><span>Hasta</span><input type="date" name="to" value="{{ request.args.get('to','') }}"></label>
       <button class="btn btn-primary report-filter-button" type="submit">Aplicar</button>
     </form>
   </details>
 
+  {% if reversal_count|default(0) %}<p class="note-box">Cobros netos del periodo: se restaron {{ reversal_count }} reversiones en su fecha de registro, sin borrar los recibos anteriores.</p>{% endif %}
   <section class="report-executive-grid-v22 report-kpi-grid-v19" aria-label="Indicadores principales">
     <article class="report-executive-card-v22"><span>Por cobrar</span><strong>{{ money(receivable) }}</strong><small>{{ active_count }} acuerdo{% if active_count != 1 %}s{% endif %} activo{% if active_count != 1 %}s{% endif %}</small></article>
     <article class="report-executive-card-v22 is-danger"><span>Vencido</span><strong>{{ money(overdue_total) }}</strong><small>{{ overdue_clients_count }} cliente{% if overdue_clients_count != 1 %}s{% endif %} con atraso</small></article>
@@ -40,7 +42,7 @@
     <article class="report-health-card-v22"><div><span>Clientes al día</span><strong>{{ '%.1f'|format(portfolio_health_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 100 if portfolio_health_percent > 100 else portfolio_health_percent }}%"></i></div><small>{{ current_clients_count }} al día de {{ current_clients_count + overdue_clients_count }} con cartera activa</small></article>
     <article class="report-health-card-v22 is-danger"><div><span>Morosidad sobre cartera</span><strong>{{ '%.1f'|format(overdue_ratio_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 100 if overdue_ratio_percent > 100 else overdue_ratio_percent }}%"></i></div><small>{{ money(overdue_total) }} vencido frente a {{ money(receivable) }} por cobrar</small></article>
     <article class="report-health-card-v22 {{ 'is-danger' if expense_ratio_percent > 70 else '' }}"><div><span>Gasto / ingreso</span><strong>{{ '%.1f'|format(expense_ratio_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 100 if expense_ratio_percent > 100 else expense_ratio_percent }}%"></i></div><small>Por cada RD$100 ingresados, RD${{ '%.0f'|format(expense_ratio_percent) }} salen en gastos</small></article>
-    <article class="report-health-card-v22 {{ 'is-success' if cash_flow_margin_percent >= 0 else 'is-danger' }}"><div><span>Margen de caja</span><strong>{{ '%.1f'|format(cash_flow_margin_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 0 if cash_flow_margin_percent < 0 else 100 if cash_flow_margin_percent > 100 else cash_flow_margin_percent }}%"></i></div><small>Qué porcentaje de los ingresos queda después de gastos</small></article>
+    <article class="report-health-card-v22 {{ 'is-success' if cash_flow_margin_percent >= 0 else 'is-danger' }}"><div><span>Margen sobre ingresos registrados</span><strong>{{ '%.1f'|format(cash_flow_margin_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 0 if cash_flow_margin_percent < 0 else 100 if cash_flow_margin_percent > 100 else cash_flow_margin_percent }}%"></i></div><small>Qué porcentaje de los ingresos queda después de gastos</small></article>
   </section>
 
   <section class="report-risk-grid-v23" aria-label="Analítica de cartera vencida">
@@ -69,7 +71,7 @@
       </div>
       <div class="report-chart-legend-v22"><span><i class="is-income"></i>Ingresos</span><span><i class="is-expense"></i>Gastos</span></div>
       <div class="report-chart-v19 report-chart-v22" aria-label="Gráfica de cobros y gastos del periodo">
-        <div class="report-chart-scale-v19"><span>{{ money(chart_max_value) }}</span><span>{{ money(0) }}</span></div>
+        <div class="report-chart-scale-v19"><span>{{ money(chart_max_value) }}</span><span>{{ money(chart_min_value|default(0)) }}</span></div>
         <svg viewBox="0 0 1000 190" role="img" aria-hidden="true" preserveAspectRatio="none">
           <defs><linearGradient id="reportAreaFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="currentColor" stop-opacity=".15"/><stop offset="100%" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
           <line x1="20" y1="155" x2="980" y2="155" class="report-chart-axis-v19"/>
@@ -191,5 +193,6 @@
     <div class="report-section-head-v19"><div><span class="eyebrow">MOVIMIENTOS</span><h2>Actividad reciente</h2></div></div>
     {% if recent_activity %}<div class="report-activity-list-v19">{% for item in recent_activity %}<a href="{{ item.url }}" class="report-activity-row-v19"><span class="report-activity-icon-v19 {{ item.kind }}">{% if item.kind == 'agreement' %}{{ icon('contract', 18) }}{% elif item.kind == 'sale' %}{{ icon('home-sales', 18) }}{% elif item.kind == 'expense' %}{{ icon('wallet', 18) }}{% else %}{{ icon('cash-stack', 18) }}{% endif %}</span><span class="report-activity-copy-v19"><strong>{{ item.label }} · {{ item.client }}</strong><small>{{ item.detail }} · {{ item.date }}</small></span><b>{{ money(item.amount) }}</b></a>{% endfor %}</div>{% else %}<p class="report-empty-v19">Todavía no hay movimientos para mostrar.</p>{% endif %}
   </section>
+  {% if journal is defined and can('cash.manage') %}<section class="surface"><h2>Movimientos de dinero desde v83</h2><p>Neto registrado del periodo: <strong>{{ money(journal.net) }}</strong>. Incluye cobros, ventas, gastos, pagos a proveedores y reversiones registrados desde esta version. No es saldo bancario ni reconstruccion historica.</p><a href="{{ url_for('ops.cash') }}">Ver caja y arqueos</a> / <a href="{{ url_for('ops.bank') }}">Conciliacion manual</a></section>{% endif %}
 </section>
 {% endblock %}

@@ -3,9 +3,15 @@ from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 import os
+import uuid
 
 import pytest
 
+if os.environ.get('CUOTAGO_RUN_PG_TESTS') != '1':
+    pytest.skip('HTTP suite requires explicit isolated PostgreSQL opt-in.', allow_module_level=True)
+pytest.importorskip('flask')
+from sqlalchemy import create_engine, text
+from tools.testing_safety import require_test_database
 from cuotago import create_app
 from cuotago.extensions import db
 from cuotago.models import (
@@ -17,26 +23,31 @@ from cuotago.models import (
 
 @pytest.fixture()
 def app():
-    test_db = os.getenv("TEST_DATABASE_URL")
-    if not test_db:
-        pytest.skip("Define TEST_DATABASE_URL con una base PostgreSQL exclusiva para pruebas.")
-    app = create_app({
-        "TESTING": True,
-        "WTF_CSRF_ENABLED": False,
-        "SQLALCHEMY_DATABASE_URI": test_db,
-        "SECRET_KEY": "test-key",
-        "AUTO_CREATE_DB": False,
-        "PUSH_SCHEDULER_ENABLED": False,
-    })
-    with app.app_context():
-        if db.engine.dialect.name != "postgresql":
-            pytest.fail("Las pruebas de CuotaGo requieren PostgreSQL.")
-        db.drop_all()
-        db.create_all()
-    yield app
-    with app.app_context():
-        db.session.remove()
-        db.drop_all()
+    parsed = require_test_database()
+    schema = 'cuotago_qa_' + uuid.uuid4().hex
+    engine = create_engine(parsed)
+    with engine.begin() as conn:
+        conn.execute(text(f'CREATE SCHEMA "{schema}"'))
+    app = None
+    try:
+        app = create_app({
+            'TESTING': True, 'APP_ENV': 'test', 'WTF_CSRF_ENABLED': False,
+            'SQLALCHEMY_DATABASE_URI': parsed, 'SECRET_KEY': uuid.uuid4().hex,
+            'AUTO_CREATE_DB': False, 'PUSH_SCHEDULER_ENABLED': False,
+            'PUSH_NOTIFICATIONS_ENABLED': False,
+            'SQLALCHEMY_ENGINE_OPTIONS': {'connect_args': {'options':
+                f'-c search_path={schema} -c lock_timeout=8000 -c statement_timeout=20000'}},
+        })
+        with app.app_context():
+            db.create_all()
+        yield app
+    finally:
+        if app:
+            with app.app_context():
+                db.session.remove(); db.engine.dispose()
+        with engine.begin() as conn:
+            conn.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
+        engine.dispose()
 
 
 @pytest.fixture()
@@ -65,7 +76,7 @@ def test_register_login_and_dashboard(client, app):
     with app.app_context():
         assert User.query.count() == 1
         assert OrganizationSubscription.query.count() == 1
-        assert OrganizationSubscription.query.one().status == "pending"
+        assert OrganizationSubscription.query.one().status == "trial"
 
 
 def test_create_contract_and_register_payment(client, app):

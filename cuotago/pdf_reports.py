@@ -7,13 +7,22 @@ from __future__ import annotations
 
 from html import escape
 from io import BytesIO
+from datetime import timezone
+from zoneinfo import ZoneInfo
+
+
+def _local_datetime(value, timezone_name):
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(ZoneInfo(timezone_name))
+
 
 
 def _safe(value) -> str:
     return escape(str(value or "—"))
 
 
-def statement_pdf_bytes(*, app_name, business_name, client, contracts, payments, totals, next_item, money, payment_method_label):
+def statement_pdf_bytes(*, app_name, business_name, client, contracts, payments, totals, next_item, money, payment_method_label, timezone_name="America/Santo_Domingo"):
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_RIGHT
     from reportlab.lib.pagesizes import A4
@@ -112,8 +121,8 @@ def statement_pdf_bytes(*, app_name, business_name, client, contracts, payments,
     for payment in payments:
         receipt_code = payment.receipt_code or f"CGP-{payment.contract.organization_id}-{payment.id:06d}"
         payment_rows.append([
-            Paragraph(_safe(receipt_code), body), Paragraph(_safe(payment.contract.code), body),
-            Paragraph(payment.paid_at.strftime("%d/%m/%Y"), small), Paragraph(_safe(payment_method_label(payment.method)), small),
+            Paragraph(_safe(receipt_code) + ("<br/><b>REVERTIDO</b>" if getattr(payment, "voided_at", None) else ""), body), Paragraph(_safe(payment.contract.code), body),
+            Paragraph(_local_datetime(payment.paid_at, timezone_name).strftime("%d/%m/%Y"), small), Paragraph(_safe(payment_method_label(payment.method)), small),
             Paragraph(_safe(money(payment.amount)), right),
         ])
     if len(payment_rows) == 1:
@@ -129,13 +138,14 @@ def statement_pdf_bytes(*, app_name, business_name, client, contracts, payments,
         ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
     ]))
     story.append(payments_table)
+    story.append(Paragraph("Los pagos marcados REVERTIDO se conservan como historial y no suman al total pagado vigente. Las fechas usan la zona horaria del negocio.", small))
     story.extend([Spacer(1, 12), Paragraph(f"Documento generado por {_safe(app_name)}.", small)])
 
     doc.build(story)
     return buffer.getvalue()
 
 
-def receipt_pdf_bytes(*, app_name, business_name, payment, registered_by, money, payment_method_label):
+def receipt_pdf_bytes(*, app_name, business_name, payment, registered_by, money, payment_method_label, timezone_name="America/Santo_Domingo"):
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_CENTER, TA_RIGHT
     from reportlab.lib.pagesizes import A4
@@ -173,11 +183,19 @@ def receipt_pdf_bytes(*, app_name, business_name, payment, registered_by, money,
         Spacer(1, 14),
     ]
 
+    if getattr(payment, "voided_at", None):
+        reversal = getattr(payment, "reversal", None)
+        code = getattr(reversal, "code", None) or receipt_code
+        warning = ParagraphStyle("reversed", parent=body, alignment=TA_CENTER, textColor=colors.HexColor("#B42318"), spaceAfter=8)
+        story.extend([Paragraph("<b>PAGO REVERTIDO - NO VIGENTE</b>", warning),
+            Paragraph("Registro original conservado. Reversion: " + _safe(code) + ". No acredita un pago vigente ni un reembolso bancario.", muted),
+            Paragraph("Motivo: " + _safe(getattr(payment, "void_reason", None)), muted), Spacer(1, 10)])
+
     rows = [
         ("Cliente", contract.client.full_name),
         ("Acuerdo", contract.code),
         ("Artículo", contract.asset.name),
-        ("Fecha", payment.paid_at.strftime("%d/%m/%Y %H:%M")),
+        ("Fecha", _local_datetime(payment.paid_at, timezone_name).strftime("%d/%m/%Y %H:%M")),
         ("Método", payment_method_label(payment.method)),
     ]
     if registered_by:
@@ -186,7 +204,9 @@ def receipt_pdf_bytes(*, app_name, business_name, payment, registered_by, money,
         rows.append(("Referencia", payment.reference))
     if payment.late_fee_amount and payment.late_fee_amount > 0:
         rows.append(("Incluye mora", money(payment.late_fee_amount)))
-    rows.append(("Saldo pendiente", money(contract.balance)))
+    if getattr(payment, "voided_at", None):
+        rows.append(("Revertido el", _local_datetime(payment.voided_at, timezone_name).strftime("%d/%m/%Y %H:%M")))
+    rows.append(("Saldo actual pendiente", money(contract.balance)))
 
     detail_rows = [[Paragraph(_safe(label), muted), Paragraph(f"<b>{_safe(value)}</b>", right)] for label, value in rows]
     details = Table(detail_rows, colWidths=[55 * mm, 85 * mm])
@@ -201,6 +221,6 @@ def receipt_pdf_bytes(*, app_name, business_name, payment, registered_by, money,
     story.append(details)
     if payment.note:
         story.extend([Spacer(1, 10), Paragraph(f"Nota: {_safe(payment.note)}", body)])
-    story.extend([Spacer(1, 18), Paragraph(f"Gracias por su pago - {_safe(app_name)}", ParagraphStyle("footer", parent=muted, alignment=TA_CENTER))])
+    story.extend([Spacer(1, 18), Paragraph(f"{'Historial de pago revertido' if getattr(payment, 'voided_at', None) else 'Gracias por su pago'} - {_safe(app_name)}", ParagraphStyle("footer", parent=muted, alignment=TA_CENTER))])
     doc.build(story)
     return buffer.getvalue()

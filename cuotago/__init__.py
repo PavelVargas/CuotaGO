@@ -1,7 +1,7 @@
 from pathlib import Path
 import time
 
-from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_from_directory, url_for, session
 from flask_login import current_user, logout_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy import text
@@ -417,6 +417,8 @@ def _ensure_superadmin(app):
         app.logger.info("Superadmin creado: %s", email)
         return
 
+    if not app.config.get("SUPERADMIN_RESYNC", False):
+        return
     changed = False
     if user.role != "superadmin":
         user.role = "superadmin"
@@ -440,10 +442,15 @@ def create_app(test_config=None):
     if test_config:
         app.config.update(test_config)
 
+    from .readiness import validate_security_config
+    validate_security_config(app.config)
+
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
     # Correcto detrás de Railway/Render/Nginx sin afectar ejecución local.
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+    proxy_count = app.config.get("TRUST_PROXY_COUNT", 0)
+    if proxy_count:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxy_count, x_proto=proxy_count, x_host=0)
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -459,6 +466,16 @@ def create_app(test_config=None):
     app.register_blueprint(main_bp)
     app.register_blueprint(push_bp)
     app.register_blueprint(admin_bp)
+    from .operations import models as operations_models
+    from .operations.routes import ops_bp
+    from .security_routes import security_bp
+    from .portal import portal_bp
+    app.register_blueprint(ops_bp)
+    app.register_blueprint(security_bp)
+    app.register_blueprint(portal_bp)
+    from .request_guards import install_guards
+    install_guards(app)
+
 
     @app.before_request
     def start_request_timer():
@@ -478,21 +495,8 @@ def create_app(test_config=None):
             return redirect(url_for("auth.login"))
         if getattr(current_user, "role", "") == "superadmin":
             return None
-        subscription = getattr(current_user.organization, "subscription", None)
-        billing_lock = bool(subscription and getattr(subscription, "billing_lock_enabled", False))
-        inactive_status = subscription.effective_status if subscription else "pending"
-        if not billing_lock and (subscription is None or inactive_status not in {"suspended", "cancelled", "expired"}):
-            return None
-        if request.endpoint in {"main.subscription_status", "auth.logout", "static", "service_worker", "offline", "healthz"}:
-            return None
-        if request.path.startswith("/api/"):
-            return jsonify({
-                "ok": False,
-                "error": "billing_locked" if billing_lock else "subscription_inactive",
-                "status": "billing_locked" if billing_lock else inactive_status,
-                "redirect": url_for("main.subscription_status"),
-            }), 403
-        return redirect(url_for("main.subscription_status"))
+        from .request_guards import enforce_subscription
+        return enforce_subscription()
 
     @app.get("/healthz")
     def healthz():
@@ -505,7 +509,6 @@ def create_app(test_config=None):
         return jsonify({
             "ok": True,
             "database": "postgresql",
-            "database_name": database_name,
             "version": app.config.get("APP_VERSION"),
         })
 
@@ -551,6 +554,9 @@ def create_app(test_config=None):
             response.headers["Cache-Control"] = "private, no-store, max-age=0, must-revalidate"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
+        elif response.mimetype in {"application/pdf", "application/zip", "text/csv"} and request.endpoint != "static":
+            response.headers["Cache-Control"] = "private, no-store, max-age=0"
+            response.headers["Pragma"] = "no-cache"
         elif request.endpoint == "static":
             if request.args.get("v"):
                 response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
@@ -575,7 +581,14 @@ def create_app(test_config=None):
         with app.app_context():
             db.create_all()
             _ensure_feature_schema(app)
+            from .migrations_v83 import migrate
+            migrate(db.engine)
             _ensure_superadmin(app)
+    elif app.config.get("CHECK_SCHEMA_ON_START", True) and not app.config.get("TESTING"):
+        with app.app_context():
+            from .migrations_v83 import assert_current
+            assert_current(db.engine)
+
 
     from .push import scan_overdue_and_notify, start_push_scheduler
     start_push_scheduler(app)
@@ -586,4 +599,6 @@ def create_app(test_config=None):
         count = scan_overdue_and_notify(app)
         print(f"Alertas de vencimiento enviadas: {count}")
 
+    from .maintenance import register_commands
+    register_commands(app)
     return app

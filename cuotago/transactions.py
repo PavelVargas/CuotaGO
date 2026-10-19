@@ -14,6 +14,7 @@ from .models import Asset, Contract, Sale
 def lock_asset(asset_id, *, required=True):
     item = (Asset.query.filter_by(id=asset_id, organization_id=current_user.organization_id)
             .options(selectinload(Asset.contracts), selectinload(Asset.sales), selectinload(Asset.investments))
+            .execution_options(cuotago_full_stock=True)
             .populate_existing().with_for_update(of=Asset).first())
     if item is None and required:
         abort(404)

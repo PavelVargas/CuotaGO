@@ -1,4 +1,5 @@
 import os
+import secrets
 from datetime import timedelta
 from pathlib import Path
 from urllib.parse import quote_plus
@@ -37,17 +38,40 @@ def normalize_database_url(url: str) -> str:
 class Config:
     APP_NAME = os.getenv("APP_NAME", "CuotaGo")
     # Release/build identifiers are code-owned so stale Railway/.env values cannot pin old assets.
-    APP_VERSION = "1.26.8"
-    ASSET_VERSION = "1.26.8-ui-v78"
+    APP_VERSION = "1.27.0-rc1"
+    ASSET_VERSION = "1.27.0-rc1-ui-v83"
     APP_ENV = os.getenv("APP_ENV", "local").strip().lower()
     APP_CURRENCY = os.getenv("APP_CURRENCY", "DOP")
     APP_TIMEZONE = os.getenv("APP_TIMEZONE", "America/Santo_Domingo")
 
-    SECRET_KEY = os.getenv("SECRET_KEY", "")
-    if not SECRET_KEY:
-        # Solo evita que un entorno mal configurado explote antes de mostrar un error claro.
-        # El paquete entregado ya incluye una SECRET_KEY real en .env.
-        SECRET_KEY = "missing-secret-key-change-this-immediately"
+    # A missing key is rejected in production; local development gets a private
+    # persistent key outside source control, never a shared fixed fallback.
+    SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+    SECRET_KEY_SOURCE = "environment" if SECRET_KEY else "missing"
+    if not SECRET_KEY and APP_ENV in {"local", "development", "test"}:
+        key_dir = BASE_DIR / "instance"
+        key_dir.mkdir(parents=True, exist_ok=True)
+        key_file = key_dir / ".local-secret-key"
+        try:
+            with key_file.open("x", encoding="ascii") as f:
+                f.write(secrets.token_urlsafe(48))
+            try:
+                key_file.chmod(0o600)
+            except OSError:
+                pass
+        except FileExistsError:
+            pass
+        SECRET_KEY = key_file.read_text(encoding="ascii").strip()
+        SECRET_KEY_SOURCE = "local-file"
+
+    OPERATIONS_ENABLED = _bool_env("OPERATIONS_ENABLED", True)
+    REGISTRATION_ENABLED = _bool_env("REGISTRATION_ENABLED", True)
+    TRIAL_DAYS = min(90, max(1, int(os.getenv("TRIAL_DAYS", "14"))))
+    BILLING_GRACE_DAYS = min(30, max(0, int(os.getenv("BILLING_GRACE_DAYS", "3"))))
+    TRUST_PROXY_COUNT = max(0, min(3, int(os.getenv("TRUST_PROXY_COUNT", "0"))))
+    PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").strip()
+    SUPERADMIN_RESYNC = _bool_env("SUPERADMIN_RESYNC", False)
+    CHECK_SCHEMA_ON_START = _bool_env("CHECK_SCHEMA_ON_START", True)
 
     SQLALCHEMY_DATABASE_URI = normalize_database_url(os.getenv("DATABASE_URL", ""))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -59,7 +83,7 @@ class Config:
     }
 
     DEBUG = _bool_env("FLASK_DEBUG", False)
-    AUTO_CREATE_DB = _bool_env("AUTO_CREATE_DB", True)
+    AUTO_CREATE_DB = _bool_env("AUTO_CREATE_DB", APP_ENV in {"local", "development", "test"})
 
     WTF_CSRF_TIME_LIMIT = None
     REMEMBER_COOKIE_DURATION = timedelta(days=max(1, int(os.getenv("REMEMBER_DAYS", "90"))))

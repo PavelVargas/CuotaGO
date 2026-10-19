@@ -34,23 +34,25 @@ ALL_PERMISSIONS = {
     "collections.view", "collections.manage", "payments.view", "payments.record",
     "expenses.view", "expenses.manage",
     "reports.view", "audit.view", "data.export", "team.manage",
+    "cash.own", "cash.manage", "payments.reverse", "suppliers.pay",
+    "data.import", "bank.reconcile", "collectors.manage", "portal.manage",
 }
 
 ROLE_PERMISSIONS = {
     "owner": ALL_PERMISSIONS,
     "admin": ALL_PERMISSIONS,
-    "manager": ALL_PERMISSIONS - {"team.manage"},
+    "manager": ALL_PERMISSIONS - {"team.manage", "data.import"},
     "collector": {
         "clients.view", "contracts.view", "collections.view", "collections.manage",
-        "payments.view", "payments.record",
+        "payments.view", "payments.record", "cash.own",
     },
     "seller": {
         "clients.view", "clients.manage", "inventory.view",
-        "contracts.view", "contracts.create", "payments.view", "sales.view", "sales.manage",
+        "contracts.view", "contracts.create", "payments.view", "sales.view", "sales.manage", "cash.own",
     },
     "sales": {
         "clients.view", "clients.manage", "inventory.view",
-        "contracts.view", "contracts.create", "payments.view", "sales.view", "sales.manage",
+        "contracts.view", "contracts.create", "payments.view", "sales.view", "sales.manage", "cash.own",
     },
     "viewer": {
         "clients.view", "inventory.view", "purchases.view", "sales.view", "contracts.view",
@@ -58,7 +60,7 @@ ROLE_PERMISSIONS = {
     },
     "staff": {
         "clients.view", "clients.manage", "inventory.view", "sales.view", "sales.manage", "contracts.view", "contracts.create",
-        "collections.view", "collections.manage", "payments.view", "payments.record",
+        "collections.view", "collections.manage", "payments.view", "payments.record", "cash.own",
     },
     "superadmin": ALL_PERMISSIONS,
 }

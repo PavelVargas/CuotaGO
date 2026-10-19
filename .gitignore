@@ -16,3 +16,17 @@ railway.env
 # CuotaGo private generated configuration
 .env.railway.private
 CREDENCIALES_PRIVADAS.txt
+
+# Local secrets and preproduction backup files
+instance/.local-secret-key
+*.cgbak
+backups/
+preproduction-results/
+
+# Private preproduction settings and test/backup outputs
+.env.preproduction
+.env.preproduction.*
+test-results/
+*.cgbak
+*.cgbak.json
+*.dump

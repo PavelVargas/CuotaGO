@@ -27,7 +27,7 @@
     <div class="statement-contracts-v15">{% for contract in contracts %}<div><span><strong>{{ contract.code }} · {{ contract.asset.name }}</strong><small>{{ contract_status_label(contract.status) }} · {{ frequency_label(contract.frequency) }}</small></span><span><small>Pagado {{ money(contract.paid_total) }}</small><b>Saldo {{ money(contract.balance) }}</b></span></div>{% else %}<div class="empty-inline">Sin acuerdos.</div>{% endfor %}</div>
 
     <h2>Últimos pagos</h2>
-    <div class="statement-payments-v15">{% for payment in payments %}<div><span><strong>{{ payment.receipt_code or ('CGP-' ~ payment.contract.organization_id ~ '-' ~ '%06d'|format(payment.id)) }}</strong><small>{{ payment.contract.code }} · {{ payment_method_label(payment.method) }}</small></span><b>{{ money(payment.amount) }}</b><time>{{ payment.paid_at.strftime('%d/%m/%Y') }}</time></div>{% else %}<div class="empty-inline">Sin pagos registrados.</div>{% endfor %}</div>
+    <div class="statement-payments-v15">{% for payment in payments %}<div><span><strong>{{ payment.receipt_code or ('CGP-' ~ payment.contract.organization_id ~ '-' ~ '%06d'|format(payment.id)) }}</strong><small>{{ payment.contract.code }} · {{ payment_method_label(payment.method) }}</small></span><b>{{ money(payment.amount) }}{% if payment.voided_at %} / REVERTIDO{% endif %}</b><time>{{ business_datetime(payment.paid_at).strftime('%d/%m/%Y') }}</time></div>{% else %}<div class="empty-inline">Sin pagos registrados.</div>{% endfor %}</div>
 
     <footer class="print-doc-foot">Generado el {{ today.strftime('%d/%m/%Y') }} · {{ app_name }}</footer>
   </article>
