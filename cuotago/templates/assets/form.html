@@ -10,7 +10,7 @@
       <span class="module-context-icon accent-teal" aria-hidden="true">{{ icon('home-inventory', 24) }}</span>
       <div>
         <span class="eyebrow">INVENTARIO</span>
-        <h1>{{ 'Editar inventario' if asset else 'Nuevo en inventario' }}</h1>
+        <h1>{{ 'Editar vehículo / producto' if asset else 'Registrar vehículo / producto' }}</h1>
         <p>Primero identifica la unidad; luego registra compra, venta y adquisición.</p>
       </div>
     </div>
@@ -35,7 +35,7 @@
         <input id="assetPhotoInput" class="asset-photo-input" type="file" name="image" accept="image/jpeg,image/png,image/webp" data-asset-photo-input>
         <div class="asset-photo-copy">
           <strong>{{ 'Cambiar foto' if asset and asset.image_mime else 'Agregar foto' }}</strong>
-          <span data-asset-photo-name>JPG, PNG o WebP · máximo 12 MB</span>
+          <span data-asset-photo-name>JPG, PNG o WebP · se ajusta automáticamente a 1169 × 780 · máximo 12 MB</span>
           {% if asset and asset.image_mime %}<label class="asset-photo-remove"><input type="checkbox" name="remove_image" value="1"> Quitar foto actual</label>{% endif %}
         </div>
       </div>
@@ -56,24 +56,20 @@
           <label class="field"><span>Nombre *</span><input name="name" required value="{{ asset.name if asset else request.form.get('name','') }}" placeholder="Ej. Toyota Corolla LE"></label>
         </div>
 
-        <details class="cg-disclosure" data-open-on-errors ><summary>Marca, placa y detalles del vehículo</summary><div class="cg-disclosure-body"><div class="form-grid two dealer-fields-v19" data-vehicle-fields>
+        <div class="form-grid two dealer-fields-v19" data-vehicle-fields>
           <label class="field"><span>Marca</span><input name="brand" value="{{ asset.brand if asset else request.form.get('brand','') }}" placeholder="Toyota"></label>
           <label class="field"><span>Modelo / versión</span><input name="model" value="{{ asset.model if asset else request.form.get('model','') }}" placeholder="Corolla LE"></label>
           <label class="field"><span>Año</span><input type="number" min="1886" max="{{ today.year + 1 }}" name="vehicle_year" value="{{ asset.vehicle_year if asset and asset.vehicle_year is not none else request.form.get('vehicle_year','') }}" placeholder="2022" inputmode="numeric"></label>
           <label class="field"><span>Kilometraje</span><input type="number" min="0" step="1" name="mileage" value="{{ asset.mileage if asset and asset.mileage is not none else request.form.get('mileage','') }}" placeholder="65000" inputmode="numeric"></label>
           <label class="field"><span>Placa / código</span><input name="identifier" value="{{ asset.identifier if asset else request.form.get('identifier','') }}" placeholder="Ej. A123456"></label>
           <label class="field"><span>Chasis / VIN</span><input name="serial_number" value="{{ asset.serial_number if asset else request.form.get('serial_number','') }}" placeholder="Número de chasis"></label>
-        </div></div></details>
+        </div>
 
-        <details class="cg-disclosure" data-open-on-errors ><summary>Marca y códigos</summary><div class="cg-disclosure-body"><div class="form-grid two dealer-fields-v19" data-product-fields>
+        <div class="form-grid two dealer-fields-v19" data-product-fields>
           <label class="field"><span>Marca</span><input name="brand" value="{{ asset.brand if asset else request.form.get('brand','') }}" placeholder="Apple, Samsung..."></label>
           <label class="field"><span>Modelo</span><input name="model" value="{{ asset.model if asset else request.form.get('model','') }}" placeholder="15 Pro Max..."></label>
           <label class="field"><span>IMEI / código</span><input name="identifier" value="{{ asset.identifier if asset else request.form.get('identifier','') }}" placeholder="Identificador principal"></label>
           <label class="field"><span>Serial</span><input name="serial_number" value="{{ asset.serial_number if asset else request.form.get('serial_number','') }}" placeholder="Opcional"></label>
-
-        </div></div></details>
-
-        <div class="form-grid dealer-fields-v19" data-product-fields>
           <label class="field field-span-2"><span>Existencia total *</span><input type="number" min="1" step="1" name="quantity_total" required value="{{ asset.quantity_total if asset else request.form.get('quantity_total','1') }}" inputmode="numeric"><small>{% if asset %}{{ asset.committed_quantity }} comprometida{{ 's' if asset.committed_quantity != 1 }} · {{ asset.available_quantity }} disponible{{ 's' if asset.available_quantity != 1 }}{% else %}Unidades iguales disponibles.{% endif %}</small></label>
         </div>
 
@@ -97,7 +93,7 @@
         {% if asset and asset.estimated_value and asset.sale_price %}<div class="asset-margin-summary"><span>Margen estimado antes de gastos</span><strong>{{ '%.2f'|format(asset.expected_margin_percent) }}%</strong><small>{{ money(asset.expected_profit_per_unit) }} por unidad</small></div>{% endif %}
       </section>
 
-      <details class="cg-disclosure" data-open-on-errors ><summary>Adquisición y origen</summary><div class="cg-disclosure-body"><section class="dealer-form-section-v19" data-vehicle-fields>
+      <section class="dealer-form-section-v19" data-vehicle-fields>
         {% set acquisition_value = asset.acquisition_type if asset else request.form.get('acquisition_type','') %}
         <div class="dealer-form-heading-v19"><span>04</span><div><strong>Adquisición</strong><small>Cómo, cuándo y de quién entró este vehículo.</small></div></div>
         <div class="form-grid two dealer-fields-v19">
@@ -113,12 +109,12 @@
           <label class="field"><span>Fecha de adquisición</span><input type="date" name="acquisition_date" value="{{ asset.acquisition_date.isoformat() if asset and asset.acquisition_date else request.form.get('acquisition_date','') }}"></label>
           <label class="field field-span-2"><span>Origen / vendedor</span><input name="acquisition_origin" maxlength="160" value="{{ asset.acquisition_origin if asset else request.form.get('acquisition_origin','') }}" placeholder="Ej. Juan Pérez, Auto Import, subasta..."></label>
         </div>
-      </section></div></details>
+      </section>
 
-      <details class="cg-disclosure"><summary>Notas adicionales</summary><div class="cg-disclosure-body">      <section class="dealer-form-section-v19 dealer-notes-section-v19">
+      <section class="dealer-form-section-v19 dealer-notes-section-v19">
         <div class="dealer-form-heading-v19"><span>{{ '05' if kind_value in ['car','motorcycle'] else '04' }}</span><div><strong>Notas</strong><small>Solo información útil para la operación.</small></div></div>
         <label class="field"><span>Detalle opcional</span><textarea name="notes" rows="3" placeholder="Color, condición, accesorios, observaciones...">{{ asset.notes if asset else request.form.get('notes','') }}</textarea></label>
-      </section></div></details>
+      </section>
 
       <div class="dealer-save-row-v19"><button class="btn btn-primary btn-lg" type="submit">{{ 'Guardar cambios' if asset else 'Registrar en inventario' }}</button></div>
     </div>

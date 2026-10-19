@@ -1,7 +1,7 @@
 (() => {
   const THEME_KEY = 'cuotago-theme';
   const PWA_LAUNCHER_SIZE_KEY = 'cuotago-pwa-launcher-size';
-  const DEFAULT_PWA_LAUNCHER_SIZE = 86;
+  const DEFAULT_PWA_LAUNCHER_SIZE = 72;
   const root = document.documentElement;
   const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -11,7 +11,7 @@
   const normalizePwaLauncherSize = (value) => {
     const number = Number(value);
     if (!Number.isFinite(number)) return DEFAULT_PWA_LAUNCHER_SIZE;
-    return Math.max(68, Math.min(96, Math.round(number)));
+    return Math.max(58, Math.min(78, Math.round(number)));
   };
 
   const readPwaLauncherSize = () => {
@@ -32,7 +32,7 @@
   const applyPwaLauncherSize = (value, persist = true) => {
     const size = normalizePwaLauncherSize(value);
     root.style.setProperty('--pwa-launcher-button-size', `${size}px`);
-    root.style.setProperty('--pwa-launcher-glyph-size', `${Math.round(size * .73)}px`);
+    root.style.setProperty('--pwa-launcher-glyph-size', `${Math.round(size * .69)}px`);
     root.dataset.pwaLauncherSize = String(size);
     syncPwaLauncherSizeControls(size);
     if (persist) {

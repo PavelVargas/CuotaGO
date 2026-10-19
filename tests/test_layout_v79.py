@@ -20,9 +20,9 @@ def render_base(collect=True):
 
 def test_version_suffix_without_configuration_mutation():
     rendered, config = render_base()
-    assert '1.26.8-ui-v78-layout80' in rendered
+    assert '1.26.8-ui-v78-restore81' in rendered
     assert config['ASSET_VERSION'] == '1.26.8-ui-v78'
-    assert 'family=Manrope' in rendered and 'display=swap' in rendered
+    assert 'fonts.googleapis.com' not in rendered
 
 
 def test_new_assets_and_load_order():

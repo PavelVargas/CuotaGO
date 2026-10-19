@@ -2,44 +2,54 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Ajustes · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page settings-page narrow-page settings-page-v20 cg-settings"><div class="page-head settings-page-head">
+<section class="content-page settings-page narrow-page settings-page-v20">
+  <div class="page-head settings-page-head">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
       <span class="module-context-icon accent-blue" aria-hidden="true">{{ icon('settings', 24) }}</span>
       <div><span class="eyebrow">AJUSTES</span><h1>Ajustes</h1><p>Cuenta, apariencia y accesos.</p></div>
     </div>
-  </div><section class="settings-identity-v61" aria-label="Cuenta actual">
-    
+  </div>
+
+  <section class="settings-identity-v61" aria-label="Cuenta actual">
+    <div class="settings-brand-v61">
+      <img class="brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ config.get('ASSET_VERSION', '1.24.6-ui-v61') }}" alt="{{ app_name }}">
+      <img class="brand-logo-dark" src="{{ url_for('static', filename='icons/logo-full-dark.png') }}?v={{ config.get('ASSET_VERSION', '1.24.6-ui-v61') }}" alt="{{ app_name }}">
+    </div>
     <div class="settings-user-v61"><span class="avatar avatar-large">{{ current_user.name[:1]|upper }}</span><div><strong>{{ current_user.name }}</strong><small>{{ role_label(current_user.role) }} · {{ current_user.organization.name }} · {{ current_user.email }}</small></div></div>
-  </section><details class="cg-disclosure" open ><summary>Apariencia</summary><div class="cg-disclosure-body"><div class="settings-switch-row">
-      <span class="settings-row-icon">{{ icon('moon', 20) }}</span>
-      <span class="settings-row-copy"><strong>Modo oscuro</strong><small>Activa una interfaz oscura.</small></span>
-      <button class="ios-switch theme-toggle-switch" type="button" role="switch" aria-checked="false" data-theme-toggle-switch aria-label="Modo oscuro"><i></i></button>
-    </div><div class="settings-launcher-size-v60" data-pwa-launcher-settings>
+  </section>
+
+  <section class="surface settings-switch-panel" aria-label="Preferencias">
+    <div class="settings-section-heading">
+      <strong>Preferencias</strong>
+      <small>Los cambios se aplican en este dispositivo.</small>
+    </div>
+
+    <div class="settings-launcher-size-v60" data-pwa-launcher-settings>
       <div class="settings-launcher-size-head-v60">
         <span class="settings-row-icon">{{ icon('sliders', 20) }}</span>
         <span class="settings-row-copy"><strong>Tamaño de módulos</strong><small>Ajusta el tamaño de los módulos del Inicio en esta PWA.</small></span>
-        <output data-launcher-size-output>86 px</output>
+        <output data-launcher-size-output>72 px</output>
       </div>
       <div class="settings-launcher-presets-v60" aria-label="Tamaño de botones de módulos">
-        <button type="button" data-launcher-size-preset="72">Pequeño</button>
-        <button type="button" data-launcher-size-preset="82">Mediano</button>
-        <button type="button" data-launcher-size-preset="92">Grande</button>
+        <button type="button" data-launcher-size-preset="60">Pequeño</button>
+        <button type="button" data-launcher-size-preset="68">Mediano</button>
+        <button type="button" data-launcher-size-preset="76">Grande</button>
       </div>
-      <details class="cg-disclosure" ><summary>Tamaño personalizado</summary><div class="cg-disclosure-body"><label class="settings-launcher-range-v60">
+      <label class="settings-launcher-range-v60">
         <span>Personalizado</span>
-        <input type="range" min="68" max="96" step="1" value="86" data-launcher-size-range aria-label="Tamaño personalizado de botones e iconos">
-      </label></div></details>
-    </div></div></details>{% if can('collections.view') %}<details class="cg-disclosure" ><summary>Notificaciones</summary><div class="cg-disclosure-body"><section class="cg-sound-settings-v79" aria-labelledby="cgSoundTitle" data-alert-audio-settings>
-      <div class="cg-sound-heading-v79"><span class="settings-row-icon">{{ icon('bell',20) }}</span><div><strong id="cgSoundTitle">Sonido de las notificaciones</strong><p>Para los avisos dentro de la app abierta.</p></div></div>
-      <div class="cg-sound-grid-v79">
-        <label class="cg-sound-field-v79" for="cgAlertTone"><span>Sonido</span><select id="cgAlertTone" data-alert-tone><option value="classic">Clásico</option><option value="crystal">Cristal</option><option value="soft">Suave</option><option value="pulse">Pulso</option></select></label>
-        <label class="cg-sound-field-v79" for="cgAlertIntensity"><span>Intensidad</span><select id="cgAlertIntensity" data-alert-intensity><option value="soft">Suave</option><option value="normal">Normal</option><option value="strong">Fuerte · doble</option></select></label>
-      </div>
-      <label class="cg-sound-volume-v79" for="cgAlertVolume"><span>Volumen</span><output for="cgAlertVolume" data-alert-volume-output>75%</output><input id="cgAlertVolume" type="range" min="0" max="100" step="1" value="75" data-alert-volume aria-describedby="cgSoundHelp"></label>
-      <div class="cg-sound-actions-v79"><button class="btn btn-secondary" type="button" data-alert-sound-preview>{{ icon('bell',16) }} <span data-alert-preview-label>Probar sonido</span></button><span role="status" aria-live="polite" data-alert-audio-status>Se guarda en este dispositivo.</span></div>
-      <p class="cg-sound-help-v79" id="cgSoundHelp">0% silencia CuotaGo. El sonido con la app cerrada se ajusta en el teléfono o navegador.</p>
-    </section><details class="cg-disclosure" ><summary>Avisos con la app cerrada</summary><div class="cg-disclosure-body"><label class="settings-switch-row" data-push-controls>
+        <input type="range" min="58" max="78" step="1" value="72" data-launcher-size-range aria-label="Tamaño personalizado de botones e iconos">
+      </label>
+    </div>
+
+    <div class="settings-switch-row">
+      <span class="settings-row-icon">{{ icon('moon', 20) }}</span>
+      <span class="settings-row-copy"><strong>Modo oscuro</strong><small>Activa una interfaz oscura.</small></span>
+      <button class="ios-switch theme-toggle-switch" type="button" role="switch" aria-checked="false" data-theme-toggle-switch aria-label="Modo oscuro"><i></i></button>
+    </div>
+
+    {% if can('collections.view') %}
+    <label class="settings-switch-row" data-push-controls>
       <span class="settings-row-icon">{{ icon('phone', 20) }}</span>
       <span class="settings-row-copy">
         <strong>Notificaciones con la app cerrada</strong>
@@ -47,14 +57,39 @@
         <span class="settings-switch-status" data-push-status>Comprobando…</span>
       </span>
       <span class="ios-switch"><input type="checkbox" data-push-switch aria-label="Notificaciones con la app cerrada"><i></i></span>
-    </label><div class="settings-test-row">
+    </label>
+
+    <section class="cg-sound-settings-v79" aria-labelledby="cgSoundTitle" data-alert-audio-settings>
+      <div class="cg-sound-heading-v79"><span class="settings-row-icon">{{ icon('bell',20) }}</span><div><strong id="cgSoundTitle">Sonido de las notificaciones</strong><p>Para los avisos dentro de la app abierta.</p></div></div>
+      <div class="cg-sound-grid-v79">
+        <label class="cg-sound-field-v79" for="cgAlertTone"><span>Sonido</span><select id="cgAlertTone" data-alert-tone><option value="classic">Clásico</option><option value="crystal">Cristal</option><option value="soft">Suave</option><option value="pulse">Pulso</option></select></label>
+        <label class="cg-sound-field-v79" for="cgAlertIntensity"><span>Intensidad</span><select id="cgAlertIntensity" data-alert-intensity><option value="soft">Suave</option><option value="normal">Normal</option><option value="strong">Fuerte · doble</option></select></label>
+      </div>
+      <label class="cg-sound-volume-v79" for="cgAlertVolume"><span>Volumen</span><output for="cgAlertVolume" data-alert-volume-output>75%</output><input id="cgAlertVolume" type="range" min="0" max="100" step="1" value="75" data-alert-volume aria-describedby="cgSoundHelp"></label>
+      <div class="cg-sound-actions-v79"><button class="btn btn-secondary" type="button" data-alert-sound-preview>{{ icon('bell',16) }} Probar sonido</button><span role="status" aria-live="polite" data-alert-audio-status>Se guarda en este dispositivo.</span></div>
+      <p class="cg-sound-help-v79" id="cgSoundHelp">0% silencia solo el sonido dentro de CuotaGo. El volumen general, el modo silencio y el sonido con la app cerrada se controlan en el teléfono o navegador.</p>
+    </section>
+
+    <div class="settings-test-row">
       <span class="settings-row-icon settings-test-icon">{{ icon('bell', 20) }}</span>
       <span class="settings-row-copy">
-        <strong>Aviso del sistema</strong>
-        <small data-local-alert-copy>Envía una prueba real; puede solicitar permiso.</small>
+        <strong>Notificación de ejemplo</strong>
+        <small data-local-alert-copy>Un toque activa los avisos del sistema y envía una prueba al instante.</small>
       </span>
-      <button class="btn settings-test-button" type="button" data-notification-demo>Enviar prueba</button>
-    </div></div></details></div></details>{% endif %}<details class="cg-disclosure" data-open-on-errors ><summary>Cuenta y negocio</summary><div class="cg-disclosure-body"><form method="post" class="surface settings-account-card">
+      <button class="btn settings-test-button" type="button" data-notification-demo>Probar</button>
+    </div>
+    {% endif %}
+  </section>
+
+  {% if can('team.manage') or can('audit.view') or can('data.export') %}
+  <section class="settings-business-tools-v16">
+    {% if can('team.manage') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.team_settings') }}"><span class="settings-row-icon">{{ icon('users',20) }}</span><span><strong>Equipo</strong><small>Roles simples para que cada persona vea solo lo necesario.</small></span><b>›</b></a>{% endif %}
+    {% if can('audit.view') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.audit_log') }}"><span class="settings-row-icon">{{ icon('shield',20) }}</span><span><strong>Auditoría</strong><small>Pagos, acuerdos, reprogramaciones, gastos y cambios sensibles.</small></span><b>›</b></a>{% endif %}
+    {% if can('data.export') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.export_business_data') }}"><span class="settings-row-icon">{{ icon('download',20) }}</span><span><strong>Exportar datos e im&aacute;genes</strong><small>CSV, proveedores y fotos. Contiene costos internos; no es una copia restaurable de PostgreSQL.</small></span><b>↓</b></a>{% endif %}
+  </section>
+  {% endif %}
+
+  <form method="post" class="surface settings-account-card">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="settings-section-heading">
       <strong>Cuenta</strong>
@@ -67,15 +102,16 @@
       <label class="field"><span>Correo</span><input value="{{ current_user.email }}" disabled></label>
     </div>
     <div class="settings-save-row"><button class="btn btn-primary" type="submit">{{ icon('sales-check',16) }} Guardar cambios</button></div>
-  </form></div></details><details class="surface settings-password-v16">
+  </form>
+
+  <details class="surface settings-password-v16">
     <summary><span class="settings-row-icon">{{ icon('shield',20) }}</span><span><strong>Contraseña</strong><small>Cámbiala sin salir de tu cuenta.</small></span><b>›</b></summary>
     <form method="post" action="{{ url_for('main.settings_password') }}" class="form-stack settings-password-form-v16"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="field"><span>Contraseña actual</span><input type="password" name="current_password" required autocomplete="current-password"></label><label class="field"><span>Nueva contraseña</span><input type="password" name="new_password" minlength="8" required autocomplete="new-password"></label><label class="field"><span>Repetir nueva contraseña</span><input type="password" name="confirm_password" minlength="8" required autocomplete="new-password"></label><button class="btn btn-primary" type="submit">Actualizar contraseña</button></form>
-  </details>{% if can('team.manage') or can('audit.view') or can('data.export') %}<details class="cg-disclosure" ><summary>Administración</summary><div class="cg-disclosure-body"><section class="settings-business-tools-v16">
-    {% if can('team.manage') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.team_settings') }}"><span class="settings-row-icon">{{ icon('users',20) }}</span><span><strong>Equipo</strong><small>Roles simples para que cada persona vea solo lo necesario.</small></span><b>›</b></a>{% endif %}
-    {% if can('audit.view') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.audit_log') }}"><span class="settings-row-icon">{{ icon('shield',20) }}</span><span><strong>Auditoría</strong><small>Pagos, acuerdos, reprogramaciones, gastos y cambios sensibles.</small></span><b>›</b></a>{% endif %}
-    {% if can('data.export') %}<a class="surface settings-audit-link-v15" href="{{ url_for('main.export_business_data') }}"><span class="settings-row-icon">{{ icon('download',20) }}</span><span><strong>Exportar datos e im&aacute;genes</strong><small>CSV, proveedores y fotos. Contiene costos internos; no es una copia restaurable de PostgreSQL.</small></span><b>↓</b></a>{% endif %}
-  </section></div></details>{% endif %}<form method="post" action="{{ url_for('auth.logout') }}" class="settings-logout-v61">
+  </details>
+
+  <form method="post" action="{{ url_for('auth.logout') }}" class="settings-logout-v61">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit">{{ icon('logout', 19) }}<span><strong>Cerrar sesión</strong><small>Salir de esta cuenta en este dispositivo.</small></span></button>
-  </form></section>
+  </form>
+</section>
 {% endblock %}

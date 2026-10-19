@@ -139,3 +139,17 @@ html body.cg-layout-v79 .profile-dialog[open] { display: block !important; }
   .cg-layout-v79 .sales-page-v76 :is(.ops-table-head-v76,.ops-table-body-v76) { min-width: 1460px; }
   .cg-layout-v79 .sales-page-v76 .sales-row-v76 > span:nth-child(5) { display: block !important; }
 }
+
+/* UI81 restoration contract: the mobile/PWA HOME has FOUR columns, never three.
+   Keep the accepted UI79 cards, order, colors, captions, tools and footer.
+   Do not replace this with repeat(3), auto-fit or auto-fill in future changes. */
+@media screen {
+  html.is-standalone-app body.cg-layout-v79.dashboard-home .dashboard-launcher-v3 .module-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+@media screen and (max-width: 719px) {
+  html body.cg-layout-v79.dashboard-home .dashboard-launcher-v3 .module-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}

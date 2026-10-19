@@ -9,12 +9,12 @@
       {% if can('clients.manage') %}<a class="btn btn-primary ops-new-v76" href="{{ url_for('main.client_new') }}">{{ icon('plus',16) }} Nuevo cliente</a>{% endif %}
       <div class="ops-title-v76"><h1>Clientes</h1><span>{{ pagination.total }} cliente{{ 's' if pagination.total != 1 }}</span></div>
     </div>
-    <details class="cg-disclosure" {% if has_filters %}open{% endif %} ><summary>Buscar y filtrar</summary><div class="cg-disclosure-body"><form class="ops-filterbar-v76 clients-filterbar-v76" method="get">
+    <form class="ops-filterbar-v76 clients-filterbar-v76" method="get">
       <label class="ops-search-v76">{{ icon('search',17) }}<input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre, teléfono, correo o documento" autocomplete="off"></label>
       <select name="status" aria-label="Estado del cliente"><option value="all" {{ 'selected' if status=='all' }}>Todos los clientes</option><option value="active" {{ 'selected' if status=='active' }}>Con acuerdo activo</option><option value="inactive" {{ 'selected' if status=='inactive' }}>Sin acuerdo activo</option></select>
       <button class="ops-filter-submit-v76" type="submit">{{ icon('search',16) }}<span>Filtrar</span></button>
       {% if has_filters %}<a class="ops-clear-v76" href="{{ url_for('main.clients') }}">Limpiar</a>{% endif %}
-    </form></div></details>
+    </form>
   </div>
 
   {% if clients %}
