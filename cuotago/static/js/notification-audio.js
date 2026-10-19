@@ -19,6 +19,23 @@
   let resumePromise = null;
   let preference = null;
   let lastAlertAt = -Infinity;
+  let previewBusy = false;
+  let previewTimer = null;
+  let previewEpoch = 0;
+  const setPreviewBusy = busy => {
+    previewBusy = busy;
+    document.querySelectorAll('[data-alert-sound-preview]').forEach(button => {
+      button.disabled = busy || !supported();
+      button.setAttribute('aria-busy', String(busy));
+      const label = button.querySelector('[data-alert-preview-label]');
+      if (label) label.textContent = busy ? 'Reproduciendo...' : 'Probar sonido';
+    });
+  };
+  const within = (promise, ms) => {
+    let timer;
+    return Promise.race([promise, new Promise(resolve => { timer = window.setTimeout(() => resolve(false), ms); })])
+      .finally(() => window.clearTimeout(timer));
+  };
   const playing = new Set();
 
   const own = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
@@ -66,7 +83,7 @@
       try {
         // Called directly from a click/key gesture. iOS can also use an
         // 'interrupted' state after a phone call or a background transition.
-        if (ctx.state !== 'running') await ctx.resume();
+        if (ctx.state !== 'running') await within(Promise.resolve(ctx.resume()), 2500);
         if (ctx.state !== 'running') return false;
         if (!unlocked) {
           const source = ctx.createBufferSource();
@@ -81,22 +98,30 @@
     })();
     try { return await resumePromise; } finally { resumePromise = null; }
   };
-  const stop = () => {
+  const stopNodes = () => {
     for (const item of playing) {
       try { item.oscillator.stop(); } catch (_) {}
       try { item.oscillator.disconnect(); item.gain.disconnect(); } catch (_) {}
     }
     playing.clear();
   };
+  const stop = () => {
+    previewEpoch += 1;
+    if (previewTimer !== null) window.clearTimeout(previewTimer);
+    previewTimer = null;
+    stopNodes();
+    setPreviewBusy(false);
+  };
   const play = ({ preview = false } = {}) => {
     // Muting is successful and must not queue a tone for the next gesture.
-    if (preference.volume === 0) { stop(); return true; }
+    if (preference.volume === 0) { stopNodes(); return true; }
     const ctx = context;
     if (!ctx || ctx.state !== 'running' || !unlocked) return false;
-    if (!preview && document.visibilityState === 'hidden') return true;
+    if (document.visibilityState === 'hidden') return true;
+    if (!preview && previewBusy) return true;
     const nowMs = Date.now();
     if (!preview && nowMs - lastAlertAt < 900) return true;
-    stop();
+    stopNodes();
     try {
       const tone = TONES[preference.tone];
       const repeats = preference.intensity === 'strong' ? 2 : 1;
@@ -130,7 +155,7 @@
       }
       if (!preview) lastAlertAt = nowMs;
       return true;
-    } catch (_) { stop(); return false; }
+    } catch (_) { stopNodes(); return false; }
   };
 
   const status = (message) => {
@@ -156,6 +181,31 @@
     status(persisted ? 'Preferencias guardadas en este dispositivo.' : 'Aplicado por ahora. El navegador no permite guardar preferencias.');
     return { ...preference };
   };
+  const preview = async () => {
+    if (previewBusy) return false;
+    if (preference.volume === 0) { stop(); status('Volumen en 0%: sonido silenciado.'); return true; }
+    const token = ++previewEpoch;
+    setPreviewBusy(true);
+    try {
+      const ready = await unlock();
+      if (token !== previewEpoch || document.visibilityState === 'hidden') return false;
+      if (!ready || !play({preview:true})) {
+        status('No se pudo activar el audio. Toca de nuevo o revisa los permisos.');
+        setPreviewBusy(false); return false;
+      }
+      status('Reproduciendo el tono seleccionado.');
+      const tone = TONES[preference.tone];
+      const duration = ((tone.notes.length - 1) * tone.step + tone.duration + .22) * (preference.intensity === 'strong' ? 2 : 1);
+      previewTimer = window.setTimeout(() => {
+        if (token !== previewEpoch) return;
+        stopNodes(); previewTimer = null; setPreviewBusy(false); status('Prueba terminada.');
+      }, Math.max(900, duration * 1000 + 100));
+      return true;
+    } catch (_) {
+      if (token === previewEpoch) { stop(); status('No se pudo reproducir. Vuelve a probar.'); }
+      return false;
+    }
+  };
   const setup = () => {
     sync();
     if (!supported()) {
@@ -167,16 +217,7 @@
     document.querySelectorAll('[data-alert-volume]').forEach((node) => {
       node.addEventListener('input', () => save({ volume: node.value }));
     });
-    document.querySelectorAll('[data-alert-sound-preview]').forEach((button) => button.addEventListener('click', async () => {
-      if (preference.volume === 0) { stop(); status('Volumen en 0%: el sonido est\u00e1 silenciado.'); return; }
-      button.disabled = true;
-      try {
-        const ready = await unlock();
-        const played = ready && play({ preview: true });
-        status(played ? 'Prueba enviada al audio. Revisa tambi\u00e9n el volumen de tu dispositivo.' : 'No se pudo activar el audio. Revisa los permisos de reproducci\u00f3n del navegador.');
-      } catch (_) { status('No se pudo reproducir el sonido. Vuelve a tocar Probar sonido.'); }
-      finally { button.disabled = false; }
-    }));
+    document.querySelectorAll('[data-alert-sound-preview]').forEach(button => button.addEventListener('click', preview));
   };
   window.addEventListener('storage', (event) => {
     if (event.key === STORAGE_KEY || event.key === null) { stop(); preference = read(); sync(); }
@@ -185,7 +226,7 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') stop(); });
   // Shared by the existing notification callbacks and by the Settings preview.
   window.CuotaGoNotificationAudio = Object.freeze({
-    unlock, play, stop, supported, getPreferences: () => ({ ...preference }), setPreferences: save,
+    unlock, play, preview, stop, supported, getPreferences: () => ({ ...preference }), setPreferences: save,
   });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup, { once: true });
   else setup();

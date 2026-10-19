@@ -11,14 +11,14 @@
       {% if can('sales.manage') %}<a class="btn btn-primary ops-new-v76" href="{{ url_for('main.sale_new') }}">{{ icon('plus',16) }} Nueva venta</a>{% endif %}
       <div class="ops-title-v76"><h1>Ventas</h1><span>{{ pagination.total }} registro{{ 's' if pagination.total != 1 }}</span></div>
     </div>
-    <form class="ops-filterbar-v76 sales-filterbar-v76" method="get">
+    <details class="cg-disclosure" {% if has_filters %}open{% endif %} ><summary>Buscar o filtrar ventas</summary><div class="cg-disclosure-body"><form class="ops-filterbar-v76 sales-filterbar-v76" method="get">
       <input type="hidden" name="status" value="{{ status }}">
       <label class="ops-search-v76">{{ icon('search',17) }}<input type="search" name="q" value="{{ q }}" placeholder="Buscar venta, cliente, vehículo, placa o serial" autocomplete="off"></label>
       <select name="period" aria-label="Período">{% for value,label in [('today','Hoy'),('7d','Últimos 7 días'),('month','Este mes'),('all','Todo el historial')] %}<option value="{{ value }}" {{ 'selected' if period==value }}>{{ label }}</option>{% endfor %}</select>
       <select name="method" aria-label="Método de pago"><option value="">Todos los pagos</option>{% for value,label in [('cash','Efectivo'),('transfer','Transferencia'),('deposit','Depósito'),('card','Tarjeta'),('other','Otro')] %}<option value="{{ value }}" {{ 'selected' if method==value }}>{{ label }}</option>{% endfor %}</select>
       <button class="ops-filter-submit-v76" type="submit" aria-label="Aplicar filtros">{{ icon('search',16) }}<span>Filtrar</span></button>
       {% if has_filters %}<a class="ops-clear-v76" href="{{ url_for('main.sales') }}">Limpiar</a>{% endif %}
-    </form>
+    </form></div></details>
     <div class="ops-view-tools-v76" aria-label="Vista de ventas">
       <a class="ops-icon-v76" href="{{ url_for('main.sales',status='completed',period='month') }}" aria-label="Actualizar">{{ icon('refresh',16) }}</a>
     </div>
@@ -28,11 +28,11 @@
     {% for value,label in [('completed','Completadas'),('voided','Anuladas'),('all','Todas')] %}<a href="{{ url_for('main.sales',status=value,q=q,period=period,method=method) }}" {% if status==value %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
   </div>
 
-  <section class="ops-metrics-v76 sales-metrics-v76" aria-label="Resumen de ventas">
+  <details class="cg-disclosure" data-register-summary ><summary>Ver resumen</summary><div class="cg-disclosure-body"><section class="ops-metrics-v76 sales-metrics-v76" aria-label="Resumen de ventas">
     <article><span>{{ icon('wallet',15) }} Vendido este mes</span><strong>{{ money(month_revenue) }}</strong><small>{{ month_units }} unidad{{ 'es' if month_units != 1 }}</small></article>
     <article><span>{{ icon('chart',15) }} Utilidad del mes</span><strong class="{{ 'text-success' if month_profit >= 0 else 'text-danger' }}">{{ money(month_profit) }}</strong><small>{{ '%.2f'|format(month_margin) }}% sobre ventas</small></article>
     <article><span>{{ icon('calendar',15) }} Vendido hoy</span><strong>{{ money(today_revenue) }}</strong><small>{{ today_count }} operaci{{ 'ones' if today_count != 1 else 'ón' }}</small></article>
-  </section>
+  </section></div></details>
 
   {% if sales %}
   <section class="ops-table-shell-v76">

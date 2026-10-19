@@ -22,7 +22,7 @@
 
   <section class="inventory-board-v75">
     <div class="inventory-board-toolbar-v75">
-      <form class="inventory-controls-v75 ops-filterbar-v76" method="get">
+      <details class="cg-disclosure" {% if has_filters %}open{% endif %} ><summary>Buscar y filtrar</summary><div class="cg-disclosure-body"><form class="inventory-controls-v75 ops-filterbar-v76" method="get">
         <label class="inventory-search-v75 ops-search-v76">
           {{ icon('search',17) }}
           <input name="q" value="{{ q }}" placeholder="Buscar por nombre, placa, chasis, IMEI o serial" autocomplete="off" aria-label="Buscar inventario">
@@ -45,7 +45,7 @@
         </select>
         <button class="btn btn-secondary inventory-filter-button-v75" type="submit">{{ icon('search',15) }} <span>Filtrar</span></button>
         {% if has_filters %}<a class="inventory-clear-link-v75" href="{{ url_for('main.assets') }}">Limpiar</a>{% endif %}
-      </form>
+      </form></div></details>
       <div class="inventory-board-meta-v75">
         <strong>{{ pagination.total }}</strong><span>registro{{ 's' if pagination.total != 1 }}</span>
       </div>

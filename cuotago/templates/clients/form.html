@@ -31,14 +31,14 @@
         </div>
       </div>
 
-      <div class="client-form-section-v23">
+      <details class="cg-disclosure" data-open-on-errors ><summary>Correo, dirección y notas</summary><div class="cg-disclosure-body"><div class="client-form-section-v23">
         <div><span class="client-form-step-v23">02</span><span><strong>Contacto y referencia</strong><small>Datos secundarios, sin pantallas extra.</small></span></div>
         <div class="form-grid two client-form-grid-v23">
           <label class="field"><span>Correo</span><input type="email" name="email" value="{{ client.email if client else request.form.get('email','') }}" autocomplete="email" placeholder="correo@ejemplo.com"></label>
           <label class="field"><span>Dirección</span><input name="address" value="{{ client.address if client else request.form.get('address','') }}" placeholder="Sector, calle o referencia"></label>
           <label class="field field-span-2"><span>Notas</span><textarea name="notes" rows="3" placeholder="Referencia, trabajo, horario o detalle útil">{{ client.notes if client else request.form.get('notes','') }}</textarea></label>
         </div>
-      </div>
+      </div></div></details>
 
       <div class="client-editor-actions-v23"><a class="btn btn-secondary" href="{{ url_for('main.clients') }}">{{ icon('back',16) }} Cancelar</a><button class="btn btn-primary" type="submit">{{ 'Guardar cambios' if client else 'Crear cliente' }}</button></div>
     </form>

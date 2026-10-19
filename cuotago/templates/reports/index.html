@@ -2,8 +2,7 @@
 {% from 'macros/icons.html' import icon %}
 {% block title %}Reportes · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="content-page reports-v19 reports-v20 reports-v22 reports-v23">
-  <div class="page-head report-page-head report-page-head-v22">
+<section class="content-page reports-v19 reports-v20 reports-v22 reports-v23 cg-reports"><div class="page-head report-page-head report-page-head-v22">
     <div class="page-head-left">
       <a class="icon-btn" href="{{ url_for('main.dashboard') }}" aria-label="Volver">{{ icon('back', 22) }}</a>
       <span class="module-context-icon accent-gold" aria-hidden="true">{{ icon('home-reports', 24) }}</span>
@@ -14,9 +13,7 @@
       </div>
     </div>
     <span class="report-period-chip-v22">{{ period_label }}</span>
-  </div>
-
-  <details class="report-filter-disclosure-v37 report-filter-disclosure-v22" {% if report_period != 'month' or selected_client_id or report_status != 'all' %}open{% endif %}>
+  </div><details class="report-filter-disclosure-v37 report-filter-disclosure-v22" {% if report_period != 'month' or selected_client_id or report_status != 'all' %}open{% endif %}>
     <summary>{{ icon('sliders', 17) }}<span>Filtros</span><small>{{ period_label }}{% if selected_client_id %} · cliente seleccionado{% endif %}{% if report_status != 'all' %} · {{ report_status }}{% endif %}</small><b>+</b></summary>
     <form class="report-filters-v19" method="get" action="{{ url_for('main.reports') }}">
       <label><span>Periodo</span><select name="period"><option value="today" {% if report_period == 'today' %}selected{% endif %}>Hoy</option><option value="7d" {% if report_period == '7d' %}selected{% endif %}>Últimos 7 días</option><option value="month" {% if report_period == 'month' %}selected{% endif %}>Este mes</option><option value="all" {% if report_period == 'all' %}selected{% endif %}>Histórico</option></select></label>
@@ -24,45 +21,12 @@
       <label><span>Estado</span><select name="status"><option value="all" {% if report_status == 'all' %}selected{% endif %}>Todos</option><option value="active" {% if report_status == 'active' %}selected{% endif %}>Activos</option><option value="overdue" {% if report_status == 'overdue' %}selected{% endif %}>Con atraso</option><option value="completed" {% if report_status == 'completed' %}selected{% endif %}>Completados</option></select></label>
       <button class="btn btn-primary report-filter-button" type="submit">Aplicar</button>
     </form>
-  </details>
-
-  <section class="report-executive-grid-v22 report-kpi-grid-v19" aria-label="Indicadores principales">
-    <article class="report-executive-card-v22"><span>Por cobrar</span><strong>{{ money(receivable) }}</strong><small>{{ active_count }} acuerdo{% if active_count != 1 %}s{% endif %} activo{% if active_count != 1 %}s{% endif %}</small></article>
-    <article class="report-executive-card-v22 is-danger"><span>Vencido</span><strong>{{ money(overdue_total) }}</strong><small>{{ overdue_clients_count }} cliente{% if overdue_clients_count != 1 %}s{% endif %} con atraso</small></article>
-    <article class="report-executive-card-v22 is-success"><span>Cobrado · crédito</span><strong>{{ money(period_collected) }}</strong><small>{{ period_payment_count }} movimiento{% if period_payment_count != 1 %}s{% endif %}</small></article>
-    <article class="report-executive-card-v22 is-primary"><span>Ventas directas</span><strong>{{ money(direct_sales_period_total) }}</strong><small>{{ direct_sales_period_count }} venta{% if direct_sales_period_count != 1 %}s{% endif %} · {{ direct_sales_period_units }} unidad{% if direct_sales_period_units != 1 %}es{% endif %}</small></article>
-    <article class="report-executive-card-v22 {{ 'is-success' if cash_flow_net >= 0 else 'is-danger' }}"><span>Ingresos menos gastos</span><strong>{{ money(cash_flow_net) }}</strong><small>{{ money(business_income_total) }} ingresados, menos gastos registrados</small></article>
-    <article class="report-executive-card-v22 is-primary"><span>Cartera cobrada</span><strong>{{ '%.1f'|format(collection_rate_percent) }}%</strong><small>Principal recibido / total acordado</small></article>
-    <article class="report-executive-card-v22 is-profit"><span>Ganancia esperada</span><strong>{{ money(profit_expected) }}</strong><small>Margen de ganancia {{ '%.1f'|format(profit_margin_percent) }}% sobre capital registrado</small></article>
-  </section>
-
-  <section class="report-health-grid-v22" aria-label="Salud del negocio">
-    <article class="report-health-card-v22"><div><span>Clientes al día</span><strong>{{ '%.1f'|format(portfolio_health_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 100 if portfolio_health_percent > 100 else portfolio_health_percent }}%"></i></div><small>{{ current_clients_count }} al día de {{ current_clients_count + overdue_clients_count }} con cartera activa</small></article>
-    <article class="report-health-card-v22 is-danger"><div><span>Morosidad sobre cartera</span><strong>{{ '%.1f'|format(overdue_ratio_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 100 if overdue_ratio_percent > 100 else overdue_ratio_percent }}%"></i></div><small>{{ money(overdue_total) }} vencido frente a {{ money(receivable) }} por cobrar</small></article>
-    <article class="report-health-card-v22 {{ 'is-danger' if expense_ratio_percent > 70 else '' }}"><div><span>Gasto / ingreso</span><strong>{{ '%.1f'|format(expense_ratio_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 100 if expense_ratio_percent > 100 else expense_ratio_percent }}%"></i></div><small>Por cada RD$100 ingresados, RD${{ '%.0f'|format(expense_ratio_percent) }} salen en gastos</small></article>
-    <article class="report-health-card-v22 {{ 'is-success' if cash_flow_margin_percent >= 0 else 'is-danger' }}"><div><span>Margen de caja</span><strong>{{ '%.1f'|format(cash_flow_margin_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 0 if cash_flow_margin_percent < 0 else 100 if cash_flow_margin_percent > 100 else cash_flow_margin_percent }}%"></i></div><small>Qué porcentaje de los ingresos queda después de gastos</small></article>
-  </section>
-
-  <section class="report-risk-grid-v23" aria-label="Analítica de cartera vencida">
-    <article class="surface report-aging-panel-v23">
-      <div class="report-section-head-v19 report-section-head-v22"><div><span class="eyebrow">ANTIGÜEDAD DE CARTERA</span><h2>¿Hace cuánto está vencido el dinero?</h2><p>Promedio actual: {{ average_overdue_days }} días de atraso.</p></div><strong>{{ money(overdue_total) }}</strong></div>
-      <div class="report-aging-grid-v23">
-        {% for item in overdue_aging %}
-        <div class="report-aging-card-v23 {% if item.key == '61_plus' %}is-critical{% elif item.key == '31_60' %}is-warning{% endif %}"><div><span>{{ item.label }}</span><strong>{{ money(item.amount) }}</strong></div><div class="report-progress-v22"><i style="width:{{ item.percent }}%"></i></div><small>{{ item.count }} cuota{{ 's' if item.count != 1 }} · {{ '%.1f'|format(item.percent) }}% del vencido</small></div>
-        {% endfor %}
-      </div>
-    </article>
-
-    <article class="surface report-attention-panel-v23">
-      <div class="report-section-head-v19"><div><span class="eyebrow">PRIORIDAD DE COBRO</span><h2>Clientes que requieren atención</h2></div></div>
-      <div class="report-attention-list-v23">
-        {% for item in overdue_attention %}<a href="{{ url_for('main.client_detail', client_id=item.client.id) }}"><span><strong>{{ item.client.full_name }}</strong><small>{{ item.installments }} cuota{{ 's' if item.installments != 1 }} · hasta {{ item.days }} días vencida{{ 's' if item.days != 1 }}</small></span><b>{{ money(item.amount) }}</b><i>›</i></a>{% else %}<div class="report-all-good-v23">{{ icon('shield',20) }} <span><strong>Sin cartera vencida</strong><small>No hay clientes que priorizar ahora mismo.</small></span></div>{% endfor %}
-      </div>
-    </article>
-  </section>
-
-  <div class="report-main-grid-v22">
-    <section class="surface report-panel-v19 report-chart-panel-v19 report-chart-panel-v22">
+  </details><nav class="cg-tabs" aria-label="Tipo de reporte" data-report-tabs>
+<button type="button" id="report-summary-tab" data-report-tab="summary">Resumen</button>
+<button type="button" id="report-collections-tab" data-report-tab="collections">Cobros</button>
+<button type="button" id="report-results-tab" data-report-tab="results">Resultados</button>
+<button type="button" id="report-inventory-tab" data-report-tab="inventory">Inventario</button>
+</nav><section class="cg-report-view" id="report-summary" data-report-view="summary" aria-labelledby="report-summary-tab"><section class="report-executive-grid-v22 report-kpi-grid-v19 cg-summary-kpis"><article class="report-executive-card-v22"><span>Por cobrar</span><strong>{{ money(receivable) }}</strong><small>{{ active_count }} acuerdo{% if active_count != 1 %}s{% endif %} activo{% if active_count != 1 %}s{% endif %}</small></article><article class="report-executive-card-v22 is-danger"><span>Vencido</span><strong>{{ money(overdue_total) }}</strong><small>{{ overdue_clients_count }} cliente{% if overdue_clients_count != 1 %}s{% endif %} con atraso</small></article><article class="report-executive-card-v22 is-success"><span>Cobrado · crédito</span><strong>{{ money(period_collected) }}</strong><small>{{ period_payment_count }} movimiento{% if period_payment_count != 1 %}s{% endif %}</small></article><article class="report-executive-card-v22 is-primary"><span>Ventas directas</span><strong>{{ money(direct_sales_period_total) }}</strong><small>{{ direct_sales_period_count }} venta{% if direct_sales_period_count != 1 %}s{% endif %} · {{ direct_sales_period_units }} unidad{% if direct_sales_period_units != 1 %}es{% endif %}</small></article></section><section class="surface report-panel-v19 report-chart-panel-v19 report-chart-panel-v22">
       <div class="report-section-head-v19 report-section-head-v22">
         <div><span class="eyebrow">MOVIMIENTO DE DINERO</span><h2>Ingresos vs. gastos</h2><p>{{ chart_title }}</p></div>
         <div class="report-chart-total-v22"><span>Ingresos</span><strong>{{ money(chart_total) }}</strong><small>Gastos {{ money(chart_expense_total) }}</small></div>
@@ -82,33 +46,37 @@
         <div class="report-chart-labels-v19"><span>{{ chart_first_label }}</span><span>{{ chart_last_label }}</span></div>
         {% if not chart_has_data %}<p class="report-empty-v19">Todavía no hay movimientos en este periodo.</p>{% endif %}
       </div>
-    </section>
-
-    <section class="surface report-panel-v19 report-period-panel-v22">
-      <div class="report-section-head-v19"><div><span class="eyebrow">{{ period_label|upper }}</span><h2>Ritmo comercial</h2></div></div>
-      <div class="report-period-metrics-v22">
-        <div><span>Acuerdos creados</span><strong>{{ period_agreement_count }}</strong><small>{{ money(period_agreement_total) }} financiados</small></div>
-        <div><span>Ventas directas</span><strong>{{ direct_sales_period_count }}</strong><small>{{ money(direct_sales_period_total) }} vendidos</small></div>
-        <div><span>Utilidad directa</span><strong>{{ money(direct_sales_period_profit) }}</strong><small>Ganancia cerrada del periodo</small></div>
-        <div><span>Ticket promedio</span><strong>{{ money(average_agreement) }}</strong><small>Por acuerdo creado</small></div>
-        <div><span>Pago promedio</span><strong>{{ money(average_payment) }}</strong><small>Por movimiento recibido</small></div>
-        <div><span>Clientes nuevos</span><strong>{{ period_new_clients }}</strong><small>Registrados en el periodo</small></div>
-        <div><span>Próximos 7 días</span><strong>{{ money(upcoming_total) }}</strong><small>Cuotas aún por cobrar</small></div>
+    </section><details class="cg-disclosure" ><summary>Actividad reciente</summary><div class="cg-disclosure-body"><section class="surface report-panel-v19 report-activity-v19 report-activity-v22">
+    
+    {% if recent_activity %}<div class="report-activity-list-v19">{% for item in recent_activity %}<a href="{{ item.url }}" class="report-activity-row-v19"><span class="report-activity-icon-v19 {{ item.kind }}">{% if item.kind == 'agreement' %}{{ icon('contract', 18) }}{% elif item.kind == 'sale' %}{{ icon('home-sales', 18) }}{% elif item.kind == 'expense' %}{{ icon('wallet', 18) }}{% else %}{{ icon('cash-stack', 18) }}{% endif %}</span><span class="report-activity-copy-v19"><strong>{{ item.label }} · {{ item.client }}</strong><small>{{ item.detail }} · {{ item.date }}</small></span><b>{{ money(item.amount) }}</b></a>{% endfor %}</div>{% else %}<p class="report-empty-v19">Todavía no hay movimientos para mostrar.</p>{% endif %}
+  </section></div></details></section><section class="cg-report-view" id="report-collections" data-report-view="collections" aria-labelledby="report-collections-tab"><section class="report-risk-grid-v23" aria-label="Analítica de cartera vencida">
+    <article class="surface report-aging-panel-v23">
+      <div class="report-section-head-v19 report-section-head-v22"><div><span class="eyebrow">ANTIGÜEDAD DE CARTERA</span><h2>¿Hace cuánto está vencido el dinero?</h2><p>Promedio actual: {{ average_overdue_days }} días de atraso.</p></div><strong>{{ money(overdue_total) }}</strong></div>
+      <div class="report-aging-grid-v23">
+        {% for item in overdue_aging %}
+        <div class="report-aging-card-v23 {% if item.key == '61_plus' %}is-critical{% elif item.key == '31_60' %}is-warning{% endif %}"><div><span>{{ item.label }}</span><strong>{{ money(item.amount) }}</strong></div><div class="report-progress-v22"><i style="width:{{ item.percent }}%"></i></div><small>{{ item.count }} cuota{{ 's' if item.count != 1 }} · {{ '%.1f'|format(item.percent) }}% del vencido</small></div>
+        {% endfor %}
       </div>
-    </section>
-  </div>
+    </article>
 
-  {% if not selected_client_id %}
-  <section class="surface report-cashflow-v15 report-cashflow-v22">
+    <article class="surface report-attention-panel-v23">
+      <div class="report-section-head-v19"><div><span class="eyebrow">PRIORIDAD DE COBRO</span><h2>Clientes que requieren atención</h2></div></div>
+      <div class="report-attention-list-v23">
+        {% for item in overdue_attention %}<a href="{{ url_for('main.client_detail', client_id=item.client.id) }}"><span><strong>{{ item.client.full_name }}</strong><small>{{ item.installments }} cuota{{ 's' if item.installments != 1 }} · hasta {{ item.days }} días vencida{{ 's' if item.days != 1 }}</small></span><b>{{ money(item.amount) }}</b><i>›</i></a>{% else %}<div class="report-all-good-v23">{{ icon('shield',20) }} <span><strong>Sin cartera vencida</strong><small>No hay clientes que priorizar ahora mismo.</small></span></div>{% endfor %}
+      </div>
+    </article>
+  </section><details class="cg-disclosure" ><summary>Indicadores de cartera</summary><div class="cg-disclosure-body"><section class="report-health-grid-v22" aria-label="Salud del negocio">
+    <article class="report-health-card-v22"><div><span>Clientes al día</span><strong>{{ '%.1f'|format(portfolio_health_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 100 if portfolio_health_percent > 100 else portfolio_health_percent }}%"></i></div><small>{{ current_clients_count }} al día de {{ current_clients_count + overdue_clients_count }} con cartera activa</small></article>
+    <article class="report-health-card-v22 is-danger"><div><span>Morosidad sobre cartera</span><strong>{{ '%.1f'|format(overdue_ratio_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 100 if overdue_ratio_percent > 100 else overdue_ratio_percent }}%"></i></div><small>{{ money(overdue_total) }} vencido frente a {{ money(receivable) }} por cobrar</small></article>
+    <article class="report-health-card-v22 {{ 'is-danger' if expense_ratio_percent > 70 else '' }}"><div><span>Gasto / ingreso</span><strong>{{ '%.1f'|format(expense_ratio_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 100 if expense_ratio_percent > 100 else expense_ratio_percent }}%"></i></div><small>Por cada RD$100 ingresados, RD${{ '%.0f'|format(expense_ratio_percent) }} salen en gastos</small></article>
+    <article class="report-health-card-v22 {{ 'is-success' if cash_flow_margin_percent >= 0 else 'is-danger' }}"><div><span>Margen de caja</span><strong>{{ '%.1f'|format(cash_flow_margin_percent) }}%</strong></div><div class="report-progress-v22"><i style="width:{{ 0 if cash_flow_margin_percent < 0 else 100 if cash_flow_margin_percent > 100 else cash_flow_margin_percent }}%"></i></div><small>Qué porcentaje de los ingresos queda después de gastos</small></article>
+  </section></div></details></section><section class="cg-report-view" id="report-results" data-report-view="results" aria-labelledby="report-results-tab"><section class="report-executive-grid-v22 report-kpi-grid-v19"><article class="report-executive-card-v22 {{ 'is-success' if cash_flow_net >= 0 else 'is-danger' }}"><span>Ingresos menos gastos</span><strong>{{ money(cash_flow_net) }}</strong><small>{{ money(business_income_total) }} ingresados, menos gastos registrados</small></article><article class="report-executive-card-v22 is-primary"><span>Cartera cobrada</span><strong>{{ '%.1f'|format(collection_rate_percent) }}%</strong><small>Principal recibido / total acordado</small></article><article class="report-executive-card-v22 is-profit"><span>Ganancia esperada</span><strong>{{ money(profit_expected) }}</strong><small>Margen de ganancia {{ '%.1f'|format(profit_margin_percent) }}% sobre capital registrado</small></article></section>{% if not selected_client_id %}<details class="cg-disclosure"><summary>Desglose de ingresos y gastos</summary><div class="cg-disclosure-body"><section class="surface report-cashflow-v15 report-cashflow-v22">
     <div class="report-section-head-v19"><div><span class="eyebrow">COBROS Y GASTOS · {{ period_label|upper }}</span><h2>Ingresos y gastos registrados</h2></div><a class="report-inline-link-v20" href="{{ url_for('main.expenses') }}">Ver gastos</a></div>
     <p class="dlr-scope-note">Este resumen compara cobros y ventas directas con gastos registrados. No es el saldo de caja o bancos y no descuenta pagos de compras de inventario.</p>
   <div class="cashflow-kpis-v15 cashflow-kpis-v22"><div class="success"><span>Entradas</span><strong>{{ money(business_income_total) }}</strong><small>Cobros + ventas directas</small></div><div class="danger"><span>Gastos</span><strong>{{ money(expenses_period_total) }}</strong></div><div class="{{ 'success' if cash_flow_net >= 0 else 'danger' }}"><span>Diferencia</span><strong>{{ money(cash_flow_net) }}</strong></div></div>
     <div class="payment-method-breakdown-v15 payment-method-breakdown-v22"><div><span>Efectivo</span><b>{{ money(payment_method_totals.cash) }}</b></div><div><span>Transferencia</span><b>{{ money(payment_method_totals.transfer) }}</b></div><div><span>Depósito</span><b>{{ money(payment_method_totals.deposit) }}</b></div><div><span>Tarjeta</span><b>{{ money(payment_method_totals.card) }}</b></div><div><span>Otro</span><b>{{ money(payment_method_totals.other) }}</b></div><div><span>Iniciales</span><b>{{ money(down_payment_total) }}</b></div></div>
-  </section>
-  {% endif %}
-
-  <div class="report-analytics-grid-v22">
-    <section class="surface report-panel-v19">
+  </section></div></details>{% endif %}<div class="report-analytics-grid-v22">
+    <details class="cg-disclosure"><summary>Capital y ganancia</summary><div class="cg-disclosure-body"><section class="surface report-panel-v19">
       <div class="report-section-head-v19"><div><span class="eyebrow">RENTABILIDAD</span><h2>Capital y ganancia</h2></div></div>
       <div class="report-money-stack-v19 report-money-stack-v22">
         <div><span>Total acordado</span><strong>{{ money(financed_total) }}</strong></div>
@@ -120,9 +88,9 @@
         <div><span>Ganancia pendiente · estimada</span><strong>{{ money(profit_pending) }}</strong></div>
       </div>
       {% if profit_untracked_count %}<p class="report-note-v19">{{ profit_untracked_count }} acuerdo{% if profit_untracked_count != 1 %}s{% endif %} sin costo base no entra{% if profit_untracked_count != 1 %}n{% endif %} en esta rentabilidad.</p>{% endif %}
-    </section>
+    </section></div></details>
 
-    <section class="surface report-panel-v19">
+    <details class="cg-disclosure"><summary>Riesgo y vencimientos</summary><div class="cg-disclosure-body"><section class="surface report-panel-v19">
       <div class="report-section-head-v19"><div><span class="eyebrow">CARTERA</span><h2>Riesgo y vencimientos</h2></div></div>
       <div class="report-metric-list-v19 report-metric-list-v22">
         <div><span>Clientes al día</span><strong>{{ current_clients_count }}</strong></div>
@@ -131,9 +99,9 @@
         <div><span>Acuerdos completados</span><strong>{{ completed_count }}</strong></div>
         <div><span>Tasa de cobro acumulada</span><strong>{{ '%.1f'|format(collection_rate_percent) }}%</strong></div>
       </div>
-    </section>
+    </section></div></details>
 
-    <section class="surface report-panel-v19">
+    <details class="cg-disclosure"><summary>Recargos por mora</summary><div class="cg-disclosure-body"><section class="surface report-panel-v19">
       <div class="report-section-head-v19"><div><span class="eyebrow">MORA</span><h2>Recargos</h2></div></div>
       <div class="report-metric-list-v19 report-metric-list-v22 compact">
         <div><span>Generada</span><strong>{{ money(late_fee_generated) }}</strong></div>
@@ -141,10 +109,26 @@
         <div class="danger"><span>Pendiente</span><strong>{{ money(late_fee_pending) }}</strong></div>
         <div><span>Morosidad</span><strong>{{ '%.1f'|format(overdue_ratio_percent) }}%</strong></div>
       </div>
-    </section>
-  </div>
-
-  <section class="surface report-panel-v19 report-inventory-analytics-v22">
+    </section></div></details>
+  </div><details class="cg-disclosure" ><summary>Ritmo comercial</summary><div class="cg-disclosure-body"><section class="surface report-panel-v19 report-period-panel-v22">
+      <div class="report-section-head-v19"><div><span class="eyebrow">{{ period_label|upper }}</span><h2>Ritmo comercial</h2></div></div>
+      <div class="report-period-metrics-v22">
+        <div><span>Acuerdos creados</span><strong>{{ period_agreement_count }}</strong><small>{{ money(period_agreement_total) }} financiados</small></div>
+        <div><span>Ventas directas</span><strong>{{ direct_sales_period_count }}</strong><small>{{ money(direct_sales_period_total) }} vendidos</small></div>
+        <div><span>Utilidad directa</span><strong>{{ money(direct_sales_period_profit) }}</strong><small>Ganancia cerrada del periodo</small></div>
+        <div><span>Ticket promedio</span><strong>{{ money(average_agreement) }}</strong><small>Por acuerdo creado</small></div>
+        <div><span>Pago promedio</span><strong>{{ money(average_payment) }}</strong><small>Por movimiento recibido</small></div>
+        <div><span>Clientes nuevos</span><strong>{{ period_new_clients }}</strong><small>Registrados en el periodo</small></div>
+        <div><span>Próximos 7 días</span><strong>{{ money(upcoming_total) }}</strong><small>Cuotas aún por cobrar</small></div>
+      </div>
+    </section></div></details><details class="cg-disclosure" ><summary>Detalle de gastos</summary><div class="cg-disclosure-body"><section class="surface report-panel-v19 report-expense-mix-v22">
+      <div class="report-section-head-v19"><div><span class="eyebrow">GASTOS · {{ period_label|upper }}</span><h2>¿En qué se fue el dinero?</h2></div><strong>{{ money(expenses_period_total) }}</strong></div>
+      <div class="report-expense-bars-v22">
+        {% for item in expense_category_totals %}
+        <div class="report-expense-bar-v22"><div><span>{{ item.label }}</span><strong>{{ money(item.amount) }}</strong></div><div class="report-progress-v22"><i style="width:{{ item.percent }}%"></i></div><small>{{ '%.1f'|format(item.percent) }}% del gasto</small></div>
+        {% else %}<p class="report-empty-v19">No hay gastos registrados en este periodo.</p>{% endfor %}
+      </div>
+    </section></div></details></section><section class="cg-report-view" id="report-inventory" data-report-view="inventory" aria-labelledby="report-inventory-tab"><section class="surface report-panel-v19 report-inventory-analytics-v22">
     <div class="report-section-head-v19 report-section-head-v22"><div><span class="eyebrow">INVENTARIO · DEALER</span><h2>Capital colocado en vehículos</h2><p>Qué tienes disponible, bloqueado y cuánto margen queda por capturar.</p></div><a class="report-inline-link-v20" href="{{ url_for('main.assets') }}">Abrir inventario</a></div>
     <div class="report-inventory-status-v22">
       <div class="is-available"><span>Disponibles</span><strong>{{ inventory_status_counts.available }}</strong></div>
@@ -168,28 +152,9 @@
         {% else %}<p class="report-empty-v19">Agrega precio de venta a tus vehículos para medir oportunidades.</p>{% endfor %}
       </div>
     </div>
-  </section>
-
-  <div class="report-breakdown-grid-v22">
-    <section class="surface report-panel-v19 report-expense-mix-v22">
-      <div class="report-section-head-v19"><div><span class="eyebrow">GASTOS · {{ period_label|upper }}</span><h2>¿En qué se fue el dinero?</h2></div><strong>{{ money(expenses_period_total) }}</strong></div>
-      <div class="report-expense-bars-v22">
-        {% for item in expense_category_totals %}
-        <div class="report-expense-bar-v22"><div><span>{{ item.label }}</span><strong>{{ money(item.amount) }}</strong></div><div class="report-progress-v22"><i style="width:{{ item.percent }}%"></i></div><small>{{ '%.1f'|format(item.percent) }}% del gasto</small></div>
-        {% else %}<p class="report-empty-v19">No hay gastos registrados en este periodo.</p>{% endfor %}
-      </div>
-    </section>
-
-    <section class="surface report-panel-v19 report-purchases-v20 report-purchases-v22">
+  </section><details class="cg-disclosure" ><summary>Compras del periodo</summary><div class="cg-disclosure-body"><section class="surface report-panel-v19 report-purchases-v20 report-purchases-v22">
       <div class="report-section-head-v19"><div><span class="eyebrow">COMPRAS · {{ period_label|upper }}</span><h2>Reposición de inventario</h2></div><a class="report-inline-link-v20" href="{{ url_for('main.purchases') }}">Ver compras</a></div>
       <div class="report-purchases-summary-v20 report-purchases-summary-v22"><div><span>Invertido</span><strong>{{ money(purchases_period_invested) }}</strong></div><div class="profit"><span>Ganancia potencial</span><strong>{{ money(purchases_period_expected_profit) }}</strong></div></div>
       <div class="report-purchase-insight-v22"><span>Relación inversión / cobro</span><strong>{% if business_income_total > 0 %}{{ '%.1f'|format((purchases_period_invested / business_income_total) * 100) }}%{% else %}—{% endif %}</strong><small>Cuánto de los ingresos equivale a compras del periodo.</small></div>
-    </section>
-  </div>
-
-  <section class="surface report-panel-v19 report-activity-v19 report-activity-v22">
-    <div class="report-section-head-v19"><div><span class="eyebrow">MOVIMIENTOS</span><h2>Actividad reciente</h2></div></div>
-    {% if recent_activity %}<div class="report-activity-list-v19">{% for item in recent_activity %}<a href="{{ item.url }}" class="report-activity-row-v19"><span class="report-activity-icon-v19 {{ item.kind }}">{% if item.kind == 'agreement' %}{{ icon('contract', 18) }}{% elif item.kind == 'sale' %}{{ icon('home-sales', 18) }}{% elif item.kind == 'expense' %}{{ icon('wallet', 18) }}{% else %}{{ icon('cash-stack', 18) }}{% endif %}</span><span class="report-activity-copy-v19"><strong>{{ item.label }} · {{ item.client }}</strong><small>{{ item.detail }} · {{ item.date }}</small></span><b>{{ money(item.amount) }}</b></a>{% endfor %}</div>{% else %}<p class="report-empty-v19">Todavía no hay movimientos para mostrar.</p>{% endif %}
-  </section>
-</section>
+    </section></div></details></section></section>
 {% endblock %}

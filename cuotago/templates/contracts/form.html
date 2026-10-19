@@ -187,11 +187,16 @@
         <label><input type="radio" name="deal_type" value="rental" {{ 'checked' if form.get('deal_type')=='rental' }}><span>Préstamo / alquiler</span></label>
       </div>
 
-      <div class="wizard-price-row">
+      
+
+      <details class="cg-disclosure" ><summary>Costo y margen de ganancia</summary><div class="cg-disclosure-body"><div class="wizard-price-row">
         <div><span>Costo detectado</span><strong id="detectedAssetName">Selecciona un artículo</strong><small>Se toma del inventario. El precio de venta registrado precarga tu margen.</small></div>
         <label class="field compact-price"><span>Costo por unidad</span><input id="unitPrice" type="number" step="0.01" min="0.01" name="unit_price" required value="{{ form.get('unit_price','') }}" placeholder="50000" inputmode="decimal"></label>
-      </div>
-
+      </div><div class="profit-margin-line">
+        <div class="profit-margin-copy"><strong>Margen de ganancia</strong><span>Se calcula con el precio de Inventario. Puedes ajustarlo para este acuerdo.</span></div>
+        <label class="profit-margin-input" aria-label="Margen de ganancia"><input id="profitMarginPercent" type="number" min="0" max="1000" step="0.01" name="profit_margin_percent" value="{{ form.get('profit_margin_percent','0') }}" inputmode="decimal"><b>%</b></label>
+        <strong class="profit-margin-money" id="profitAmountPreview">+RD$0</strong>
+      </div></div></details>
       <div class="ag-plan-row"><div>
       <div class="wizard-label wizard-label-spaced">Número de cuotas</div>
       <div class="quick-pick-row" aria-label="Cuotas rápidas">
@@ -210,13 +215,16 @@
 
       </div></div>
 
-      <div class="profit-margin-line">
-        <div class="profit-margin-copy"><strong>Margen de ganancia</strong><span>Se calcula con el precio de Inventario. Puedes ajustarlo para este acuerdo.</span></div>
-        <label class="profit-margin-input" aria-label="Margen de ganancia"><input id="profitMarginPercent" type="number" min="0" max="1000" step="0.01" name="profit_margin_percent" value="{{ form.get('profit_margin_percent','0') }}" inputmode="decimal"><b>%</b></label>
-        <strong class="profit-margin-money" id="profitAmountPreview">+RD$0</strong>
-      </div>
+      
 
 
+      <label class="field"><span>Inicial</span><input id="downPayment" type="number" step="0.01" min="0" name="down_payment" value="{{ form.get('down_payment','0') }}" placeholder="0" inputmode="decimal"><small>Si colocas una inicial, CuotaGo genera su recibo automáticamente.</small></label>
+            <div class="field-span-2 down-payment-meta" data-down-payment-meta hidden>
+              <div class="form-grid two compact-grid">
+                <label class="field"><span>Método de la inicial</span><select name="down_payment_method"><option value="cash" {{ 'selected' if form.get('down_payment_method','cash')=='cash' }}>Efectivo</option><option value="transfer" {{ 'selected' if form.get('down_payment_method')=='transfer' }}>Transferencia</option><option value="deposit" {{ 'selected' if form.get('down_payment_method')=='deposit' }}>Depósito</option><option value="card" {{ 'selected' if form.get('down_payment_method')=='card' }}>Tarjeta</option><option value="other" {{ 'selected' if form.get('down_payment_method')=='other' }}>Otro</option></select></label>
+                <label class="field"><span>Referencia <small>(opcional)</small></span><input name="down_payment_reference" maxlength="120" value="{{ form.get('down_payment_reference','') }}" placeholder="Transferencia, depósito..."></label>
+              </div>
+            </div>
       <label class="field wizard-date-field"><span>Primer pago *</span><input id="firstDueDate" type="date" name="first_due_date" required value="{{ form.get('first_due_date', default_due) }}"></label>
 
       <input id="totalAmount" type="hidden" name="total_amount" value="{{ form.get('total_amount','') }}">
@@ -225,17 +233,12 @@
       <div class="payment-summary simple-summary" id="schedulePreview"><span>Plan calculado</span><strong>Selecciona artículo, precio y cuotas.</strong></div>
 
       <details class="wizard-more-options">
-        <summary>Opciones adicionales</summary>
+        <summary>Entrega, mora y notas</summary>
         <div class="wizard-more-body">
           <div class="form-grid two compact-grid">
-            <label class="field"><span>Inicial</span><input id="downPayment" type="number" step="0.01" min="0" name="down_payment" value="{{ form.get('down_payment','0') }}" placeholder="0" inputmode="decimal"><small>Si colocas una inicial, CuotaGo genera su recibo automáticamente.</small></label>
+            
             <label class="field"><span>Fecha de entrega</span><input id="startDate" type="date" name="start_date" value="{{ form.get('start_date', default_start) }}"></label>
-            <div class="field-span-2 down-payment-meta" data-down-payment-meta hidden>
-              <div class="form-grid two compact-grid">
-                <label class="field"><span>Método de la inicial</span><select name="down_payment_method"><option value="cash" {{ 'selected' if form.get('down_payment_method','cash')=='cash' }}>Efectivo</option><option value="transfer" {{ 'selected' if form.get('down_payment_method')=='transfer' }}>Transferencia</option><option value="deposit" {{ 'selected' if form.get('down_payment_method')=='deposit' }}>Depósito</option><option value="card" {{ 'selected' if form.get('down_payment_method')=='card' }}>Tarjeta</option><option value="other" {{ 'selected' if form.get('down_payment_method')=='other' }}>Otro</option></select></label>
-                <label class="field"><span>Referencia <small>(opcional)</small></span><input name="down_payment_reference" maxlength="120" value="{{ form.get('down_payment_reference','') }}" placeholder="Transferencia, depósito..."></label>
-              </div>
-            </div>
+
             <label class="field"><span>Mora por día <small>(opcional)</small></span><input id="dailyLateInterest" type="number" step="0.01" min="0" name="daily_late_interest" value="{{ form.get('daily_late_interest','0') }}" placeholder="0" inputmode="decimal"><small>Puedes crear el acuerdo sin mora y activarla más adelante.</small></label>
             <label class="field field-span-2"><span>Nota</span><textarea name="notes" id="contractNotes" rows="2" placeholder="Opcional">{{ form.get('notes','') }}</textarea></label>
           </div>

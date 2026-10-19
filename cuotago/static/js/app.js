@@ -1,26 +1,17 @@
 (() => {
   const THEME_KEY = 'cuotago-theme';
   const PWA_LAUNCHER_SIZE_KEY = 'cuotago-pwa-launcher-size';
-  const DEFAULT_PWA_LAUNCHER_SIZE = 72;
+  const DEFAULT_PWA_LAUNCHER_SIZE = 86;
   const root = document.documentElement;
   const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
   const IS_STANDALONE = root.classList.contains('is-standalone-app') || window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
 
-  /* The viewport already disables pinch zoom. Keep only Safari's native gesture guard in
-     standalone mode; avoid document-wide touchmove/touchend blockers that slow scrolling. */
-  if (IS_STANDALONE) {
-    const stopGesture = (event) => event.preventDefault();
-    document.addEventListener('gesturestart', stopGesture, { passive: false });
-    document.addEventListener('gesturechange', stopGesture, { passive: false });
-    document.addEventListener('gestureend', stopGesture, { passive: false });
-  }
-
   const normalizePwaLauncherSize = (value) => {
     const number = Number(value);
     if (!Number.isFinite(number)) return DEFAULT_PWA_LAUNCHER_SIZE;
-    return Math.max(58, Math.min(78, Math.round(number)));
+    return Math.max(68, Math.min(96, Math.round(number)));
   };
 
   const readPwaLauncherSize = () => {
@@ -41,7 +32,7 @@
   const applyPwaLauncherSize = (value, persist = true) => {
     const size = normalizePwaLauncherSize(value);
     root.style.setProperty('--pwa-launcher-button-size', `${size}px`);
-    root.style.setProperty('--pwa-launcher-glyph-size', `${Math.round(size * .69)}px`);
+    root.style.setProperty('--pwa-launcher-glyph-size', `${Math.round(size * .73)}px`);
     root.dataset.pwaLauncherSize = String(size);
     syncPwaLauncherSizeControls(size);
     if (persist) {
@@ -1202,73 +1193,57 @@
     loadMonth().then(()=>{choosePreferredDay(true);render();});
   };
 
-  const runNotificationDemo = async (button) => {
-    if (button?.dataset.demoBusy === '1') return;
-    if (button) {
-      button.dataset.demoBusy = '1';
-      button.disabled = true;
-    }
-    const originalLabel = button?.textContent.trim() || 'Probar';
-
-    // Request system notification permission immediately from this user gesture.
-    // Do not put an await before this subscription flow; iOS requires the gesture.
-    let subscription = null;
-    let remoteError = null;
-    let remotePushPromise = null;
+  let demoBusy = false;
+  let demoEpoch = 0;
+  let demoCooldown = 0;
+  const setDemoBusy = busy => {
+    demoBusy = busy;
+    document.querySelectorAll('[data-notification-demo]').forEach(button => {
+      button.disabled = busy; button.dataset.demoBusy = busy ? '1' : '0';
+      button.setAttribute('aria-busy', String(busy));
+      button.textContent = busy ? 'Enviando...' : 'Enviar prueba';
+    });
+  };
+  const withDemoTimeout = (promise, ms, controller) => {
+    let timer;
+    return Promise.race([promise, new Promise((_,reject) => {
+      timer = window.setTimeout(() => { controller?.abort(); reject(new Error('La prueba tardó demasiado. Revisa la conexión.')); }, ms);
+    })]).finally(() => window.clearTimeout(timer));
+  };
+  const runNotificationDemo = async () => {
+    if (demoBusy || Date.now() < demoCooldown) return;
+    const epoch = ++demoEpoch;
+    setDemoBusy(true);
+    // Both calls start inside the user gesture, before any await (iOS).
+    const audio = window.CuotaGoNotificationAudio?.preview();
+    const subscriptionPromise = subscribePushFromUserGesture();
     try {
-      setPushMessage('Activando notificaciones del sistema...', 'info');
-      subscription = await subscribePushFromUserGesture();
-      // Fire the real Web Push request immediately after the subscription exists.
-      // Local sound/UI work continues while the provider delivers the notification.
-      remotePushPromise = apiJson('/api/push/test', {
-        method: 'POST',
-        body: JSON.stringify({ endpoint: subscription.endpoint }),
-      });
+      setLocalAlertsEnabled(true); updateLocalAlertStatus();
+      showInAppPaymentAlert({type:'overdue', title:'Notificación de prueba', body:'Este es un ejemplo. No registra ningún cobro.', url:'/notifications'}, {forceSound:false});
+      setPushMessage('Enviando prueba...', 'info');
+      const subscription = await withDemoTimeout(subscriptionPromise, 12000);
+      if (epoch !== demoEpoch) return;
+      const controller = new AbortController();
+      const data = await withDemoTimeout(apiJson('/api/push/test', {
+        method:'POST', body:JSON.stringify({endpoint:subscription.endpoint}), signal:controller.signal,
+      }), 10000, controller);
+      if (epoch !== demoEpoch) return;
+      setPushMessage(data.message || 'Prueba enviada.', 'success');
     } catch (error) {
-      remoteError = error;
-    }
-
-    try {
-      setLocalAlertsEnabled(true);
-      updateLocalAlertStatus();
-      const audioUnlockPromise = unlockAlertAudio();
-
-      showInAppPaymentAlert({
-        type: 'overdue',
-        title: 'Pago atrasado',
-        body: 'Pago de Cliente de ejemplo atrasado · RD$2,500.00',
-        url: '/collections',
-      }, { forceSound: true });
-
-      if (subscription) {
-        const data = await remotePushPromise;
-        await audioUnlockPromise.catch(() => {});
-        setPushMessage(data.message || 'Notificación enviada ahora.', 'success');
-        document.querySelectorAll('[data-local-alert-copy]').forEach((el) => {
-          el.textContent = 'Listo. La prueba Push se envió inmediatamente al sistema.';
-        });
-        if (button) button.textContent = 'Enviada ✓';
-        await updatePushUI();
-      } else {
-        const message = await friendlyPushError(remoteError || new Error('No se pudo activar Web Push.'));
-        setPushMessage(message, 'error');
-        document.querySelectorAll('[data-local-alert-copy]').forEach((el) => {
-          el.textContent = 'La alerta dentro de CuotaGo funciona, pero falta habilitar el aviso con la app cerrada.';
-        });
-        if (button) button.textContent = 'Revisar';
-      }
-    } catch (error) {
-      setPushMessage(await friendlyPushError(error), 'error');
-      if (button) button.textContent = 'Reintentar';
+      if (epoch === demoEpoch) setPushMessage(await friendlyPushError(error), 'error');
     } finally {
-      window.setTimeout(() => {
-        if (!button) return;
-        button.disabled = false;
-        button.dataset.demoBusy = '0';
-        button.textContent = originalLabel;
-      }, subscription ? 1800 : 1300);
+      // Do not await an OS permission dialog or an audio promise here.
+      Promise.resolve(audio).catch(() => {});
+      if (epoch === demoEpoch) {
+        demoCooldown = Date.now() + 3000;
+        window.setTimeout(() => { if (epoch === demoEpoch) setDemoBusy(false); },3000);
+      }
     }
   };
+  window.addEventListener('pagehide', () => {
+    demoEpoch += 1; setDemoBusy(false); pendingAlertSound = false;
+    window.clearTimeout(inAppAlertTimer); document.querySelector('.inapp-alert-host')?.remove();
+  });
 
   const normalizeAdminConfirmation = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 

@@ -1,10 +1,10 @@
 {% from 'macros/icons.html' import icon %}
-{% set ui_asset_version = config.get('ASSET_VERSION', '1.26.8-ui-v78') ~ '-layout79' %}
+{% set ui_asset_version = config.get('ASSET_VERSION', '1.26.8-ui-v78') ~ '-layout80' %}
 <!doctype html>
 <html lang="es" data-theme="light" data-theme-choice="system" data-auth-screen="{{ '1' if request.blueprint == 'auth' else '0' }}">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="cuotago-push-enabled" content="{{ '1' if config.get('PUSH_NOTIFICATIONS_ENABLED') and config.get('VAPID_PUBLIC_KEY') else '0' }}">
@@ -51,12 +51,12 @@
       document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.setAttribute('content', dark ? 'black-translucent' : 'default');
 
       const launcherSizeKey = 'cuotago-pwa-launcher-size';
-      let launcherSize = 72;
-      try { launcherSize = Number(localStorage.getItem(launcherSizeKey) || 72); } catch (_) {}
-      if (!Number.isFinite(launcherSize)) launcherSize = 72;
-      launcherSize = Math.max(58, Math.min(78, launcherSize));
+      let launcherSize = 86;
+      try { launcherSize = Number(localStorage.getItem(launcherSizeKey) || 86); } catch (_) {}
+      if (!Number.isFinite(launcherSize)) launcherSize = 86;
+      launcherSize = Math.max(68, Math.min(96, launcherSize));
       root.style.setProperty('--pwa-launcher-button-size', `${launcherSize}px`);
-      root.style.setProperty('--pwa-launcher-glyph-size', `${Math.round(launcherSize * .69)}px`);
+      root.style.setProperty('--pwa-launcher-glyph-size', `${Math.round(launcherSize * .73)}px`);
       root.dataset.pwaLauncherSize = String(launcherSize);
     })();
   </script>
@@ -134,6 +134,10 @@
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-light.png') }}">
   <link rel="apple-touch-startup-image" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='splash/750x1334-dark.png') }}">
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;display=swap"></noscript>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ ui_asset_version }}">
   {% block styles %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/ui.css',v=ui_asset_version) }}">
@@ -141,9 +145,10 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dealer.css', v=ui_asset_version) }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/workspace.css', v=ui_asset_version) }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-v79.css', v=ui_asset_version) }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/simple-v80.css', v=ui_asset_version) }}">
 </head>
 {% set is_workbench = current_user.is_authenticated and request.blueprint != 'auth' and request.endpoint not in ['main.dashboard','admin.dashboard'] %}
-<body data-notification-scope="{{ current_user.id|default('') if current_user.is_authenticated else '' }}" class="ui-v67 cg-layout-v79 {% if current_user.is_authenticated and request.blueprint != 'auth' %}app-authenticated{% else %}auth-shell{% endif %} {% if is_workbench %}workbench-shell-v75{% endif %} {% block body_class %}{% endblock %}" data-can-collect="{{ '1' if current_user.is_authenticated and request.blueprint != 'auth' and can('collections.view') else '0' }}">
+<body data-notification-scope="{{ current_user.id|default('') if current_user.is_authenticated else '' }}" class="ui-v67 cg-layout-v79 cg-simple-v80 {% if current_user.is_authenticated and request.blueprint != 'auth' %}app-authenticated{% else %}auth-shell{% endif %} {% if is_workbench %}workbench-shell-v75{% endif %} {% block body_class %}{% endblock %}" data-can-collect="{{ '1' if current_user.is_authenticated and request.blueprint != 'auth' and can('collections.view') else '0' }}">
   <div class="boot-splash" id="bootSplash" aria-hidden="true">
     <div class="boot-splash-inner">
       <img class="boot-splash-logo brand-logo-light" src="{{ url_for('static', filename='icons/logo-full-light.png') }}?v={{ ui_asset_version }}" alt="{{ app_name }}">
@@ -183,7 +188,7 @@
       <span class="workspace-module-mark-v75" aria-hidden="true">{{ icon(wb_icon,18) }}</span>
       <strong class="workspace-module-name-v75">{{ wb_name }}</strong>
       {% if current_user.role != 'superadmin' %}
-      <nav class="workspace-module-nav-v75" aria-label="Secciones de {{ wb_name }}">
+      <details class="cg-context-menu"><summary aria-label="Secciones del módulo">Secciones <span aria-hidden="true">⌄</span></summary><nav class="workspace-module-nav-v75" aria-label="Secciones de {{ wb_name }}">
         {% if wb_name == 'Inventario' %}
           <a href="{{ url_for('main.assets') }}" {% if ep == 'main.assets' %}aria-current="page"{% endif %}>Productos</a>
           {% if can('purchases.view') %}<a href="{{ url_for('main.purchases') }}">Compras</a>{% endif %}
@@ -227,7 +232,7 @@
           {% if can('team.manage') %}<a href="{{ url_for('main.team_settings') }}" {% if ep == 'main.team_settings' %}aria-current="page"{% endif %}>Equipo</a>{% endif %}
           {% if can('audit.view') %}<a href="{{ url_for('main.audit_log') }}" {% if ep == 'main.audit_log' %}aria-current="page"{% endif %}>Auditoría</a>{% endif %}
         {% endif %}
-      </nav>
+      </nav></details>
       {% endif %}
     </div>
     <div class="workspace-topbar-tools-v75">
@@ -297,6 +302,7 @@
         </div>
         <button type="button" class="profile-close" id="profileMenuClose" aria-label="Cerrar menú">×</button>
       </div>
+      <nav class="cg-drawer-context" data-context-drawer aria-label="Secciones del módulo" hidden></nav>
       <div class="drawer-shortcuts-v72">
         {% if current_user.role != 'superadmin' %}
         <button type="button" class="drawer-shortcut-v72" data-global-search-open data-close-profile-menu>
@@ -385,6 +391,7 @@
   <script src="{{ url_for('static', filename='js/notification-audio.js', v=ui_asset_version) }}" defer></script>
   <script src="{{ url_for('static', filename='js/app.js') }}?v={{ ui_asset_version }}" defer></script>
   <script src="{{ url_for('static', filename='js/dealer.js', v=ui_asset_version) }}" defer></script>
+  <script src="{{ url_for('static', filename='js/simple-v80.js', v=ui_asset_version) }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

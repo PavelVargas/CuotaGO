@@ -88,10 +88,10 @@
       <div class="dlr-subtotal"><span>Total de trabajos y gastos</span><strong>{{ money(expenses_total) }}</strong></div>
     </section>
   </div>
-  <section class="dlr-panel" id="activity">
+  <details class="cg-disclosure"><summary>Historial de actividad</summary><div class="cg-disclosure-body"><section class="dlr-panel" id="activity">
     {{ section_heading('Actividad de la unidad','history') }}
     <div class="dlr-timeline">{% for item in activity %}{% if item.url %}<a href="{{ item.url }}" class="dlr-timeline-row">{% else %}<div class="dlr-timeline-row">{% endif %}<span class="dlr-timeline-mark">{{ icon('history',16) }}</span><span><strong>{{ item.title }}</strong><small>{{ item.detail }}</small></span><time>{{ item.at.strftime('%d/%m/%Y') if item.at else '' }}</time>{% if item.url %}</a>{% else %}</div>{% endif %}{% endfor %}</div>
-  </section>
+  </section></div></details>
 </section>
 {% if can('inventory.manage') %}
 <dialog class="dlr-dialog" id="assetInvestmentDialog" aria-labelledby="assetInvestmentTitle">

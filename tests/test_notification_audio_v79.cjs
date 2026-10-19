@@ -21,7 +21,7 @@ function harness({saved=null, blocked=false, supported=true, user='17'}={}) {
     async resume(){this.state='running';}
   }
   const document={body:{dataset:{notificationScope:user}},readyState:'loading',visibilityState:'visible',querySelectorAll:()=>[],addEventListener:(name,fn)=>{listeners[name]=fn;}};
-  const window={AudioContext:supported ? Audio : undefined,addEventListener:(name,fn)=>{listeners[name]=fn;}};
+  const window={setTimeout,clearTimeout,AudioContext:supported ? Audio : undefined,addEventListener:(name,fn)=>{listeners[name]=fn;}};
   const localStorage={getItem(k){if(blocked)throw Error('blocked');return store.get(k)||null;},setItem(k,v){if(blocked)throw Error('blocked');store.set(k,v);}};
   vm.runInNewContext(source,{window,document,localStorage,Date,console});
   return {api:window.CuotaGoNotificationAudio,oscillators,gains,contexts,document,listeners,store,key};

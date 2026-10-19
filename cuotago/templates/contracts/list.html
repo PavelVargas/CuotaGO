@@ -12,18 +12,18 @@
     {% if can('contracts.create') %}<a class="btn btn-primary" href="{{ url_for('main.contract_new') }}">{{ icon('plus',17) }} Nuevo acuerdo</a>{% endif %}
   </div>
 
-  <div class="agreements-overview-v23">
+  <details class="cg-disclosure" ><summary>Resumen de esta página <span class="cg-count">{{ pagination.total }} acuerdos encontrados</span></summary><div class="cg-disclosure-body"><div class="agreements-overview-v23">
     <article class="surface"><span>Mostrados</span><strong>{{ pagination.total }}</strong><small>{{ 'Resultado filtrado' if status or q else 'Acuerdos registrados' }}</small></article>
     <article class="surface is-primary"><span>Activos en pantalla</span><strong>{{ visible_active }}</strong><small>Con saldo abierto</small></article>
     <article class="surface {% if visible_overdue %}is-danger{% endif %}"><span>Con atraso</span><strong>{{ visible_overdue }}</strong><small>Necesitan seguimiento</small></article>
     <article class="surface"><span>Saldo visible</span><strong>{{ money(visible_balance) }}</strong><small>Acuerdos activos mostrados</small></article>
-  </div>
+  </div></div></details>
 
   <section class="surface agreements-toolbar-v23">
     <form method="get" class="agreements-search-v23">
       <input type="hidden" name="status" value="{{ status }}">
       {{ icon('search',18) }}
-      <input name="q" value="{{ q }}" placeholder="Cliente, teléfono, vehículo o código" autocomplete="off">
+      <input name="q" value="{{ q }}" placeholder="Buscar acuerdo" aria-label="Buscar por cliente, teléfono, artículo o código" type="search" autocomplete="off">
       {% if q %}<a href="{{ url_for('main.contracts', status=status) }}" aria-label="Limpiar búsqueda">×</a>{% endif %}
     </form>
     <nav class="agreement-status-tabs-v23" aria-label="Filtrar acuerdos">
@@ -44,16 +44,9 @@
         <span class="status-pill status-{{ contract.status }}">{{ contract_status_label(contract.status) }}</span>
       </div>
 
-      <div class="agreement-progress-v23"><div><span>Progreso</span><strong>{{ '%.0f'|format(contract.progress_percent) }}%</strong></div><div class="progress-track"><span style="width: {{ contract.progress_percent }}%"></span></div></div>
-
-      <div class="agreement-money-v23">
-        <div><span>Total</span><strong>{{ money(contract.total_amount) }}</strong></div>
-        <div class="is-success"><span>Pagado</span><strong>{{ money(contract.paid_total) }}</strong></div>
-        <div class="{% if contract.balance > 0 %}is-primary{% endif %}"><span>Pendiente</span><strong>{{ money(contract.balance) }}</strong></div>
-      </div>
-
+      <div class="cg-agreement-balance"><span>Saldo pendiente</span><strong>{{ money(contract.balance) }}</strong><span class="cg-open-record">Ver acuerdo ›</span></div>
       <div class="agreement-next-v23">
-        <span>{{ deal_type_label(contract.deal_type) }}</span>
+        
         {% if contract.next_installment %}<strong class="{% if contract.next_installment.due_date < today %}is-danger{% endif %}">{{ 'Vencido' if contract.next_installment.due_date < today else 'Próximo' }} · {{ contract.next_installment.due_date.strftime('%d/%m/%Y') }} · {{ money(contract.next_installment.remaining) }}</strong>{% else %}<strong>Sin pagos pendientes</strong>{% endif %}
       </div>
       {% if contract.late_fee_balance > 0 %}<div class="agreement-late-v23">Mora pendiente <strong>{{ money(contract.late_fee_balance) }}</strong></div>{% endif %}
