@@ -1,0 +1,4 @@
+{% extends 'operations/base.html' %}
+{% block operation_breadcrumb %}<a href="{{ url_for('main.purchases') }}">Compras</a><span aria-hidden="true"> / </span><a href="{{ url_for('ops.orders') }}">Órdenes</a>{% endblock %}
+{% block styles %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static',filename='css/purchase-orders-v84.css',v=config.get('ASSET_VERSION','v84')) }}">{% endblock %}
+{% block scripts %}{{ super() }}<script src="{{ url_for('static',filename='js/purchase-orders-v84.js',v=config.get('ASSET_VERSION','v84')) }}" defer></script>{% endblock %}

@@ -1,0 +1,16 @@
+/* Remove decorative dividers only inside modules. Keep inputs, focus rings,
+   document tables, totals, active navigation and the four-column home intact. */
+@media screen {
+  body.workbench-shell-v75 .page-shell :is(.page-head,.sls-header,.dlr-header,.ops-command-v76,.inventory-board-toolbar-v75,.purchase-history-head-v23,.client-editor-actions-v23,.dlr-client-actions,.dlr-notes,.dlr-price-line,.agreement-next-v23,.settings-user-v61) {
+    border-top:0!important;border-bottom:0!important;
+  }
+  body.workbench-shell-v75 .page-shell :is(.ops-metrics-v76,.inventory-summary-strip-v75,.ops-table-shell-v76,.ops-empty-v76) {border-top:0!important;border-bottom:0!important;}
+  body.workbench-shell-v75 .page-shell :is(.ops-metrics-v76,.inventory-summary-strip-v75) article {border:0!important;}
+  body.workbench-shell-v75 .page-shell :is(.ops-command-v76,.inventory-board-toolbar-v75) {margin-bottom:12px!important;}
+  body.workbench-shell-v75 .page-shell :is(.dlr-timeline-row,.dlr-operation,.dlr-investment-row,.dlr-document-row,.report-attention-list-v23>a,.notification-center-row-v61,.dlr-notes-list article) {border-top:0!important;border-bottom:0!important;}
+  body.workbench-shell-v75 .page-shell :is(.ops-table-row-v76,.inventory-item-v75,.purchase-record-v76,.purchase-line-v76) {border-bottom-color:transparent!important;}
+  body.workbench-shell-v75 .page-shell :is(.ops-table-row-v76,.inventory-item-v75,.purchase-record-v76):nth-child(even) {background:color-mix(in srgb,var(--surface-2) 48%,var(--surface))!important;}
+  body.workbench-shell-v75 .page-shell .op-panel {border:0;box-shadow:0 3px 18px rgba(20,35,55,.035);}
+  body.workbench-shell-v75 .page-shell .op :is(.op-row,td) {border-bottom:0;}
+  body.workbench-shell-v75 .page-shell .op tbody tr:nth-child(even) {background:color-mix(in srgb,var(--surface-2) 48%,var(--surface));}
+}

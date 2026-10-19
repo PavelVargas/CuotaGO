@@ -36,8 +36,8 @@ def test_purchase_receipt_retries_do_not_duplicate_stock(app_data):
     with app.app_context():
         supplier=Supplier(organization_id=d['org'],name='QA proveedor');db.session.add(supplier);db.session.commit();sid=supplier.id
     key=uuid.uuid4().hex;payload={'supplier_id':sid,'line_asset_id':str(d['asset']),'line_name':'','line_kind':'car','line_quantity':'3','line_unit_cost':'900'}
-    assert post(client,'/operations/orders/new',payload,key).status_code==302
-    assert post(client,'/operations/orders/new',payload,key).status_code==302
+    assert post(client,'/operations/orders/new',payload,key).status_code==303
+    assert post(client,'/operations/orders/new',payload,key).status_code==303
     with app.app_context():
         order=PurchaseOrder.query.one();oid=order.id;line=order.lines[0].id
         assert db.session.get(Asset,d['asset']).quantity_total==1

@@ -1,0 +1,25 @@
+{% macro order_line(row, assets) -%}
+<article class="po-line" data-order-line data-existing="{{ '1' if row.asset_id else '0' }}">
+  <input type="hidden" name="line_id" value="{{ row.line_id or '' }}">
+  <input type="hidden" name="line_key" value="{{ row.key }}">
+  <input type="hidden" name="line_clear_photo" value="0">
+  <input type="hidden" name="line_asset_id" value="{{ row.asset_id or '' }}">
+  <div class="po-photo-wrap">
+    <label class="po-photo" title="Seleccionar foto">
+      <img {% if row.photo %}src="{{ row.photo }}"{% endif %} alt="Foto de {{ row.name or 'producto nuevo' }}" data-photo-preview {% if not row.photo %}hidden{% endif %}>
+      <span data-photo-placeholder {% if row.photo %}hidden{% endif %} aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="m5 16 5-5 4 4 2-2 3 3"/><circle cx="16" cy="9" r="1"/></svg></span>
+      <span class="po-photo-tag">Foto</span>
+      <input type="file" name="photo_{{ row.key }}" accept="image/jpeg,image/png,image/webp" data-photo-input aria-label="Foto del producto">
+    </label>
+    <button type="button" class="po-text-button" data-clear-photo {% if not row.photo %}hidden{% endif %}>Quitar foto</button>
+  </div>
+  <div class="po-product">
+    <span class="po-eyebrow" data-product-origin>{{ 'Inventario' if row.asset_id else 'Producto nuevo' }}</span>
+    <label class="po-name-field">Producto<input name="line_name" value="{{ row.name or '' }}" maxlength="140" minlength="2" placeholder="Nombre del producto o vehículo" {% if row.asset_id %}readonly{% endif %}></label>
+    <label class="po-kind-field" {% if row.asset_id %}hidden{% endif %}>Tipo<select name="line_kind"><option value="other" {{ 'selected' if row.kind in ['other','otro',''] }}>Producto</option><option value="car" {{ 'selected' if row.kind=='car' }}>Vehículo</option><option value="motorcycle" {{ 'selected' if row.kind=='motorcycle' }}>Motocicleta</option><option value="phone" {{ 'selected' if row.kind=='phone' }}>Celular</option><option value="computer" {{ 'selected' if row.kind=='computer' }}>Computadora</option><option value="appliance" {{ 'selected' if row.kind=='appliance' }}>Electrodoméstico</option></select></label>
+    <button type="button" class="po-text-button" data-change-product>Cambiar producto</button>
+  </div>
+  <div class="po-line-numbers"><label>Cantidad<input type="number" inputmode="numeric" name="line_quantity" min="1" max="1000000" step="1" value="{{ row.quantity or 1 }}" required></label><label>Costo unitario<input type="number" inputmode="decimal" name="line_unit_cost" min="0" max="9999999999.99" step="0.01" value="{{ row.unit_cost if row.unit_cost is not none else '' }}" placeholder="0.00"></label></div>
+  <div class="po-line-end"><span class="po-line-subtotal"><small>Subtotal</small><output data-line-total>0.00</output></span><button type="button" class="po-remove" data-remove-line aria-label="Quitar producto" title="Quitar producto">×</button></div>
+</article>
+{%- endmacro %}

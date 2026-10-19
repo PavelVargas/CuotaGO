@@ -19,7 +19,7 @@ INDEXES = [
 ]
 
 
-def migrate(engine):
+def _migrate_v83(engine):
     from .extensions import db
     from .operations import models
     if engine.dialect.name != 'postgresql':
@@ -41,13 +41,26 @@ def migrate(engine):
     return True
 
 
-def is_current(engine):
+def _is_v83_current(engine):
     if not inspect(engine).has_table('cuotago_schema_migrations'):
         return False
     with engine.connect() as c:
         return bool(c.execute(text('SELECT 1 FROM cuotago_schema_migrations WHERE version=:v'), {'v': VERSION}).scalar())
 
 
+def migrate(engine):
+    # Keep the established launcher/CLI compatible; upgrading v83 also applies
+    # the additive order-editor migration, even when v83 was already recorded.
+    changed = _migrate_v83(engine)
+    from .migrations_v84 import migrate as migrate_orders
+    return migrate_orders(engine) or changed
+
+
+def is_current(engine):
+    from .migrations_v84 import is_current as orders_current
+    return _is_v83_current(engine) and orders_current(engine)
+
+
 def assert_current(engine):
     if not is_current(engine):
-        raise RuntimeError('Falta migracion v83. Hacer respaldo y ejecutar: flask --app tools.maintenance_app migrate-v83. No se modifico la base.')
+        raise RuntimeError('Falta preparar el esquema de preproduccion v84. Hacer respaldo y ejecutar: flask --app tools.maintenance_app migrate-v83. No se modifico la base.')

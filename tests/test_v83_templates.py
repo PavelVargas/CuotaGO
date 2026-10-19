@@ -20,6 +20,7 @@ def context():
     d.s.commit()
     page=lambda items:NS(items=items,has_prev=False,has_next=False,page=1,pages=1,total=len(items))
     common=dict(active=None,expected=0,entries=[],page=page([]),payment=p,suppliers=[d.supplier],assets=[d.a],order=order,totals=module('operations.purchasing').order_totals(order),columns=['full_name','document_id'],batch=NS(id=1,digest='sha',kind='clients'),rows=[dict(full_name='Prueba',document_id='QA-01')],people=[d.u],client=d.c,grants=[],link=None,control=None,checks=[('Esquema','Pendiente','Validar PostgreSQL')],mfa=None,devices=[],current_device_id=None,secret='JBSWY3DPEHPK3PXP',uri='otpauth://totp/QA',codes=['TEST-CODE-ONE'],customer=d.c.full_name,business=d.org.name,currency='DOP',data=[dict(id=c.id,status='active',description=d.a.name,balance='900',total='1000',principal_paid='100',installments=[dict(due=date.today(),amount='1000',remaining='900')],receipts=[dict(code=p.receipt_code,day=date.today(),amount='100',reversed=False)])])
+    common.update(state_labels=module('operations.order_documents').STATE_LABELS,selected_state='',receipts=[])
     return d,common,page
 
 PAGES=['index','cash','reversal','orders','order_new','order_detail','imports','import_preview','bank','collectors','portal_manage','controls','readiness','error']
@@ -31,6 +32,9 @@ def test_new_templates_strict_render(name):
     try:
         env=template_env(real_base=True)
         env.globals['request']=NS(blueprint='ops',endpoint='ops.index',method='GET',args={})
+        if name.endswith('/order_new.html'):
+            ctx['assets']=[dict(id=d.a.id,name=d.a.name,kind=d.a.kind,cost=str(d.a.estimated_value),year=None,identifier='',photo='')]
+            ctx['editor_rows']=[]
         if name.endswith('/orders.html'):
             ctx.update(page=page([ctx['order']]),totals=module('operations.purchasing').order_totals)
         if name.endswith('/collectors.html'):ctx['page']=page([d.c])

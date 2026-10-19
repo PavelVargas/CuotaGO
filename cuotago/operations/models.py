@@ -1,4 +1,5 @@
 from ..extensions import db
+from sqlalchemy.orm import deferred
 from ..business_time import utcnow
 
 
@@ -122,6 +123,7 @@ class PurchaseOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False, index=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, index=True)
+    revision = db.Column(db.Integer, nullable=False, default=1, server_default='1')
     reference = db.Column(db.String(120))
     expected_on = db.Column(db.Date)
     state = db.Column(db.String(20), nullable=False, default='sent', index=True)
@@ -143,6 +145,8 @@ class PurchaseOrderLine(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     received = db.Column(db.Integer, nullable=False, default=0)
     unit_cost = db.Column(db.Numeric(12, 2), nullable=False)
+    photo_data = deferred(db.Column(db.LargeBinary))
+    photo_mime = db.Column(db.String(80))
     order = db.relationship('PurchaseOrder', back_populates='lines')
     asset = db.relationship('Asset')
 

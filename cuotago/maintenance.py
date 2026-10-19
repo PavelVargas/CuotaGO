@@ -19,7 +19,7 @@ def register_commands(app):
         from . import _ensure_feature_schema
         _ensure_feature_schema(app)
         changed = migrate(db.engine)
-        click.echo('Migracion v83 aplicada.' if changed else 'El esquema v83 ya estaba aplicado.')
+        click.echo('Esquema de preproduccion v83 + v84 aplicado.' if changed else 'El esquema de preproduccion ya esta actualizado.')
 
     @app.cli.command('preflight')
     def preflight():

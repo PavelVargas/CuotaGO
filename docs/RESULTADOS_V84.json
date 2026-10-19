@@ -1,0 +1,569 @@
+{
+  "version": "1.27.0-rc2",
+  "base": "V83 RC1 + UI82",
+  "python_groups": [
+    {
+      "group": "test_agreement_motion_ui.py",
+      "returncode": 0,
+      "summary": "16 passed in 0.86s",
+      "seconds": 2.6
+    },
+    {
+      "group": "test_customer_sale_receipt.py",
+      "returncode": 0,
+      "summary": "17 passed in 0.90s",
+      "seconds": 2.8
+    },
+    {
+      "group": "test_dealer_workflows.py",
+      "returncode": 0,
+      "summary": "30 passed in 0.73s",
+      "seconds": 2.3
+    },
+    {
+      "group": "test_launcher_appearance_v82.py",
+      "returncode": 0,
+      "summary": "5 passed in 0.29s",
+      "seconds": 1.7
+    },
+    {
+      "group": "test_launcher_ui_contract.py",
+      "returncode": 0,
+      "summary": "10 passed in 0.31s",
+      "seconds": 1.7
+    },
+    {
+      "group": "test_layout_v79.py",
+      "returncode": 0,
+      "summary": "5 passed in 0.39s",
+      "seconds": 1.8
+    },
+    {
+      "group": "test_sw_performance.py",
+      "returncode": 0,
+      "summary": "2 passed in 0.54s",
+      "seconds": 1.9
+    },
+    {
+      "group": "test_ui_restoration_v81.py",
+      "returncode": 0,
+      "summary": "7 passed in 0.27s",
+      "seconds": 1.7
+    },
+    {
+      "group": "test_workspace_ui.py",
+      "returncode": 0,
+      "summary": "4 passed in 0.16s",
+      "seconds": 1.5
+    },
+    {
+      "group": "test_dealer_document_queries.py",
+      "returncode": 0,
+      "summary": "8 passed in 1.18s",
+      "seconds": 3.1
+    },
+    {
+      "group": "test_dealer_transactions.py",
+      "returncode": 0,
+      "summary": "7 passed in 0.73s",
+      "seconds": 2.7
+    },
+    {
+      "group": "test_pwa_performance.py",
+      "returncode": 0,
+      "summary": "23 passed in 1.70s",
+      "seconds": 3.5
+    },
+    {
+      "group": "test_sales_ui_contract.py",
+      "returncode": 0,
+      "summary": "11 passed, 85 warnings in 1.07s",
+      "seconds": 3.0,
+      "rerun_after_fix": "asset version fallbacks synchronized"
+    },
+    {
+      "group": "test_v83_services.py",
+      "returncode": 0,
+      "summary": "15 passed, 139 warnings in 1.17s",
+      "seconds": 3.1
+    },
+    {
+      "group": "test_v83_safety.py",
+      "returncode": 0,
+      "summary": "31 passed, 90 warnings in 0.97s",
+      "seconds": 2.6
+    },
+    {
+      "group": "test_v83_backup.py",
+      "returncode": 0,
+      "summary": "12 passed in 0.41s",
+      "seconds": 1.8
+    },
+    {
+      "group": "test_v83_templates.py",
+      "returncode": 0,
+      "summary": "22 passed, 200 warnings in 2.68s",
+      "seconds": 4.6
+    },
+    {
+      "group": "test_v83_pdf.py",
+      "returncode": 0,
+      "summary": "2 passed in 0.27s",
+      "seconds": 1.8
+    },
+    {
+      "group": "test_v84_purchasing.py",
+      "returncode": 0,
+      "summary": "32 passed, 239 warnings in 2.24s",
+      "seconds": 4.3
+    },
+    {
+      "group": "test_v84_routes.py",
+      "returncode": 0,
+      "summary": "11 passed, 8 warnings in 0.62s",
+      "seconds": 2.3
+    },
+    {
+      "group": "test_v84_templates.py",
+      "returncode": 0,
+      "summary": "5 passed, 40 warnings in 0.70s",
+      "seconds": 2.4
+    }
+  ],
+  "javascript_groups": [
+    {
+      "group": "test_badge_lifecycle.cjs",
+      "returncode": 0
+    },
+    {
+      "group": "test_launcher_appearance_v82.cjs",
+      "returncode": 0
+    },
+    {
+      "group": "test_notification_audio_v79.cjs",
+      "returncode": 0
+    },
+    {
+      "group": "test_notification_audio_v80.cjs",
+      "returncode": 0
+    },
+    {
+      "group": "test_notification_demo_v80.cjs",
+      "returncode": 0
+    },
+    {
+      "group": "test_service_worker_runtime.cjs",
+      "returncode": 0
+    }
+  ],
+  "browser": {
+    "mode": "Offline Chromium DOM; fetch/location simulated; no Flask HTTP",
+    "checks": [
+      {
+        "check": "390/new: no page overflow",
+        "passed": true
+      },
+      {
+        "check": "390/new: no JS exception",
+        "passed": true
+      },
+      {
+        "check": "390/edit: no page overflow",
+        "passed": true
+      },
+      {
+        "check": "390/edit: no JS exception",
+        "passed": true
+      },
+      {
+        "check": "390/detail: no page overflow",
+        "passed": true
+      },
+      {
+        "check": "390/detail: no JS exception",
+        "passed": true
+      },
+      {
+        "check": "390/orders: no page overflow",
+        "passed": true
+      },
+      {
+        "check": "390/orders: no JS exception",
+        "passed": true
+      },
+      {
+        "check": "390: no wizard",
+        "passed": true
+      },
+      {
+        "check": "390: 3 actions present",
+        "passed": true
+      },
+      {
+        "check": "390: missing vendor blocked",
+        "passed": true
+      },
+      {
+        "check": "390: empty confirmation blocked",
+        "passed": true
+      },
+      {
+        "check": "390: local photo preview",
+        "passed": true
+      },
+      {
+        "check": "390: exact total",
+        "passed": true
+      },
+      {
+        "check": "390: repeated click only one request",
+        "passed": true
+      },
+      {
+        "check": "390: correct URL not form.action element",
+        "passed": true
+      },
+      {
+        "check": "390: confirm action sent",
+        "passed": true
+      },
+      {
+        "check": "390: multipart photo transmitted",
+        "passed": true
+      },
+      {
+        "check": "390: empty draft allowed",
+        "passed": true
+      },
+      {
+        "check": "390: catalog opened",
+        "passed": true
+      },
+      {
+        "check": "390: catalog contains two products",
+        "passed": true
+      },
+      {
+        "check": "390: existing product selected",
+        "passed": true
+      },
+      {
+        "check": "390: existing photo visible",
+        "passed": true
+      },
+      {
+        "check": "390: existing name read only",
+        "passed": true
+      },
+      {
+        "check": "390: server error stays in form",
+        "passed": true
+      },
+      {
+        "check": "390: corrected form not trapped by old guard",
+        "passed": true
+      },
+      {
+        "check": "390: removed product and total reset",
+        "passed": true
+      },
+      {
+        "check": "390: pending autofill only remaining",
+        "passed": true
+      },
+      {
+        "check": "1440/new: no page overflow",
+        "passed": true
+      },
+      {
+        "check": "1440/new: no JS exception",
+        "passed": true
+      },
+      {
+        "check": "1440/edit: no page overflow",
+        "passed": true
+      },
+      {
+        "check": "1440/edit: no JS exception",
+        "passed": true
+      },
+      {
+        "check": "1440/detail: no page overflow",
+        "passed": true
+      },
+      {
+        "check": "1440/detail: no JS exception",
+        "passed": true
+      },
+      {
+        "check": "1440/orders: no page overflow",
+        "passed": true
+      },
+      {
+        "check": "1440/orders: no JS exception",
+        "passed": true
+      },
+      {
+        "check": "1440: no wizard",
+        "passed": true
+      },
+      {
+        "check": "1440: 3 actions present",
+        "passed": true
+      },
+      {
+        "check": "1440: missing vendor blocked",
+        "passed": true
+      },
+      {
+        "check": "1440: empty confirmation blocked",
+        "passed": true
+      },
+      {
+        "check": "1440: local photo preview",
+        "passed": true
+      },
+      {
+        "check": "1440: exact total",
+        "passed": true
+      },
+      {
+        "check": "1440: repeated click only one request",
+        "passed": true
+      },
+      {
+        "check": "1440: correct URL not form.action element",
+        "passed": true
+      },
+      {
+        "check": "1440: confirm action sent",
+        "passed": true
+      },
+      {
+        "check": "1440: multipart photo transmitted",
+        "passed": true
+      },
+      {
+        "check": "1440: empty draft allowed",
+        "passed": true
+      },
+      {
+        "check": "1440: catalog opened",
+        "passed": true
+      },
+      {
+        "check": "1440: catalog contains two products",
+        "passed": true
+      },
+      {
+        "check": "1440: existing product selected",
+        "passed": true
+      },
+      {
+        "check": "1440: existing photo visible",
+        "passed": true
+      },
+      {
+        "check": "1440: existing name read only",
+        "passed": true
+      },
+      {
+        "check": "1440: server error stays in form",
+        "passed": true
+      },
+      {
+        "check": "1440: corrected form not trapped by old guard",
+        "passed": true
+      },
+      {
+        "check": "1440: removed product and total reset",
+        "passed": true
+      },
+      {
+        "check": "1440: pending autofill only remaining",
+        "passed": true
+      },
+      {
+        "check": "320/new: no page overflow",
+        "passed": true
+      },
+      {
+        "check": "320/new: no JS exception",
+        "passed": true
+      },
+      {
+        "check": "320/edit: no page overflow",
+        "passed": true
+      },
+      {
+        "check": "320/edit: no JS exception",
+        "passed": true
+      },
+      {
+        "check": "320/detail: no page overflow",
+        "passed": true
+      },
+      {
+        "check": "320/detail: no JS exception",
+        "passed": true
+      },
+      {
+        "check": "320/orders: no page overflow",
+        "passed": true
+      },
+      {
+        "check": "320/orders: no JS exception",
+        "passed": true
+      },
+      {
+        "check": "320: no wizard",
+        "passed": true
+      },
+      {
+        "check": "320: 3 actions present",
+        "passed": true
+      },
+      {
+        "check": "320: missing vendor blocked",
+        "passed": true
+      },
+      {
+        "check": "320: empty confirmation blocked",
+        "passed": true
+      },
+      {
+        "check": "320: local photo preview",
+        "passed": true
+      },
+      {
+        "check": "320: exact total",
+        "passed": true
+      },
+      {
+        "check": "320: repeated click only one request",
+        "passed": true
+      },
+      {
+        "check": "320: correct URL not form.action element",
+        "passed": true
+      },
+      {
+        "check": "320: confirm action sent",
+        "passed": true
+      },
+      {
+        "check": "320: multipart photo transmitted",
+        "passed": true
+      },
+      {
+        "check": "320: empty draft allowed",
+        "passed": true
+      },
+      {
+        "check": "320: catalog opened",
+        "passed": true
+      },
+      {
+        "check": "320: catalog contains two products",
+        "passed": true
+      },
+      {
+        "check": "320: existing product selected",
+        "passed": true
+      },
+      {
+        "check": "320: existing photo visible",
+        "passed": true
+      },
+      {
+        "check": "320: existing name read only",
+        "passed": true
+      },
+      {
+        "check": "320: server error stays in form",
+        "passed": true
+      },
+      {
+        "check": "320: corrected form not trapped by old guard",
+        "passed": true
+      },
+      {
+        "check": "320: removed product and total reset",
+        "passed": true
+      },
+      {
+        "check": "320: pending autofill only remaining",
+        "passed": true
+      },
+      {
+        "check": "dark: no overflow",
+        "passed": true
+      },
+      {
+        "check": "conduce: no purchase costs printed",
+        "passed": true
+      },
+      {
+        "check": "conduce: ordered units not claimed received",
+        "passed": true
+      },
+      {
+        "check": "receipt: no purchase costs printed",
+        "passed": true
+      },
+      {
+        "check": "receipt: only actual received units",
+        "passed": true
+      }
+    ]
+  },
+  "print_pagination": [
+    {
+      "document": "order",
+      "pages": 5,
+      "lines_found_exactly_once": 40,
+      "table_header_on_each_product_page": true
+    },
+    {
+      "document": "conduce",
+      "pages": 5,
+      "lines_found_exactly_once": 40,
+      "table_header_on_each_product_page": true
+    },
+    {
+      "document": "receipt",
+      "pages": 5,
+      "lines_found_exactly_once": 40,
+      "table_header_on_each_product_page": true
+    }
+  ],
+  "preserved_files": [
+    {
+      "path": "cuotago/templates/dashboard.html",
+      "sha256": "32a020b73aa3cc94690ec58ea0e030409d7d081399f582b813ef5297545973a9",
+      "unchanged": true
+    },
+    {
+      "path": "cuotago/static/css/app.css",
+      "sha256": "2c7263be65050b58467ca15f942ba4549cfa652126a69518dec674f8cf74efe5",
+      "unchanged": true
+    },
+    {
+      "path": "cuotago/static/css/launcher-v82.css",
+      "sha256": "ef4305c5b23419c2875a1ed3b6fa092ee84b65622db330ad9c9d49607fd8cf36",
+      "unchanged": true
+    },
+    {
+      "path": "chatbridge-run.bat",
+      "sha256": "1c290c8d6e4d01c7ba4c8394ad97ec09814687a1d5f259fb8c55aea569ca0091",
+      "unchanged": true
+    }
+  ],
+  "unexecuted": [
+    "Full Flask HTTP/PostgreSQL",
+    "PostgreSQL migration",
+    "Concurrent production requests",
+    "Physical iPhone/Safari",
+    "Physical printer/AirPrint"
+  ]
+}

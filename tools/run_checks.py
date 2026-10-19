@@ -19,6 +19,7 @@ BASE_TESTS=[
  'test_dealer_document_queries.py','test_dealer_transactions.py','test_pwa_performance.py',
  'test_sales_ui_contract.py','test_v83_services.py','test_v83_safety.py',
  'test_v83_backup.py','test_v83_templates.py','test_v83_pdf.py',
+ 'test_v84_purchasing.py','test_v84_routes.py','test_v84_templates.py',
 ]
 
 def main():
@@ -34,7 +35,7 @@ def main():
         require_test_database()
         # Missing dependencies must fail, never become skipped acceptance tests.
         import flask, flask_sqlalchemy, flask_login, flask_wtf, flask_compress, psycopg
-        groups+=['test_dealer_postgres.py','test_v83_postgres.py']
+        groups+=['test_dealer_postgres.py','test_v83_postgres.py','test_v84_postgres.py']
     summaries=[];total=0;skipped=False
     env=dict(os.environ,PYTEST_DISABLE_PLUGIN_AUTOLOAD='1')
     for filename in groups:

@@ -92,7 +92,7 @@ def main():
     try:
         action=args.action
         if action is None:
-            print('\nCuotaGO 1.27.0-rc1 - PREPRODUCCION (sin despliegue)\n')
+            print('\nCuotaGO 1.27.0-rc2 - PREPRODUCCION (sin despliegue)\n')
             print('1. Iniciar pruebas locales\n2. Preparar / migrar SOLO la base de pruebas\n3. Ejecutar pruebas automatizadas\n4. Verificar configuracion\n5. Configurar conexion local')
             choice=input('Opcion [1]: ').strip() or '1'
             action={'1':'run','2':'migrate','3':'tests','4':'preflight','5':'configure'}.get(choice)

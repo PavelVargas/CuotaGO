@@ -1,5 +1,5 @@
 {% from 'macros/icons.html' import icon %}
-{% set ui_asset_version = config.get('ASSET_VERSION', '1.27.0-rc1-ui-v83') ~ '-restore81-icons82' %}
+{% set ui_asset_version = config.get('ASSET_VERSION', '1.27.0-rc2-ui-v84') ~ '-restore81-icons82' %}
 <!doctype html>
 <html lang="es" data-theme="light" data-theme-choice="system" data-auth-screen="{{ '1' if request.blueprint == 'auth' else '0' }}">
 <head>
@@ -135,6 +135,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/workspace.css', v=ui_asset_version) }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-v79.css', v=ui_asset_version) }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/launcher-v82.css', v=ui_asset_version) }}">
+  {% if current_user.is_authenticated and request.blueprint != 'auth' and request.endpoint not in ['main.dashboard','admin.dashboard'] %}<link rel="stylesheet" href="{{ url_for('static', filename='css/workspace-polish-v84.css', v=ui_asset_version) }}">{% endif %}
 </head>
 {% set is_workbench = current_user.is_authenticated and request.blueprint != 'auth' and request.endpoint not in ['main.dashboard','admin.dashboard'] %}
 <body data-notification-scope="{{ current_user.id|default('') if current_user.is_authenticated else '' }}" class="ui-v67 cg-layout-v79 {% if current_user.is_authenticated and request.blueprint != 'auth' %}app-authenticated{% else %}auth-shell{% endif %} {% if is_workbench %}workbench-shell-v75{% endif %} {% block body_class %}{% endblock %}" data-can-collect="{{ '1' if current_user.is_authenticated and request.blueprint != 'auth' and can('collections.view') else '0' }}">

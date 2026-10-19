@@ -19,34 +19,109 @@ def order_totals(order):
             'pending_units': sum(l.quantity - l.received for l in order.lines)}
 
 
-def create_order(s, org, actor, supplier_id, rows, reference='', expected_on=None, note=''):
-    supplier = scoped(s, Supplier, org, supplier_id)
-    if not rows or len(rows) > 100:
-        raise ValueError('Agrega entre 1 y 100 articulos.')
-    order = PurchaseOrder(organization_id=org, supplier_id=supplier.id,
-        reference=reference[:120], expected_on=expected_on, note=note[:240],
-        created_by_user_id=actor, state='sent')
-    s.add(order)
+def _prepare_lines(s, org, rows, draft=False, old_lines=None):
+    if len(rows) > 100 or (not rows and not draft):
+        raise ValueError('Agrega entre 1 y 100 productos para confirmar.')
+    prepared = []
+    old_lines = old_lines or {}
+    used_ids = set()
+    kinds = {'car', 'motorcycle', 'phone', 'computer', 'appliance', 'other', 'otro'}
     for row in rows:
-        qty = integer(row.get('quantity'))
-        cost = positive_money(row.get('unit_cost'))
+        old = None
+        if row.get('line_id'):
+            old_id = integer(row['line_id'])
+            old = old_lines.get(old_id)
+            if old is None or old_id in used_ids:
+                raise ValueError('La linea no pertenece a este borrador o esta repetida.')
+            used_ids.add(old_id)
+        qty = integer(row.get('quantity') or (1 if draft else ''))
+        cost = money(row.get('unit_cost') or 0) if draft else positive_money(row.get('unit_cost'))
+        if cost < 0:
+            raise ValueError('El costo no puede ser negativo.')
         money(cost * qty)
-        asset_id = row.get('asset_id')
-        asset = scoped(s, Asset, org, integer(asset_id)) if asset_id else None
+        asset = scoped(s, Asset, org, integer(row['asset_id'])) if row.get('asset_id') else None
         name = asset.name if asset else (row.get('name') or '').strip()
         kind = asset.kind if asset else row.get('kind', 'other')
-        if len(name) < 2 or len(name) > 140:
-            raise ValueError('Escribe un nombre de articulo entre 2 y 140 caracteres.')
-        if kind not in {'car', 'motorcycle', 'phone', 'computer', 'appliance', 'other'}:
-            raise ValueError('Tipo de articulo no valido.')
+        if not 2 <= len(name) <= 140:
+            raise ValueError('Escribe un nombre de producto entre 2 y 140 caracteres.')
+        if kind not in kinds:
+            raise ValueError('Tipo de producto no valido.')
         if asset is not None and asset.is_virtual:
-            raise ValueError('Un saldo inicial no es un articulo de inventario.')
-        order.lines.append(PurchaseOrderLine(asset=asset, name=name, kind=kind,
-                         quantity=qty, received=0, unit_cost=cost))
+            raise ValueError('Un saldo inicial no es un producto de inventario.')
+        photo_data, photo_mime = None, None
+        # Retain an uploaded photo only for the same line/product. Never accept a
+        # client-supplied URL, MIME type or arbitrary bytes as a trusted photo.
+        if old is not None and old.asset_id == (asset.id if asset else None):
+            photo_data, photo_mime = old.photo_data, old.photo_mime
+        if asset is not None and not photo_data and photo_mime is None:
+            photo_data = asset.image_thumb_data or asset.image_data
+            photo_mime = asset.image_mime if photo_data else None
+        if row.get('clear_photo'):
+            photo_data, photo_mime = None, ''
+        if row.get('photo'):
+            photo_data, photo_mime = row['photo']
+        prepared.append(dict(asset=asset, name=name, kind=kind, quantity=qty,
+            received=0, unit_cost=cost, photo_data=photo_data, photo_mime=photo_mime))
+    money(sum((r['unit_cost'] * r['quantity'] for r in prepared), Decimal('0')))
+    return prepared
+
+
+def create_order(s, org, actor, supplier_id, rows, reference='', expected_on=None, note='', state='sent'):
+    if state not in {'draft', 'sent'}:
+        raise ValueError('Estado de orden no valido.')
+    supplier = scoped(s, Supplier, org, supplier_id)
+    prepared = _prepare_lines(s, org, rows, draft=state == 'draft')
+    order = PurchaseOrder(organization_id=org, supplier_id=supplier.id,
+        reference=reference[:120], expected_on=expected_on, note=note[:240],
+        created_by_user_id=actor, state=state, revision=1)
+    s.add(order)
+    for data in prepared:
+        order.lines.append(PurchaseOrderLine(**data))
     s.flush()
-    money(order_totals(order)['ordered'])
-    audit(s, org, actor, 'order.created', 'purchase_order', order.id,
-          'Orden de compra creada; inventario sin cambios.', order_totals(order))
+    audit(s, org, actor, 'order.draft_saved' if state == 'draft' else 'order.created',
+          'purchase_order', order.id, 'Borrador guardado.' if state == 'draft' else
+          'Orden confirmada; inventario sin cambios.', order_totals(order))
+    return order
+
+
+def update_draft(s, org, actor, order_id, revision, supplier_id, rows,
+                 reference='', expected_on=None, note='', confirm=False):
+    order = scoped(s, PurchaseOrder, org, order_id, lock=True)
+    s.refresh(order, ['lines'])
+    if order.state != 'draft':
+        raise ValueError('Solo se pueden editar borradores. Esta orden ya cambio de estado.')
+    if order.revision != integer(revision):
+        raise ValueError('Otra ventana modifico el borrador. Recargalo antes de guardar.')
+    supplier = scoped(s, Supplier, org, supplier_id)
+    prepared = _prepare_lines(s, org, rows, draft=not confirm,
+                             old_lines={line.id: line for line in order.lines})
+    # Validation completes before replacing anything. The surrounding request
+    # owns the transaction and rolls it all back on any error.
+    for old in list(order.lines):
+        order.lines.remove(old)
+        s.delete(old)
+    s.flush()
+    order.supplier = supplier
+    order.reference, order.expected_on, order.note = reference[:120], expected_on, note[:240]
+    for data in prepared:
+        order.lines.append(PurchaseOrderLine(**data))
+    order.state = 'sent' if confirm else 'draft'
+    order.revision += 1
+    s.flush()
+    audit(s, org, actor, 'order.confirmed' if confirm else 'order.draft_saved',
+          'purchase_order', order.id, 'Orden confirmada.' if confirm else 'Borrador actualizado.',
+          {'revision': order.revision, **order_totals(order)})
+    return order
+
+
+def discard_draft(s, org, actor, order_id, revision):
+    order = scoped(s, PurchaseOrder, org, order_id, lock=True)
+    if order.state != 'draft' or order.revision != integer(revision):
+        raise ValueError('El borrador cambio. Recarga antes de descartarlo.')
+    order.state = 'discarded'
+    order.revision += 1
+    audit(s, org, actor, 'order.discarded', 'purchase_order', order.id,
+          'Borrador descartado; sin movimientos de inventario ni dinero.')
     return order
 
 
@@ -80,7 +155,9 @@ def receive_order(s, org, actor, order_id, quantities, zone):
             asset = Asset(organization_id=org, name=line.name, kind=line.kind,
                 estimated_value=line.unit_cost, sale_price=0, quantity_total=qty, status='available',
                 acquisition_type='purchase', acquisition_origin=order.supplier.name,
-                acquisition_date=business_date(utcnow(), zone))
+                acquisition_date=business_date(utcnow(), zone),
+                image_data=line.photo_data, image_thumb_data=line.photo_data,
+                image_mime=line.photo_mime or None, image_updated_at=utcnow() if line.photo_data else None)
             s.add(asset)
             s.flush()
             line.asset_id = asset.id
@@ -104,6 +181,8 @@ def receive_order(s, org, actor, order_id, quantities, zone):
 def pay_supplier(s, org, actor, order_id, amount, method, reference=''):
     order = scoped(s, PurchaseOrder, org, order_id, lock=True)
     s.refresh(order, ['payments', 'lines'])
+    if order.state in {'draft', 'discarded'}:
+        raise ValueError('Confirma la orden antes de registrar un pago al proveedor.')
     if order.state == 'cancelled':
         limit = order_totals(order)['received']
     else:
