@@ -1,4 +1,4 @@
-const VERSION = new URL(self.location.href).searchParams.get('v') || '1.27.0-rc3-ui-v86-restore81-icons82-flat86';
+const VERSION = new URL(self.location.href).searchParams.get('v') || '1.27.0-rc3-ui-v88-hd-dark';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const CORE_ASSETS = [
   '/static/css/app.css',
@@ -21,6 +21,16 @@ const CORE_ASSETS = [
   '/static/icons/modules-flat/reports.webp',
   '/static/icons/modules-flat/expenses.webp',
   '/static/icons/modules-flat/documents.webp',
+  '/static/icons/modules-flat-dark/agreements.webp',
+  '/static/icons/modules-flat-dark/sales.webp',
+  '/static/icons/modules-flat-dark/collections.webp',
+  '/static/icons/modules-flat-dark/clients.webp',
+  '/static/icons/modules-flat-dark/purchases.webp',
+  '/static/icons/modules-flat-dark/inventory.webp',
+  '/static/icons/modules-flat-dark/calendar.webp',
+  '/static/icons/modules-flat-dark/reports.webp',
+  '/static/icons/modules-flat-dark/expenses.webp',
+  '/static/icons/modules-flat-dark/documents.webp',
   '/static/js/notification-audio.js',
   '/static/js/dealer.js',
   '/static/css/motion.css',

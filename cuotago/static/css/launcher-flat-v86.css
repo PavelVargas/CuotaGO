@@ -1,4 +1,4 @@
-/* UI86: flat 2D artwork, scoped to Home and its Settings preview.
+/* UI88: high-definition flat 2D artwork, scoped to Home and its Settings preview.
    No navigation, business form, finance, column-count or font changes. */
 html body.cg-layout-v79.dashboard-home section.launcher-flat-v86 .module-card > .cg-module-art-v86,
 html body.cg-layout-v79 .cg-launcher-preview-v82 .cg-launcher-sample-v82 > .cg-module-art-v86 {
@@ -36,6 +36,17 @@ html body.cg-layout-v79 .cg-module-art-v86 > .cg-module-image-v86 {
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
+}
+html body.cg-layout-v79 .cg-module-art-v86 > .cg-module-image-v86 {
+  image-rendering: auto;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+html body.cg-layout-v79 .cg-module-art-v86 > .cg-module-image-dark-v88 { display: none !important; }
+html[data-theme='dark'] body.cg-layout-v79 .cg-module-art-v86 > .cg-module-image-light-v88 { display: none !important; }
+html[data-theme='dark'] body.cg-layout-v79 .cg-module-art-v86 > .cg-module-image-dark-v88 {
+  display: block !important;
+  filter: drop-shadow(0 3px 10px rgba(0, 0, 0, .24)) !important;
 }
 /* Keep a local SVG for missing/failed files, not a broken-image placeholder. */
 html body.cg-layout-v79 .cg-module-art-v86 > svg { display: none !important; }
@@ -75,9 +86,9 @@ html body.cg-layout-v79.dashboard-home section.launcher-flat-v86 .module-card:fo
 }
 html[data-theme='dark'] body.cg-layout-v79.dashboard-home section.launcher-flat-v86 .module-card > .cg-module-art-v86,
 html[data-theme='dark'] body.cg-layout-v79 .cg-launcher-preview-v82 .cg-launcher-sample-v82 > .cg-module-art-v86 {
-  border-color: rgba(178, 194, 219, .16) !important;
-  background: #2d3440 !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .16) !important;
+  border-color: rgba(178, 194, 219, .18) !important;
+  background: linear-gradient(180deg, #303846 0%, #2b3340 100%) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .20) !important;
 }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   html body.cg-layout-v79.dashboard-home section.launcher-flat-v86 .module-card > .cg-module-art-v86 {

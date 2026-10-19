@@ -15,7 +15,7 @@
     {% for module in modules %}
       {% set status = module_status.get(module.slug) %}
       <a class="module-card" href="{{ url_for(module.endpoint) }}">
-        {{ module_art(module.icon, module.accent, ui_asset_version|default('flat86')) }}
+        {{ module_art(module.icon, module.accent, ui_asset_version|default('flat88')) }}
         <strong>{{ module.name }}</strong>
         {% if status and status.kind in ['badge-danger', 'badge-warning'] %}
           <small class="module-description module-description-pwa">{{ module.home_description }}</small>
