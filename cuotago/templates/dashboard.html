@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css', v=config['ASSET_VERSION']) }}">
 {% endblock %}
 {% block content %}
-<section class="launcher-wrap dashboard-launcher-v3 home-with-descriptions launcher-3d-v85">
+<section class="launcher-wrap dashboard-launcher-v3 home-with-descriptions launcher-flat-v86">
   <header class="pwa-home-heading">
     <h1>¿Qué quieres hacer?</h1>
   </header>
@@ -15,7 +15,7 @@
     {% for module in modules %}
       {% set status = module_status.get(module.slug) %}
       <a class="module-card" href="{{ url_for(module.endpoint) }}">
-        {{ module_art(module.icon, module.accent, ui_asset_version|default('3d85')) }}
+        {{ module_art(module.icon, module.accent, ui_asset_version|default('flat86')) }}
         <strong>{{ module.name }}</strong>
         {% if status and status.kind in ['badge-danger', 'badge-warning'] %}
           <small class="module-description module-description-pwa">{{ module.home_description }}</small>

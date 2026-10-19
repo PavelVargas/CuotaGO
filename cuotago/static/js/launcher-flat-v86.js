@@ -1,7 +1,7 @@
-/* Optional local artwork must never make a module unreachable. */
+/* Optional flat local artwork must never make a module unreachable. */
 (() => {
   'use strict';
-  const SELECTOR = '.cg-module-image-v85';
+  const SELECTOR = '.cg-module-image-v86';
   const bind = () => {
     document.querySelectorAll(SELECTOR).forEach((image) => {
       if (image.dataset.artBound === '1') return;
@@ -9,10 +9,10 @@
       const frame = image.closest('[data-module-art]');
       if (!frame) return;
       const sync = () => {
-        frame.classList.toggle('cg-art-fallback-v85', image.complete && image.naturalWidth === 0);
+        frame.classList.toggle('cg-art-fallback-v86', image.complete && image.naturalWidth === 0);
       };
       image.addEventListener('load', sync);
-      image.addEventListener('error', () => frame.classList.add('cg-art-fallback-v85'));
+      image.addEventListener('error', () => frame.classList.add('cg-art-fallback-v86'));
       sync(); // Cached images may have completed before this deferred script.
     });
   };

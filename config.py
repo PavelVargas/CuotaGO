@@ -39,7 +39,7 @@ class Config:
     APP_NAME = os.getenv("APP_NAME", "CuotaGo")
     # Release/build identifiers are code-owned so stale Railway/.env values cannot pin old assets.
     APP_VERSION = "1.27.0-rc2"
-    ASSET_VERSION = "1.27.0-rc2-ui-v85"
+    ASSET_VERSION = "1.27.0-rc3-ui-v86"
     APP_ENV = os.getenv("APP_ENV", "local").strip().lower()
     APP_CURRENCY = os.getenv("APP_CURRENCY", "DOP")
     APP_TIMEZONE = os.getenv("APP_TIMEZONE", "America/Santo_Domingo")

@@ -1,14 +1,14 @@
-{# Approved 3D illustrations, with the original SVG kept as a network fallback. #}
+{# Flat 2D illustrations, with the original SVG kept as a network fallback. #}
 {% from 'macros/icons.html' import icon %}
-{% macro module_art(glyph, accent, version='3d85') -%}
+{% macro module_art(glyph, accent, version='flat86') -%}
   {% set art = {
     'home-agreements':'agreements', 'home-sales':'sales', 'home-payments':'collections',
     'home-clients':'clients', 'home-purchases':'purchases', 'home-inventory':'inventory',
     'home-calendar':'calendar', 'home-reports':'reports', 'home-expenses':'expenses',
     'home-documents':'documents'
   }.get(glyph) %}
-  <span class="module-icon {{ accent }}{% if art %} cg-module-art-v85{% endif %}" aria-hidden="true"{% if art %} data-module-art="{{ art }}"{% endif %}>
+  <span class="module-icon {{ accent }}{% if art %} cg-module-art-v86{% endif %}" aria-hidden="true"{% if art %} data-module-art="{{ art }}"{% endif %}>
     {{ icon(glyph, 48) }}
-    {% if art %}<img class="cg-module-image-v85" src="{{ url_for('static', filename='icons/modules-3d/' ~ art ~ '.webp', v=version) }}" width="256" height="256" alt="" loading="eager" decoding="async" draggable="false">{% endif %}
+    {% if art %}<img class="cg-module-image-v86" src="{{ url_for('static', filename='icons/modules-flat/' ~ art ~ '.webp', v=version) }}" width="256" height="256" alt="" loading="eager" decoding="async" draggable="false">{% endif %}
   </span>
 {%- endmacro %}
