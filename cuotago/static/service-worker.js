@@ -1,4 +1,4 @@
-const VERSION = new URL(self.location.href).searchParams.get('v') || '1.27.0-rc2-ui-v84-restore81-icons82';
+const VERSION = new URL(self.location.href).searchParams.get('v') || '1.27.0-rc2-ui-v85-restore81-icons82-icons3d85';
 const STATIC_CACHE = `cuotago-static-${VERSION}`;
 const CORE_ASSETS = [
   '/static/css/app.css',
@@ -9,6 +9,18 @@ const CORE_ASSETS = [
   '/static/css/workspace.css',
   '/static/css/layout-v79.css',
   '/static/css/launcher-v82.css',
+  '/static/css/launcher-3d-v85.css',
+  '/static/js/launcher-3d-v85.js',
+  '/static/icons/modules-3d/agreements.webp',
+  '/static/icons/modules-3d/sales.webp',
+  '/static/icons/modules-3d/collections.webp',
+  '/static/icons/modules-3d/clients.webp',
+  '/static/icons/modules-3d/purchases.webp',
+  '/static/icons/modules-3d/inventory.webp',
+  '/static/icons/modules-3d/calendar.webp',
+  '/static/icons/modules-3d/reports.webp',
+  '/static/icons/modules-3d/expenses.webp',
+  '/static/icons/modules-3d/documents.webp',
   '/static/js/notification-audio.js',
   '/static/js/dealer.js',
   '/static/css/motion.css',

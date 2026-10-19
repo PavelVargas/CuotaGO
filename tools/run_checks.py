@@ -20,6 +20,7 @@ BASE_TESTS=[
  'test_sales_ui_contract.py','test_v83_services.py','test_v83_safety.py',
  'test_v83_backup.py','test_v83_templates.py','test_v83_pdf.py',
  'test_v84_purchasing.py','test_v84_routes.py','test_v84_templates.py',
+ 'test_launcher_3d_v85.py',
 ]
 
 def main():

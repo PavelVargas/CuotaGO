@@ -1,0 +1,296 @@
+{
+  "release": "UI85 - artwork layer on 1.27.0-rc2 (V84)",
+  "base": "CuotaGO.rar + UI79 + UI80 + restore81 + icons82 + preprod83rc1 + orders84",
+  "python": {
+    "passed": 142,
+    "warnings": 325,
+    "test_files": [
+      "test_launcher_3d_v85.py",
+      "test_launcher_appearance_v82.py",
+      "test_launcher_ui_contract.py",
+      "test_layout_v79.py",
+      "test_ui_restoration_v81.py",
+      "test_sw_performance.py",
+      "test_workspace_ui.py",
+      "test_v84_templates.py",
+      "test_v83_templates.py",
+      "test_dealer_workflows.py",
+      "test_customer_sale_receipt.py",
+      "test_sales_ui_contract.py"
+    ],
+    "method": "Isolated Python/Jinja/SQLite helpers; no full Flask/PostgreSQL runtime"
+  },
+  "javascript": [
+    {
+      "file": "test_badge_lifecycle.cjs",
+      "returncode": 0
+    },
+    {
+      "file": "test_launcher_3d_v85.cjs",
+      "returncode": 0
+    },
+    {
+      "file": "test_launcher_appearance_v82.cjs",
+      "returncode": 0
+    },
+    {
+      "file": "test_notification_audio_v79.cjs",
+      "returncode": 0
+    },
+    {
+      "file": "test_notification_audio_v80.cjs",
+      "returncode": 0
+    },
+    {
+      "file": "test_notification_demo_v80.cjs",
+      "returncode": 0
+    },
+    {
+      "file": "test_service_worker_runtime.cjs",
+      "returncode": 0
+    }
+  ],
+  "browser": {
+    "engine": "Chromium",
+    "checks_passed": 105,
+    "scenarios": [
+      {
+        "name": "phone320",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "phone375",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "phone390",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "phone430",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "phone-smallmax",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "landscape",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "landscape-short",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "tablet",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "browser-phone",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "desktop768",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "desktop768max",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "desktop-short",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "desktop-dark",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "browser720",
+        "checks": {
+          "images_ok": true,
+          "no_x_overflow": true,
+          "no_subtitles": true,
+          "columns": true,
+          "footer_clear": true,
+          "nonnegative_cards": true,
+          "no_js_errors": true
+        },
+        "errors": []
+      },
+      {
+        "name": "settings",
+        "checks": {
+          "size_reduces": true,
+          "saves": true,
+          "radius": true,
+          "preview_images": true,
+          "reset": true,
+          "fallback_shown": true,
+          "fallback_recovers": true
+        },
+        "values": {
+          "prefs": {
+            "size": 76,
+            "radius": 36
+          },
+          "saved": {
+            "size": 76,
+            "radius": 36
+          },
+          "radius": "36%"
+        }
+      }
+    ],
+    "method": "Real templates, styles and scripts with local image bytes inlined. about:blank visual harness, memory storage and stubbed fetch. Browser URL navigation is blocked by this environment."
+  },
+  "artwork": {
+    "files": 10,
+    "format": "WebP RGBA",
+    "pixels": [
+      256,
+      256
+    ],
+    "total_bytes": 129212,
+    "source": "Approved generated illustration in this conversation; icons isolated from the mockup"
+  },
+  "unchanged_verified": [
+    "cuotago/main.py",
+    "cuotago/models.py",
+    "cuotago/auth.py",
+    "cuotago/templates/_launcher_preferences.html",
+    "cuotago/static/css/app.css",
+    "cuotago/static/css/launcher-v82.css",
+    "cuotago/static/css/layout-v79.css",
+    "cuotago/templates/operations/order_new.html",
+    "chatbridge-run.bat",
+    "requirements.txt",
+    "VERSION.txt"
+  ],
+  "not_executed": [
+    "Full Flask/PostgreSQL app",
+    "Actual module navigation/production URLs",
+    "Real service-worker installation",
+    "Physical iPhone/Safari",
+    "Real push or printer"
+  ],
+  "migrations": false
+}

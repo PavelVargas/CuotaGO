@@ -1,0 +1,128 @@
+/* UI85: approved 3D artwork, scoped to Home and its Settings preview.
+   No navigation, business form, finance, column-count or font changes. */
+html body.cg-layout-v79.dashboard-home section.launcher-3d-v85 .module-card > .cg-module-art-v85,
+html body.cg-layout-v79 .cg-launcher-preview-v82 .cg-launcher-sample-v82 > .cg-module-art-v85 {
+  display: grid !important;
+  place-items: center;
+  position: relative !important;
+  overflow: hidden !important;
+  isolation: isolate;
+  border: 1px solid rgba(174, 187, 207, .30) !important;
+  border-radius: var(--cg-launcher-radius) !important;
+  background: linear-gradient(145deg, #ffffff 3%, #f2f5fa 100%) !important;
+  box-shadow: 0 6px 14px rgba(26, 44, 78, .065), inset 0 1px 0 rgba(255, 255, 255, .95) !important;
+  transform: none !important;
+}
+html body.cg-layout-v79 .cg-module-art-v85::before,
+html body.cg-layout-v79 .cg-module-art-v85::after { display: none !important; }
+html body.cg-layout-v79 .cg-module-art-v85 > .cg-module-image-v85 {
+  display: block !important;
+  grid-area: 1 / 1;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain;
+  object-position: center;
+  aspect-ratio: 1;
+  border: 0 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* Keep a local SVG for missing/failed files, not a broken-image placeholder. */
+html body.cg-layout-v79 .cg-module-art-v85 > svg { display: none !important; }
+html body.cg-layout-v79 .cg-module-art-v85.cg-art-fallback-v85 > img { display: none !important; }
+html body.cg-layout-v79 .cg-module-art-v85.cg-art-fallback-v85 > svg {
+  display: block !important; grid-area: 1 / 1; color: var(--accent, var(--primary));
+}
+/* Module names only. The small, pre-existing urgent desktop badge is retained. */
+html body.cg-layout-v79.dashboard-home section.launcher-3d-v85 .module-card > .module-description {
+  display: none !important;
+}
+html body.cg-layout-v79.dashboard-home section.launcher-3d-v85 .module-card:focus-visible {
+  outline: 2px solid var(--primary) !important;
+  outline-offset: 5px !important;
+}
+/* Installed app keeps its exact four-column layout, including tablets and
+   landscape. The desktop browser keeps five modules per row. */
+@media screen and (min-width: 720px) {
+  html:not(.is-standalone-app) body.cg-layout-v79.dashboard-home section.launcher-3d-v85 .module-grid {
+    width: min(1040px, calc(100% - 40px)) !important;
+    max-width: 1040px !important;
+    column-gap: clamp(16px, 2vw, 32px) !important;
+    row-gap: 28px !important;
+  }
+  html:not(.is-standalone-app) body.cg-layout-v79.dashboard-home section.launcher-3d-v85 .module-card > .cg-module-art-v85 {
+    width: min(var(--cg-launcher-size), calc(var(--cg-launcher-cap) * 1.45)) !important;
+  }
+  html:not(.is-standalone-app) body.cg-layout-v79.dashboard-home section.launcher-3d-v85 .module-card {
+    gap: 12px !important;
+  }
+  html:not(.is-standalone-app) body.cg-layout-v79.dashboard-home section.launcher-3d-v85 .module-card > strong {
+    font-size: 15px !important;
+    line-height: 1.35 !important;
+    font-weight: 600 !important;
+    letter-spacing: -.01em !important;
+  }
+}
+html[data-theme='dark'] body.cg-layout-v79.dashboard-home section.launcher-3d-v85 .module-card > .cg-module-art-v85,
+html[data-theme='dark'] body.cg-layout-v79 .cg-launcher-preview-v82 .cg-launcher-sample-v82 > .cg-module-art-v85 {
+  border-color: rgba(178, 194, 219, .16) !important;
+  background: linear-gradient(145deg, #343c49, #272d38) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .045) !important;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html body.cg-layout-v79.dashboard-home section.launcher-3d-v85 .module-card > .cg-module-art-v85 {
+    transition: transform .16s ease, box-shadow .16s ease;
+  }
+  html body.cg-layout-v79.dashboard-home section.launcher-3d-v85 .module-card:hover > .cg-module-art-v85 {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 10px 22px rgba(26, 44, 78, .12), inset 0 1px 0 rgba(255, 255, 255, .16) !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body.cg-layout-v79 .cg-module-art-v85,
+  html body.cg-layout-v79 .cg-module-image-v85 { transition: none !important; animation: none !important; }
+}
+@media (forced-colors: active) {
+  html body.cg-layout-v79 .cg-module-art-v85 { border: 1px solid ButtonText !important; }
+}
+/* Larger desktop artwork must not inherit the old absolute 26.5% anchor:
+   on short windows it placed the first row behind the account/menu bar.
+   Normal flow keeps all modules reachable without touching the menu itself. */
+@media screen and (min-width: 720px) {
+  html:not(.is-standalone-app) body.cg-layout-v79.dashboard-home {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow: auto !important;
+  }
+  html:not(.is-standalone-app) body.cg-layout-v79.dashboard-home .page-shell {
+    height: auto !important;
+    min-height: calc(100dvh - var(--topbar-h) - var(--safe-top)) !important;
+    overflow: visible !important;
+  }
+  html:not(.is-standalone-app) body.cg-layout-v79.dashboard-home section.launcher-3d-v85 {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: calc(100dvh - var(--topbar-h) - var(--safe-top)) !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  html:not(.is-standalone-app) body.cg-layout-v79.dashboard-home section.launcher-3d-v85 .module-grid {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    margin: clamp(24px, 4vh, 48px) auto 36px !important;
+    flex-shrink: 0;
+  }
+}

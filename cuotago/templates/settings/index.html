@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from 'macros/icons.html' import icon %}
+{% from 'macros/module_art.html' import module_art %}
 {% block title %}Ajustes · {{ app_name }}{% endblock %}
 {% block content %}
 <section class="content-page settings-page narrow-page settings-page-v20">
@@ -32,7 +33,7 @@
       </div>
       <div class="cg-launcher-preview-v82" data-launcher-preview role="img" aria-label="Vista previa de los iconos del inicio">
         {% for name, glyph, accent in [('Acuerdos','home-agreements','accent-blue'),('Ventas','home-sales','accent-orange'),('Inventario','home-inventory','accent-teal'),('Reportes','home-reports','accent-gold')] %}
-        <span class="cg-launcher-sample-v82"><span class="module-icon {{ accent }}" aria-hidden="true">{{ icon(glyph, 48) }}</span><span>{{ name }}</span></span>
+        <span class="cg-launcher-sample-v82">{{ module_art(glyph, accent, ui_asset_version|default('3d85')) }}<span>{{ name }}</span></span>
         {% endfor %}
       </div>
       <div class="cg-launcher-control-v82">
