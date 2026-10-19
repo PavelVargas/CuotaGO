@@ -1,45 +1,10 @@
 (() => {
   const THEME_KEY = 'cuotago-theme';
-  const PWA_LAUNCHER_SIZE_KEY = 'cuotago-pwa-launcher-size';
-  const DEFAULT_PWA_LAUNCHER_SIZE = 72;
   const root = document.documentElement;
   const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
   const IS_STANDALONE = root.classList.contains('is-standalone-app') || window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
-
-  const normalizePwaLauncherSize = (value) => {
-    const number = Number(value);
-    if (!Number.isFinite(number)) return DEFAULT_PWA_LAUNCHER_SIZE;
-    return Math.max(58, Math.min(78, Math.round(number)));
-  };
-
-  const readPwaLauncherSize = () => {
-    try { return normalizePwaLauncherSize(localStorage.getItem(PWA_LAUNCHER_SIZE_KEY) || DEFAULT_PWA_LAUNCHER_SIZE); }
-    catch (_) { return DEFAULT_PWA_LAUNCHER_SIZE; }
-  };
-
-  const syncPwaLauncherSizeControls = (size) => {
-    document.querySelectorAll('[data-launcher-size-range]').forEach((input) => { input.value = String(size); });
-    document.querySelectorAll('[data-launcher-size-output]').forEach((output) => { output.textContent = `${size} px`; });
-    document.querySelectorAll('[data-launcher-size-preset]').forEach((button) => {
-      const active = Number(button.dataset.launcherSizePreset) === size;
-      button.classList.toggle('is-active', active);
-      button.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-  };
-
-  const applyPwaLauncherSize = (value, persist = true) => {
-    const size = normalizePwaLauncherSize(value);
-    root.style.setProperty('--pwa-launcher-button-size', `${size}px`);
-    root.style.setProperty('--pwa-launcher-glyph-size', `${Math.round(size * .69)}px`);
-    root.dataset.pwaLauncherSize = String(size);
-    syncPwaLauncherSizeControls(size);
-    if (persist) {
-      try { localStorage.setItem(PWA_LAUNCHER_SIZE_KEY, String(size)); } catch (_) {}
-    }
-    return size;
-  };
 
   const readTheme = () => {
     try {
@@ -1594,15 +1559,6 @@
     setupCalmFormGuard();
     setupNativeNavigationMemory();
     applyTheme(readTheme(), false);
-    applyPwaLauncherSize(readPwaLauncherSize(), false);
-
-    document.querySelectorAll('[data-launcher-size-preset]').forEach((button) => {
-      button.addEventListener('click', () => applyPwaLauncherSize(button.dataset.launcherSizePreset, true));
-    });
-    document.querySelectorAll('[data-launcher-size-range]').forEach((input) => {
-      input.addEventListener('input', () => applyPwaLauncherSize(input.value, true));
-    });
-
     document.querySelectorAll('[data-theme-choice]').forEach((button) => {
       button.addEventListener('click', () => applyTheme(button.dataset.themeChoice));
     });

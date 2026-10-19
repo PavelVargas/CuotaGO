@@ -1,0 +1,112 @@
+{# One source of truth for launch-time styling and the Settings controls.
+   Inline intentionally: no extra request and no small-to-large flash on launch. #}
+<script>
+(() => {
+  'use strict';
+  if (window.CuotaGoLauncherAppearance) return;
+  const root = document.documentElement;
+  const KEY = 'cuotago-launcher-appearance-v1';
+  const LEGACY_KEY = 'cuotago-pwa-launcher-size';
+  const DEFAULTS = Object.freeze({ size: 96, radius: 30 });
+  const numberInRange = (value, min, max, fallback) => {
+    if ((typeof value !== 'number' && typeof value !== 'string') || String(value).trim() === '') return fallback;
+    const number = Number(value);
+    return Number.isFinite(number) ? Math.max(min, Math.min(max, Math.round(number))) : fallback;
+  };
+  const normalize = (value) => ({
+    size: numberInRange(value?.size, 76, 100, DEFAULTS.size),
+    radius: numberInRange(value?.radius, 16, 36, DEFAULTS.radius),
+  });
+  const read = () => {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw !== null) {
+        try { return normalize(JSON.parse(raw)); }
+        catch (_) { return { ...DEFAULTS }; }
+      }
+      // Preserve a deliberately chosen old size; 72 was the former default.
+      // Do not overwrite the old preference or other device settings.
+      const legacy = localStorage.getItem(LEGACY_KEY);
+      if (legacy !== null && legacy.trim() !== '' && Number.isFinite(Number(legacy)) && Number(legacy) !== 72) {
+        const oldSize = numberInRange(legacy, 58, 78, 72);
+        return normalize({ size: 76 + (oldSize - 58) * 1.2, radius: DEFAULTS.radius });
+      }
+    } catch (_) { /* Private/restricted storage must not prevent rendering. */ }
+    return { ...DEFAULTS };
+  };
+  let state = read();
+  const syncControls = () => {
+    document.querySelectorAll('[data-launcher-size-range]').forEach((input) => {
+      input.value = String(state.size);
+      input.setAttribute('aria-valuetext', `${state.size} por ciento`);
+    });
+    document.querySelectorAll('[data-launcher-radius-range]').forEach((input) => {
+      input.value = String(state.radius);
+      input.setAttribute('aria-valuetext', `${state.radius} por ciento de redondez`);
+    });
+    document.querySelectorAll('[data-launcher-size-output]').forEach((output) => { output.textContent = `${state.size}%`; });
+    document.querySelectorAll('[data-launcher-radius-output]').forEach((output) => { output.textContent = `${state.radius}%`; });
+    document.querySelectorAll('[data-launcher-preview]').forEach((preview) => {
+      preview.setAttribute('aria-label', `Vista previa: tama\u00f1o ${state.size}%, esquinas ${state.radius}%. Cuatro columnas.`);
+    });
+  };
+  const paint = () => {
+    root.style.setProperty('--cg-launcher-size', `${state.size}%`);
+    root.style.setProperty('--cg-launcher-cap', `${Math.round(112 * state.size) / 100}px`);
+    root.style.setProperty('--cg-launcher-radius', `${state.radius}%`);
+    root.dataset.launcherAppearance = 'v82';
+    syncControls();
+  };
+  const save = (message = 'Guardado en este dispositivo.') => {
+    let saved = true;
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (_) { saved = false; }
+    document.querySelectorAll('[data-launcher-status]').forEach((status) => {
+      status.textContent = saved ? message : 'Aplicado. Este navegador no permite guardar los ajustes.';
+    });
+    return saved;
+  };
+  const update = (patch, persist = false) => {
+    state = normalize({ ...state, ...patch });
+    paint();
+    if (persist) save();
+    return { ...state };
+  };
+  const reset = () => {
+    state = { ...DEFAULTS };
+    paint();
+    save('Tama\u00f1o y bordes restablecidos.');
+  };
+  const bind = () => {
+    document.querySelectorAll('[data-launcher-settings]').forEach((panel) => {
+      if (panel.dataset.launcherBound === '1') return;
+      panel.dataset.launcherBound = '1';
+      [['[data-launcher-size-range]', 'size'], ['[data-launcher-radius-range]', 'radius']].forEach(([selector, property]) => {
+        panel.querySelectorAll(selector).forEach((input) => {
+          // Preview at once; persist only a committed gesture/key press.
+          input.addEventListener('input', () => update({ [property]: input.value }));
+          input.addEventListener('change', () => update({ [property]: input.value }, true));
+        });
+      });
+      panel.querySelectorAll('[data-launcher-reset]').forEach((button) => button.addEventListener('click', reset));
+    });
+    syncControls();
+  };
+  paint();
+  window.CuotaGoLauncherAppearance = Object.freeze({
+    get: () => ({ ...state }),
+    update: (patch) => update(patch, true),
+    reset,
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
+  else bind();
+  window.addEventListener('storage', (event) => {
+    if (event.key === KEY || event.key === LEGACY_KEY || event.key === null) { state = read(); paint(); }
+  });
+  window.addEventListener('pageshow', (event) => {
+    // Re-read on back/forward restoration: Settings may have changed since Home.
+    if (event.persisted) { state = read(); paint(); }
+    bind();
+  });
+})();
+</script>

@@ -1,0 +1,61 @@
+/* UI82: only Home icon geometry and its two Settings controls.
+   Keep the UI81 layout, four mobile/PWA columns, names, colors, menu and footer.
+   Percent sizing fits the existing cell; never change columns to fit big icons. */
+:root {
+  --cg-launcher-size: 96%;
+  --cg-launcher-cap: 107.52px;
+  --cg-launcher-radius: 30%;
+}
+html body.cg-layout-v79.dashboard-home section.dashboard-launcher-v3.home-with-descriptions .module-card > .module-icon,
+html body.cg-layout-v79 .cg-launcher-preview-v82 .cg-launcher-sample-v82 > .module-icon {
+  width: min(var(--cg-launcher-size), var(--cg-launcher-cap)) !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
+  border-radius: var(--cg-launcher-radius) !important;
+}
+html body.cg-layout-v79.dashboard-home section.dashboard-launcher-v3.home-with-descriptions .module-card > .module-icon > svg,
+html body.cg-layout-v79 .cg-launcher-preview-v82 .cg-launcher-sample-v82 > .module-icon > svg {
+  width: 82% !important;
+  height: 82% !important;
+  max-width: 82% !important;
+  max-height: 82% !important;
+}
+/* Settings preview reuses existing glyphs and accents, not a new icon theme. */
+.cg-launcher-settings-v82 { padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.cg-launcher-heading-v82 { display: flex; align-items: center; gap: 10px; }
+.cg-launcher-heading-v82 > div { display: grid; gap: 3px; }
+.cg-launcher-heading-v82 strong { color: var(--text-strong); font-size: 15px; font-weight: 600; }
+.cg-launcher-heading-v82 small { color: var(--muted); font-size: 12px; }
+.cg-launcher-preview-v82 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; max-width: 390px; margin: 20px auto 22px; }
+.cg-launcher-sample-v82 { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 8px; min-width: 0; }
+.cg-launcher-sample-v82 > span:last-child { color: var(--text-strong); font-size: 11px; line-height: 1.35; font-weight: 500; }
+.cg-launcher-preview-v82 .module-icon {
+  display: grid; place-items: center; position: relative; overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent, var(--primary)) 36%, var(--line));
+  background: color-mix(in srgb, var(--accent, var(--primary)) 9%, var(--surface));
+  color: var(--accent, var(--primary)); box-shadow: 0 3px 8px rgb(0 0 0 / 3%);
+}
+.cg-launcher-preview-v82 .accent-orange { --accent: #ba753b; }
+.cg-launcher-preview-v82 .module-icon::before,
+.cg-launcher-preview-v82 .module-icon::after { display: none !important; }
+.cg-launcher-control-v82 + .cg-launcher-control-v82 { margin-top: 10px; }
+.cg-launcher-control-v82 > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.cg-launcher-control-v82 label { color: var(--text-strong); font-size: 13px; line-height: 1.4; font-weight: 500; }
+.cg-launcher-control-v82 output { min-width: 48px; padding: 4px 8px; text-align: center; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; border-radius: 8px; color: var(--primary); background: var(--primary-soft); }
+.cg-launcher-control-v82 input[type="range"] { display: block; width: 100%; min-height: 44px; margin: 0; padding: 0; accent-color: var(--primary); cursor: pointer; }
+.cg-launcher-help-v82 { margin: 4px 0 10px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.cg-launcher-actions-v82 { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; }
+.cg-launcher-actions-v82 [role="status"] { flex: 1; min-width: 140px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.cg-launcher-actions-v82 button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text-strong); font: inherit; font-size: 12px; cursor: pointer; }
+.cg-launcher-actions-v82 button:hover { background: var(--surface-2); }
+.cg-launcher-settings-v82 :is(input,button):focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+@media screen and (max-width: 719px) {
+  .cg-launcher-settings-v82 { padding: 16px 12px; }
+  .cg-launcher-preview-v82 { gap: 6px; }
+}
