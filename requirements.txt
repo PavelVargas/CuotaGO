@@ -11,3 +11,4 @@ cryptography>=43,<47
 reportlab>=4.2,<5
 Flask-Compress>=1.15,<2
 Pillow>=11,<13
+brotlicffi>=1.0,<2
