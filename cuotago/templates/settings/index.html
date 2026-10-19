@@ -28,7 +28,7 @@
     <div class="settings-launcher-size-v60" data-pwa-launcher-settings>
       <div class="settings-launcher-size-head-v60">
         <span class="settings-row-icon">{{ icon('sliders', 20) }}</span>
-        <span class="settings-row-copy"><strong>Tamaño de módulos</strong><small>Ajusta los botones redondos del Inicio en esta PWA.</small></span>
+        <span class="settings-row-copy"><strong>Tamaño de módulos</strong><small>Ajusta el tamaño de los módulos del Inicio en esta PWA.</small></span>
         <output data-launcher-size-output>72 px</output>
       </div>
       <div class="settings-launcher-presets-v60" aria-label="Tamaño de botones de módulos">
@@ -58,6 +58,17 @@
       </span>
       <span class="ios-switch"><input type="checkbox" data-push-switch aria-label="Notificaciones con la app cerrada"><i></i></span>
     </label>
+
+    <section class="cg-sound-settings-v79" aria-labelledby="cgSoundTitle" data-alert-audio-settings>
+      <div class="cg-sound-heading-v79"><span class="settings-row-icon">{{ icon('bell',20) }}</span><div><strong id="cgSoundTitle">Sonido de las notificaciones</strong><p>Para los avisos dentro de la app abierta.</p></div></div>
+      <div class="cg-sound-grid-v79">
+        <label class="cg-sound-field-v79" for="cgAlertTone"><span>Sonido</span><select id="cgAlertTone" data-alert-tone><option value="classic">Clásico</option><option value="crystal">Cristal</option><option value="soft">Suave</option><option value="pulse">Pulso</option></select></label>
+        <label class="cg-sound-field-v79" for="cgAlertIntensity"><span>Intensidad</span><select id="cgAlertIntensity" data-alert-intensity><option value="soft">Suave</option><option value="normal">Normal</option><option value="strong">Fuerte · doble</option></select></label>
+      </div>
+      <label class="cg-sound-volume-v79" for="cgAlertVolume"><span>Volumen</span><output for="cgAlertVolume" data-alert-volume-output>75%</output><input id="cgAlertVolume" type="range" min="0" max="100" step="1" value="75" data-alert-volume aria-describedby="cgSoundHelp"></label>
+      <div class="cg-sound-actions-v79"><button class="btn btn-secondary" type="button" data-alert-sound-preview>{{ icon('bell',16) }} Probar sonido</button><span role="status" aria-live="polite" data-alert-audio-status>Se guarda en este dispositivo.</span></div>
+      <p class="cg-sound-help-v79" id="cgSoundHelp">0% silencia solo el sonido dentro de CuotaGo. El volumen general, el modo silencio y el sonido con la app cerrada se controlan en el teléfono o navegador.</p>
+    </section>
 
     <div class="settings-test-row">
       <span class="settings-row-icon settings-test-icon">{{ icon('bell', 20) }}</span>

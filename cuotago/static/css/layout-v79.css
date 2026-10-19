@@ -1,0 +1,141 @@
+/* CuotaGo layout79: centered workspaces, a quieter mobile launcher, native type.
+   Loaded last. Desktop navigation geometry and business data remain unchanged. */
+:root {
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --cg-page-max: 1440px;
+}
+html, body, button, input, select, textarea { font-family: var(--font-ui) !important; }
+body.cg-layout-v79 { line-height: 1.45; -webkit-font-smoothing: antialiased; }
+.cg-layout-v79 .page-shell :is(h1,h2,h3,h4) { font-weight: 600 !important; letter-spacing: -.015em !important; }
+.cg-layout-v79 .page-shell :is(.ops-table-row-v76 strong,.inventory-product-copy-v75>strong) { font-weight: 600 !important; }
+.cg-hamburger-v79, .cg-mobile-menu-v79 { display: none; }
+/* Earlier Home styles hid the account dialog even when showModal() opened it. */
+html body.cg-layout-v79 .profile-dialog[open] { display: block !important; }
+
+@media screen and (min-width: 720px) {
+  /* Only direct page containers: the menu stays full width, nested cards do not
+     acquire a second set of margins. Standalone desktop/tablets are covered. */
+  html body.cg-layout-v79.workbench-shell-v75 .page-shell > :is(.content-page,.sls-workspace,.dealer-page) {
+    width: calc(100% - 48px) !important;
+    max-width: var(--cg-page-max) !important;
+    margin: 0 auto !important;
+    padding: 20px 0 32px !important;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  html body.cg-layout-v79.workbench-shell-v75 .page-shell > .content-page.narrow-page { max-width: 1080px !important; }
+  html body.cg-layout-v79.workbench-shell-v75 .page-shell > .agreement-detail-v23 { max-width: var(--cg-page-max) !important; }
+  html body.cg-layout-v79 .page-shell :is(.ops-table-shell-v76,.inventory-list-v75,.sls-register-shell) {
+    max-width: 100%; overflow-x: auto !important; overscroll-behavior-inline: contain;
+  }
+  /* Dense records scroll locally, never push the whole viewport sideways. */
+  .cg-layout-v79 .client-register-v76 :is(.ops-table-head-v76,.ops-table-body-v76) { min-width: 1050px; }
+  .cg-layout-v79 .sales-page-v76 :is(.ops-table-head-v76,.ops-table-body-v76) { min-width: 1280px; }
+  .cg-layout-v79 .inventory-list-v75 > :is(.inventory-list-head-v75,.inventory-item-v75) { min-width: 1030px; }
+  .cg-layout-v79 .page-shell :is(.ops-table-row-v76 strong,.inventory-product-copy-v75>strong) { font-size: 13px !important; line-height: 1.4 !important; }
+  .cg-layout-v79 .page-shell :is(.ops-table-row-v76 small,.ops-table-head-v76,.inventory-list-head-v75) { font-size: 11.5px !important; line-height: 1.4 !important; }
+  .cg-layout-v79 .page-shell :is(.field>span,.settings-row-copy>small) { font-size: 13px !important; }
+  .cg-layout-v79 .page-shell :is(.field input,.field select,.field textarea,.ops-search-v76 input,.ops-filterbar-v76 select) { font-size: 14px !important; }
+  html body.cg-layout-v79 .agreement-detail-grid-v77 { grid-template-columns: minmax(0,1.55fr) minmax(280px,.85fr); }
+}
+@media screen and (min-width: 1024px) {
+  html body.cg-layout-v79.workbench-shell-v75 .page-shell > :is(.content-page,.sls-workspace,.dealer-page) { width: 90% !important; }
+}
+@media screen and (min-width: 720px) and (max-width: 1100px) {
+  html body.cg-layout-v79 .agreement-detail-grid-v77 { grid-template-columns: minmax(0,1fr); }
+}
+
+/* Sound controls are scoped to Settings; no global select/button restyling. */
+.cg-layout-v79 .cg-sound-settings-v79 { padding: 20px; border-bottom: 1px solid var(--line); }
+.cg-sound-heading-v79 { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.cg-sound-heading-v79 strong { font-size: 15px; color: var(--text-strong); font-weight: 600 !important; }
+.cg-sound-heading-v79 p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.cg-sound-grid-v79 { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.cg-sound-field-v79 { display: grid; gap: 6px; min-width: 0; font-size: 13px; color: var(--text-strong); }
+.cg-sound-field-v79 select { width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); color: var(--text-strong); font-size: 14px; }
+.cg-sound-volume-v79 { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin: 18px 0 10px; font-size: 13px; }
+.cg-sound-volume-v79 output { color: var(--primary); font-variant-numeric: tabular-nums; font-weight: 600; }
+.cg-sound-volume-v79 input { grid-column: 1/-1; width: 100%; min-height: 36px; margin: 0; accent-color: var(--primary); cursor: pointer; }
+.cg-sound-actions-v79 { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; }
+.cg-layout-v79 .cg-sound-actions-v79 .btn { min-height: 44px !important; font-size: 14px !important; padding: 10px 14px !important; }
+.cg-sound-actions-v79 [role="status"] { color: var(--muted); font-size: 12px; flex: 1; min-width: 140px; }
+.cg-sound-help-v79 { margin: 12px 0 0; font-size: 12px; line-height: 1.55; color: var(--muted); }
+.cg-sound-settings-v79 :is(select,input,button):focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+@media screen and (max-width: 719px) {
+  /* Keep the module order, icon artwork, colors, home totals and agenda. */
+  html body.cg-layout-v79.dashboard-home .dashboard-launcher-v3 .module-card { border-radius: 16px !important; }
+  html body.cg-layout-v79.dashboard-home .dashboard-launcher-v3 .module-icon { border-radius: 24% !important; }
+  html body.cg-layout-v79.dashboard-home .home-with-descriptions .module-card > :is(.module-description,.module-badge) { display: none !important; }
+  html body.cg-layout-v79.dashboard-home .home-with-descriptions .module-card strong {
+    font-family: var(--font-ui) !important; font-size: 12px !important; line-height: 1.35 !important;
+    font-weight: 600 !important; letter-spacing: 0 !important; min-height: 17px !important;
+  }
+  html body.cg-layout-v79.dashboard-home .home-with-descriptions .module-card { gap: 7px !important; }
+  /* The workspace keeps its existing logo/title. All secondary tools move into
+     the same accessible native menu dialog instead of competing for space. */
+  .cg-layout-v79 #profileMenuTrigger > :not(.cg-hamburger-v79) { display: none !important; }
+  .cg-layout-v79 #profileMenuTrigger { width: 44px !important; height: 44px !important; min-height: 44px !important; padding: 0 !important; justify-content: center; }
+  .cg-layout-v79 #profileMenuTrigger .cg-hamburger-v79 { display: grid; place-items: center; position: relative; }
+  .cg-layout-v79 #profileMenuTrigger .cg-hamburger-v79 .notification-badge-v61 { top: -6px; right: -6px; }
+  .cg-layout-v79.workbench-shell-v75 .workspace-topbar-v75 { display: flex !important; min-height: 52px !important; }
+  .cg-layout-v79 .workspace-topbar-tools-v75 > .workspace-tool-v75,
+  .cg-layout-v79 .workspace-module-nav-v75 { display: none !important; }
+  .cg-layout-v79.workbench-shell-v75 .pwa-utility-rail-v62 { display: none !important; }
+  /* Installed Home has no topbar. Reuse its floating rail's safe-area/footer
+     positioning, now with a single button. Desktop rail is unchanged. */
+  .cg-layout-v79 .pwa-utility-rail-v62 > .pwa-utility-btn-v61 { display: none !important; }
+  .cg-layout-v79 .cg-mobile-menu-v79 {
+    display: grid; place-items: center; position: relative; width: 48px; height: 48px;
+    padding: 0; border-radius: 15px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--text-strong); box-shadow: var(--shadow-soft); cursor: pointer;
+  }
+  .cg-layout-v79 .cg-mobile-menu-v79 .cg-hamburger-v79 { display: grid; place-items: center; }
+  .cg-layout-v79 .cg-mobile-menu-v79:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+  .cg-layout-v79 .cg-mobile-menu-v79[aria-expanded="true"] { background: var(--primary-soft); }
+  .cg-layout-v79 .profile-sheet-v72 { max-height: calc(100dvh - 24px - var(--safe-top) - var(--safe-bottom)); overflow-y: auto; overscroll-behavior: contain; }
+  .cg-layout-v79 .drawer-shortcuts-v72 { grid-template-columns: minmax(0,1fr); gap: 4px; padding-bottom: 8px; }
+  .cg-layout-v79 .drawer-shortcut-v72 { flex-direction: row; align-items: center; justify-content: flex-start; min-height: 50px; padding: 8px 10px; gap: 12px; border-color: transparent !important; background: transparent !important; border-radius: 12px; }
+  .cg-layout-v79 .drawer-shortcut-v72 > small { display: none; }
+  .cg-layout-v79 .drawer-shortcut-v72 > strong { font-size: 15px; font-weight: 500 !important; }
+  .cg-layout-v79 .drawer-shortcut-v72:hover { background: var(--surface-2) !important; }
+  .cg-layout-v79 .profile-sheet-v72 .dropdown-business { display: none; }
+  .cg-layout-v79 .profile-sheet-v72 :is(.dropdown-link,.theme-inline,.user-dropdown a) { min-height: 44px; font-size: 14px; }
+  .cg-layout-v79 .profile-sheet-v72 .profile-close { min-width: 44px; min-height: 44px; }
+  /* Native readable input sizing, with no universal card/spacing redesign. */
+  html body.cg-layout-v79 .page-shell :is(.field input,.field select,.field textarea,.ops-search-v76 input,.ops-filterbar-v76 select) { font-size: 16px !important; }
+  html body.cg-layout-v79 .settings-row-copy > strong { font-size: 14px !important; line-height: 1.35; }
+  html body.cg-layout-v79 .settings-row-copy > small { font-size: 12px !important; line-height: 1.45; }
+  html body.cg-layout-v79 .page-shell .field > span { font-size: 13px !important; }
+  .cg-layout-v79 .cg-sound-settings-v79 { padding: 16px 12px; }
+  .cg-sound-grid-v79 { gap: 10px; }
+  .cg-sound-field-v79 select { font-size: 16px; }
+}
+@media screen and (max-width: 359px) {
+  html body.cg-layout-v79.dashboard-home .home-with-descriptions .module-card strong { font-size: 11px !important; }
+  .cg-sound-grid-v79 { grid-template-columns: minmax(0,1fr); }
+}
+@media print {
+  .cg-mobile-menu-v79, .cg-hamburger-v79, .cg-sound-settings-v79 { display: none !important; }
+}
+
+/* The older sales register applies a ten-column desktop grid after its mobile
+   media query. Restore the existing two-column phone layout, without dropping
+   any financial fields or changing the sales workflow. */
+@media screen and (max-width: 899px) {
+  html body.cg-layout-v79 .sales-page-v76 .ops-command-v76 { grid-template-columns: minmax(0,1fr) auto !important; padding: 12px !important; }
+  html body.cg-layout-v79 .sales-page-v76 .sales-filterbar-v76 { grid-column: 1/-1; grid-template-columns: repeat(2,minmax(0,1fr)) !important; min-width: 0 !important; width: 100% !important; padding: 0; border: 0; background: transparent; }
+  html body.cg-layout-v79 .sales-page-v76 .ops-view-tools-v76 { grid-column: 2; grid-row: 1; }
+  html body.cg-layout-v79 .sales-page-v76 .ops-filter-submit-v76 { grid-column: 1/-1; }
+  html body.cg-layout-v79 .sales-page-v76 .ops-table-row-v76.sales-row-v76 { grid-template-columns: repeat(2,minmax(0,1fr)) !important; width: 100%; min-width: 0; }
+  html body.cg-layout-v79 .sales-page-v76 .ops-table-body-v76 { min-width: 0; }
+  html body.cg-layout-v79 .sales-page-v76 .sales-row-v76 > span { min-width: 0; }
+  html body.cg-layout-v79 .sales-page-v76 .sales-row-v76 :is(.ops-person-v76,.ops-product-v76) { display: flex !important; }
+  html body.cg-layout-v79 .sales-page-v76 .sales-row-v76 strong { font-size: 13px !important; line-height: 1.4; }
+  html body.cg-layout-v79 .sales-page-v76 .sales-row-v76 small { font-size: 11px !important; line-height: 1.4; }
+  html body.cg-layout-v79 .client-register-v76 :is(.ops-table-head-v76,.ops-table-body-v76) { min-width: 0; }
+}
+@media screen and (min-width: 900px) {
+  .cg-layout-v79 .sales-page-v76 :is(.ops-table-head-v76,.ops-table-body-v76) { min-width: 1460px; }
+  .cg-layout-v79 .sales-page-v76 .sales-row-v76 > span:nth-child(5) { display: block !important; }
+}

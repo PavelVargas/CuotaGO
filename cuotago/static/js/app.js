@@ -265,123 +265,55 @@
     return data;
   };
 
-  const LOCAL_ALERT_SOUND_KEY = 'cuotago-local-alert-sound-v2';
   const LOCAL_ALERTS_ENABLED_KEY = 'cuotago-local-alerts-enabled-v1';
-  let alertAudioContext = null;
   let alertAudioUnlocked = false;
   let pendingAlertSound = false;
-
-  const getAlertAudioContext = () => {
-    if (alertAudioContext) return alertAudioContext;
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return null;
-    try {
-      alertAudioContext = new AudioContextClass();
-      return alertAudioContext;
-    } catch (_) {
-      return null;
-    }
-  };
+  let pendingAlertUntil = 0;
 
   const localAlertsEnabled = () => {
     try { return localStorage.getItem(LOCAL_ALERTS_ENABLED_KEY) !== '0'; } catch (_) { return true; }
   };
-
   const setLocalAlertsEnabled = (enabled) => {
     try { localStorage.setItem(LOCAL_ALERTS_ENABLED_KEY, enabled ? '1' : '0'); } catch (_) {}
   };
-
   const updateLocalAlertStatus = () => {
     const enabled = localAlertsEnabled();
     const supported = Boolean(window.AudioContext || window.webkitAudioContext);
     document.querySelectorAll('[data-local-alert-switch]').forEach((input) => { input.checked = enabled; });
     document.querySelectorAll('[data-local-alert-status]').forEach((el) => {
-      if (!enabled) {
-        el.textContent = 'Desactivadas';
-        el.dataset.active = '0';
-        return;
-      }
-      if (!supported) {
-        el.textContent = 'Activadas · sin sonido';
-        el.dataset.active = '1';
-        return;
-      }
-      el.textContent = alertAudioUnlocked ? 'Activadas · sonido listo' : 'Activadas';
-      el.dataset.active = '1';
+      el.dataset.active = enabled ? '1' : '0';
+      el.textContent = !enabled ? 'Desactivadas' : !supported ? 'Activadas \u00b7 sin sonido'
+        : alertAudioUnlocked ? 'Activadas \u00b7 sonido listo' : 'Activadas';
     });
   };
-
   const unlockAlertAudio = async () => {
-    const ctx = getAlertAudioContext();
-    if (!ctx) {
-      updateLocalAlertStatus();
-      return false;
-    }
-    try {
-      if (ctx.state === 'suspended') await ctx.resume();
-      if (ctx.state === 'running') {
-        // Prime the context silently from a real user gesture. This is much
-        // more reliable on iPhone than repeatedly calling HTMLAudio.play().
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.00001, ctx.currentTime);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.025);
-        alertAudioUnlocked = true;
-        try { localStorage.setItem(LOCAL_ALERT_SOUND_KEY, '1'); } catch (_) {}
-        updateLocalAlertStatus();
-        if (pendingAlertSound) {
-          pendingAlertSound = false;
-          window.setTimeout(() => playAlertSound(), 60);
-        }
-        return true;
-      }
-    } catch (_) {}
+    alertAudioUnlocked = Boolean(await window.CuotaGoNotificationAudio?.unlock());
     updateLocalAlertStatus();
-    return false;
+    if (alertAudioUnlocked && pendingAlertSound && Date.now() < pendingAlertUntil) {
+      pendingAlertSound = false;
+      playAlertSound();
+    }
+    return alertAudioUnlocked;
   };
-
   const playSynthAlert = () => {
-    const ctx = getAlertAudioContext();
-    if (!ctx || ctx.state !== 'running' || !alertAudioUnlocked) {
-      pendingAlertSound = true;
-      return false;
-    }
-    try {
-      const now = ctx.currentTime + 0.015;
-      const tones = [659.25, 783.99, 987.77];
-      tones.forEach((frequency, index) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(frequency, now + index * 0.14);
-        gain.gain.setValueAtTime(0.0001, now + index * 0.14);
-        gain.gain.exponentialRampToValueAtTime(0.19, now + index * 0.14 + 0.015);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.14 + 0.12);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + index * 0.14);
-        osc.stop(now + index * 0.14 + 0.13);
-      });
-      return true;
-    } catch (_) {
-      pendingAlertSound = true;
-      return false;
-    }
+    const engine = window.CuotaGoNotificationAudio;
+    if (!engine) return false;
+    const played = engine.play();
+    // Retry only a recent, blocked alert, not an old sound on an unrelated visit.
+    pendingAlertSound = !played && engine.supported();
+    if (pendingAlertSound) pendingAlertUntil = Date.now() + 5000;
+    return played;
   };
-
   const playAlertSound = () => {
     if (!localAlertsEnabled()) return false;
     const played = playSynthAlert();
-    try { navigator.vibrate?.([180, 90, 180, 90, 320]); } catch (_) {}
+    try { navigator.vibrate?.([180, 90, 180]); } catch (_) {}
     return played;
   };
-
   const primeAlertAudioFromGesture = () => { unlockAlertAudio(); };
-  document.addEventListener('pointerdown', primeAlertAudioFromGesture, { once: true, capture: true });
-  document.addEventListener('touchstart', primeAlertAudioFromGesture, { once: true, capture: true, passive: true });
+  document.addEventListener('pointerdown', primeAlertAudioFromGesture, { capture: true, passive: true });
+  document.addEventListener('keydown', primeAlertAudioFromGesture, { capture: true });
+  window.addEventListener('pagehide', () => { pendingAlertSound = false; });
   const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const pushSupported = () => window.isSecureContext && 'Notification' in window && 'PushManager' in window && 'serviceWorker' in navigator;
@@ -931,12 +863,14 @@
   };
 
   const setupProfileMenu = () => {
-    const trigger = document.getElementById('profileMenuTrigger');
+    const triggers = Array.from(document.querySelectorAll('#profileMenuTrigger, [data-profile-menu-open]'));
+    let lastTrigger = null;
     const dialog = document.getElementById('profileMenuDialog');
     const closeButton = document.getElementById('profileMenuClose');
-    if (!trigger || !dialog) return;
+    if (!triggers.length || !dialog) return;
 
-    const setExpanded = (expanded) => trigger.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    const setExpanded = (expanded) => triggers.forEach((trigger) =>
+      trigger.setAttribute('aria-expanded', expanded ? 'true' : 'false'));
     const isOpen = () => dialog.open || dialog.hasAttribute('open');
     const openMenu = () => {
       if (isOpen()) return;
@@ -951,10 +885,11 @@
       setExpanded(false);
     };
 
-    trigger.addEventListener('click', () => {
+    triggers.forEach((trigger) => trigger.addEventListener('click', () => {
+      lastTrigger = trigger;
       if (isOpen()) closeMenu();
       else openMenu();
-    });
+    }));
     closeButton?.addEventListener('click', closeMenu);
     dialog.querySelectorAll('[data-close-profile-menu]').forEach((item) => {
       item.addEventListener('click', () => window.setTimeout(closeMenu, 24));
@@ -962,7 +897,12 @@
     dialog.addEventListener('click', (event) => {
       if (event.target === dialog) closeMenu();
     });
-    dialog.addEventListener('close', () => setExpanded(false));
+    dialog.addEventListener('close', () => {
+      setExpanded(false);
+      if (!document.querySelector('dialog[open]') && lastTrigger?.getClientRects().length) {
+        lastTrigger.focus({ preventScroll: true });
+      }
+    });
     dialog.addEventListener('cancel', () => setExpanded(false));
   };
 

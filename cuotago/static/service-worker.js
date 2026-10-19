@@ -7,6 +7,8 @@ const CORE_ASSETS = [
   '/static/css/ui.css',
   '/static/css/dealer.css',
   '/static/css/workspace.css',
+  '/static/css/layout-v79.css',
+  '/static/js/notification-audio.js',
   '/static/js/dealer.js',
   '/static/css/motion.css',
   '/static/css/agreements.css',
